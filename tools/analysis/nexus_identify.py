@@ -6,20 +6,31 @@ is compared case-insensitively against the official Nolvus CSV and the Load Orde
 snapshots under data/snapshots/.  Every enabled, non-separator folder that is not found
 (also after stripping an MO2 duplicate digit suffix such as "Wyrmstooth2") is looked up on
 Nexus Mods (Skyrim Special Edition, gameId 1704) through the public GraphQL v2 API, which
-works without an API key for these read-only queries:
+answers these read-only queries without an API key:
 
-* ``mods(filter: {name: WILDCARD})``      case-insensitive exact mod-name lookup
-* ``mods(filter: {nameStemmed: [...]})``  one value per word; values are AND-ed and stemmed
-* ``modFiles(modId, gameId)``             every file of a mod, including OLD_VERSION/ARCHIVED
-* ``legacyMods(ids: [...])``              mod metadata by id
-* ``modFileContents(fileNameWildcard)``   which mod archives contain a given plugin file name
+* ``mods(filter: {name: [{op: WILDCARD}]})``  every word is a case-insensitive *substring*
+  match (no '*' needed; a '*' breaks it), so results are sorted by relevance
+* ``mods(filter: {nameStemmed: [...]})``      one value per word; values are AND-ed, stemmed
+* ``modFiles(modId, gameId)``                 all files incl. OLD_VERSION / ARCHIVED / REMOVED
+* ``legacyMods(ids: [...])``                  mod metadata by id
+* ``modFileContents(fileNameWildcard)``       archives containing a file; EQUALS is exact and
+  case-sensitive, WILDCARD is a substring match (nodes are filtered by exact name here)
 
-Target plugins that appear in none of the source plugin lists are used as extra evidence:
-they are linked to folders by name similarity and searched in Nexus file contents.
+Method, per folder: name queries (exact-ish, all words, "core" words without versions or
+edition tokens, first " - " segment, distinctive words; relaxed variants when nothing
+scores >= 0.9), file lists of the best candidates, then a score that takes the best of
+mod name, file name, archive name and "<mod name> <file name>".  Target plugins that are
+in none of the source plugin lists are linked to folders by name and searched in Nexus
+file contents; a mod that contains a linked plugin is preferred.  A second pass matches
+still-unresolved folders against the files of mods already chosen for other folders
+(hub pages such as "PBR Hub", patch collections, voice packs).
 
 Every GraphQL sub-query result is cached on disk (one JSON file per sub-query, keyed by its
-SHA-256), so re-runs are cheap and deterministic.  Requests are throttled (``--sleep``),
-batched with GraphQL aliases (``--batch-size``) and retried with back-off on 429/5xx.
+SHA-256), so re-runs are cheap and the output is deterministic for a given cache.
+Requests are throttled (``--sleep``), batched with GraphQL aliases (``--batch-size``) and
+retried with back-off on 429/5xx.
+
+Regenerate:  python3 tools/analysis/nexus_identify.py --cache-dir <dir> [--offline]
 
 繁體中文：為目標 MO2 清單中所有已知來源都找不到的資料夾，透過 Nexus Mods GraphQL 查出最可能的模組頁面與檔案。
 """
@@ -131,7 +142,7 @@ FILE_CAT_RANK = {"MAIN": 6, "UPDATE": 5, "OPTIONAL": 5, "MISCELLANEOUS": 4,
                  "OLD_VERSION": 2, "ARCHIVED": 1, "REMOVED": 0}
 STALE_CATS = {"OLD_VERSION", "ARCHIVED", "REMOVED"}
 
-VERSION_RE = re.compile(r"(?<![\w.])v?\d+(?:\.\d+)+[a-z]?(?![\w.])|(?<![\w.])v\d+(?![\w.])", re.I)
+VERSION_RE = re.compile(r"(?<![\w.])v?\d+(?:\.\d+)+[a-z]?(?![\w.])|(?<![\w.])v\d+[a-z]?(?![\w.])", re.I)
 BRACKET_RE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\{[^}]*\}")
 ARCHIVE_EXT_RE = re.compile(r"\.(zip|7z|rar|esp|esm|esl)$", re.I)
 DUP_SUFFIX_RE = re.compile(r"^(.*[^\W\d_]|.*[)\]])\d{1,2}$")
@@ -640,7 +651,8 @@ def light_stem(tok: str) -> str:
 
 class Candidate:
     __slots__ = ("mod", "sources", "files", "files_err", "score", "detail", "best_file",
-                 "file_score", "plugin_hits", "plugin_files", "equal_files", "best_vmatch")
+                 "file_score", "plugin_hits", "plugin_files", "equal_files", "best_vmatch",
+                 "lang_pen", "pick_how")
 
     def __init__(self, mod: dict):
         self.mod = mod
@@ -655,6 +667,8 @@ class Candidate:
         self.plugin_files: set[int] = set()
         self.equal_files: list[str] = []
         self.best_vmatch = False
+        self.lang_pen = 0.0
+        self.pick_how = ""
 
     @property
     def mod_id(self) -> int:
@@ -703,7 +717,12 @@ def version_match(file_version: str, folder_versions: set[str]) -> bool:
     fv = norm_version(file_version)
     if not fv or not folder_versions:
         return False
-    return any(fv == v or fv.startswith(v + ".") for v in folder_versions)
+    if any(fv == v or fv.startswith(v + ".") for v in folder_versions):
+        return True
+    # Same digits written differently ('3.41' in the folder, '3.4.1' on Nexus).
+    fd = re.sub(r"\D", "", fv)
+    return len(fd) >= 3 and any(re.sub(r"\D", "", v) == fd
+                                and v.split(".")[0] == fv.split(".")[0] for v in folder_versions)
 
 
 def score_files(folder: str, cand: Candidate) -> None:
@@ -717,7 +736,7 @@ def score_files(folder: str, cand: Candidate) -> None:
     """
     base = strip_dup_suffix(folder)
     fvers = versions_in(folder)
-    pen = lang_penalty(folder, cand.name)
+    pen = cand.lang_pen = lang_penalty(folder, cand.name)
     mod_s = max(name_sim(folder, cand.name), name_sim(base, cand.name)) \
         - variant_penalty(base, cand.name)
     mod_norm = "".join(tokenize(cand.name))
@@ -748,6 +767,7 @@ def score_files(folder: str, cand: Candidate) -> None:
         pick = max(pool, key=lambda e: (e[2], e[3], e[4], round(e[0], 2)) + file_sort_key(e[5]))
         cand.best_file = pick[5]
         cand.file_score = pick[0]
+        cand.pick_how = pick[1]
         cand.best_vmatch = bool(pick[2])
         bname = "".join(tokenize(pick[5].get("name") or ""))
         cand.equal_files = sorted({e[5].get("name") or "" for e in pool
@@ -1014,7 +1034,9 @@ class Identifier:
 
     @staticmethod
     def _rank_key(c: Candidate) -> tuple:
-        return (-(c.score + (0.1 if c.plugin_hits else 0.0)), -int(c.live_best),
+        # Translations usually ship the original plugin, so plugin hits do not help them.
+        bonus = 0.1 if c.plugin_hits and not c.lang_pen else 0.0
+        return (-(c.score + bonus), -int(c.live_best),
                 -c.downloads, c.mod_id)
 
     def _best(self, cands: dict[int, Candidate]) -> Candidate | None:
@@ -1094,6 +1116,10 @@ class Identifier:
                 if conf == "low" and cat == "nexus_found":
                     cat = "nexus_ambiguous"
 
+        if best.lang_pen and cat == "nexus_found":
+            cat, conf = "nexus_ambiguous", "low"
+            notes.append("best candidate looks like a translation upload; the original mod "
+                         "page was not identified")
         row["notes"] = notes
         if cat == "not_found":
             notes.append(f"closest: {fmt_alt(best)}" if best.score >= 0.4 else "no close name match")
@@ -1110,17 +1136,20 @@ class Identifier:
         row["nexus_author"] = author_of(mod)
         row["_mod_id"] = best.mod_id
         row["_files"] = best.files or []
-        if best.detail in ("file", "mod+file", "archive") and best.file_score >= 0.85:
-            notes.append({"file": "folder matches a file name",
-                          "mod+file": "folder matches '<mod name> <file name>'",
-                          "archive": "folder matches an archive file name"}[best.detail])
         if exact and best.score < 1.0:
             notes.append("match after dropping version/edition tokens")
         if (mod.get("status") or "published") != "published":
             notes.append(f"mod status: {mod.get('status')}")
         if mod.get("adultContent"):
             notes.append("mod flagged adult content")
+        how_notes = {"file": "folder matches the file name",
+                     "mod+file": "folder matches '<mod name> <file name>'",
+                     "archive": "folder matches the file's archive name"}
         f = choose_file(folder, best, notes)
+        matched_by_name = best.file_score >= 0.85 or (best.best_vmatch and best.file_score >= 0.7)
+        if f is not None and f is best.best_file and matched_by_name \
+                and best.pick_how in how_notes:
+            notes.append(how_notes[best.pick_how])
         if f is not None:
             row["suggested_file_id"] = f.get("fileId")
             row["suggested_file_name"] = f.get("name")
@@ -1210,10 +1239,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--target-modlist", type=Path, default=REPO_ROOT / "data/target/modlist.txt")
     ap.add_argument("--target-plugins", type=Path, default=REPO_ROOT / "data/target/plugins.txt")
     ap.add_argument("--snapshots", type=Path, default=REPO_ROOT / "data/snapshots")
-    ap.add_argument("--out", type=Path, default=REPO_ROOT / "data/analysis/nexus_candidates.csv")
+    ap.add_argument("--out", type=Path, default=REPO_ROOT / "data/analysis/nexus_candidates.csv",
+                    help="output CSV (default data/analysis/nexus_candidates.csv)")
     ap.add_argument("--cache-dir", type=Path,
                     default=Path(os.environ.get("NEXUS_CACHE_DIR",
-                                                Path.home() / ".cache/pages-modlist-tools/nexus")))
+                                                Path.home() / ".cache/pages-modlist-tools/nexus")),
+                    help="on-disk response cache (default $NEXUS_CACHE_DIR or "
+                         "~/.cache/pages-modlist-tools/nexus)")
     ap.add_argument("--limit", type=int, default=0,
                     help="only process the first N unknown folders (0 = all)")
     ap.add_argument("--sleep", type=float, default=1.0,
@@ -1286,8 +1318,14 @@ def main(argv: list[str] | None = None) -> int:
             row.update(category="custom", match_method="manual_hint", confidence="high",
                        notes=[CUSTOM_FOLDERS[low]])
         elif low in NON_NEXUS_FOLDERS:
+            notes = [NON_NEXUS_FOLDERS[low]]
+            # Still look on Nexus: a similarly named page is reported in the notes only.
+            probe = ident.identify(folder, related)
+            if probe.get("category") == "nexus_found":
+                notes.append(f"check: Nexus has a similarly named page {probe['nexus_mod_name']!r} "
+                             f"(#{probe['nexus_mod_id']}, {probe['confidence']} name match)")
             row.update(category="non_nexus", match_method="manual_hint", confidence="medium",
-                       notes=[NON_NEXUS_FOLDERS[low]])
+                       notes=notes)
         elif low in MANUAL_HINTS:
             mod_id, note = MANUAL_HINTS[low]
             ident.fetch_mods([mod_id])

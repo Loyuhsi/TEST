@@ -12,17 +12,19 @@
   "custom": 3,
   "generated": 9,
   "mv": 556,
+  "nexus_other": 415,
   "nolvus": 2583,
   "nolvus_old": 55,
   "non_nexus": 13,
-  "unknown": 441
+  "unknown": 26
  },
  "by_action": {
+  "download_nexus": 386,
   "drop": 16,
   "harvest_mv": 647,
   "harvest_nolvus": 2931,
   "regenerate": 9,
-  "review": 441
+  "review": 55
  },
  "generated_plugins": [
   "PGPatcher.esp",
@@ -46,6 +48,6 @@
  ],
  "inputs": {
   "mv_folder_map": true,
-  "nexus_candidates": false
+  "nexus_candidates": true
  }
 }

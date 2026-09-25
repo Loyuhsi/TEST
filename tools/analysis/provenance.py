@@ -174,8 +174,9 @@ def classify(root: Path) -> tuple[list[dict], dict]:
         else:
             nx_cat = nx.get("category", "")
             if nx_cat in ("nexus_found", "nexus_ambiguous", "adult_gated"):
-                category, action = "nexus_other", "download_nexus"
-                note = f"{nx_cat}, confidence {nx.get('confidence','')}"
+                sure = nx_cat == "nexus_found" and nx.get("confidence") in ("high", "medium")
+                category, action = "nexus_other", ("download_nexus" if sure else "review")
+                note = f"{nx_cat}, confidence {nx.get('confidence','')}" + ("" if sure else " - confirm the Nexus page by hand")
             elif nx_cat in ("generated", "custom", "non_nexus"):
                 category, action, note = nx_cat, ("regenerate" if nx_cat == "generated" else "drop"), nx.get("notes", "")
             else:

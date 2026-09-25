@@ -55,9 +55,9 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `provenance.csv` | 目標清單 4044 個 mod 的來源分類與建議動作。分類：Nolvus 2583（另有舊版 55）、M&V 556、兩者皆有 384、需重建 9、自製 3、非 Nexus 13、待辨識 441 |
+| `provenance.csv` | 目標清單 4044 個 mod 的來源分類與建議動作。分類：Nolvus 2583（另有舊版 55）、M&V 556、兩者皆有 384、其他 Nexus mod 415（可直接下載 386，需人工確認 29）、找不到來源 26、需重建 9、自製 3、非 Nexus 13 |
 | `mv_folder_map.csv` | M&V 2.6.2 的 3694 個資料夾 → Nexus 模組／檔案 ID、SKSE DLL、插件 |
-| `nexus_candidates.csv` | 待辨識 mod 在 Nexus 上的候選來源 |
+| `nexus_candidates.csv` | 兩份基底清單都沒有的 467 個資料夾在 Nexus 上的候選來源（找到 418 個，其中 390 個附建議檔案） |
 | `drop_list.csv` | 依決定捨棄的項目，以及作者自製的 `[FIX]` 插件 |
 | `data/decisions.csv` | 你或 Claude 手動覆寫個別資料夾動作的地方（`folder,action,note`） |
 
