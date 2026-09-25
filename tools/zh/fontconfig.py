@@ -8,7 +8,7 @@ every "$Name" mapping points at the official Chinese font, fontlibs from both ar
 
     python tools\\zh\\fontconfig.py --pm D:\\PM --official "D:\\PM\\mods\\ZH - 官方繁中字串\\interface\\fontconfig_cn.txt" ^
         --out-mod "D:\\PM\\mods\\ZH Overrides" --apply
-Put "ZH Overrides" at the very top of the left pane (highest priority) so its fontconfig.txt wins.
+Put "ZH Overrides" at the very bottom of MO2's left pane (= highest priority) so its fontconfig.txt wins.
 """
 
 from __future__ import annotations
