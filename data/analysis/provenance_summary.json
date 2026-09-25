@@ -1,0 +1,51 @@
+{
+ "enabled_mods": 4044,
+ "separators": 95,
+ "plugins": 4244,
+ "plugins_by_ext": {
+  ".esp": 4140,
+  ".esl": 76,
+  ".esm": 28
+ },
+ "by_category": {
+  "both": 384,
+  "custom": 3,
+  "generated": 9,
+  "mv": 556,
+  "nolvus": 2583,
+  "nolvus_old": 55,
+  "non_nexus": 13,
+  "unknown": 441
+ },
+ "by_action": {
+  "drop": 16,
+  "harvest_mv": 647,
+  "harvest_nolvus": 2931,
+  "regenerate": 9,
+  "review": 441
+ },
+ "generated_plugins": [
+  "PGPatcher.esp",
+  "DynDOLOD.esm",
+  "FNIS.esp",
+  "Synthesis.esp",
+  "PG_1.esp",
+  "PG_2.esp",
+  "DynDOLOD.esp",
+  "Occlusion.esp"
+ ],
+ "custom_plugins": [
+  "[FIX]Falkreath02.esp",
+  "[FIX]Morthal01.esp",
+  "[FIX]Riverwood02.esp",
+  "[FIX]Roadsigns01.esp",
+  "[FIX]Rorikstead01.esp",
+  "[FIX]Solitude01.esp",
+  "[FIX]Spaghetti's Grand Solitude Patch.esp",
+  "[FIX]Volcanictundra01.esp"
+ ],
+ "inputs": {
+  "mv_folder_map": true,
+  "nexus_candidates": false
+ }
+}

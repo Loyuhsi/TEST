@@ -1,0 +1,25 @@
+kind,name,line,category,reason
+folder,CS shaders,3,custom,probably a Community Shaders shader cache or local tweak
+folder,CustomFixes1,6,custom,author's private fixes (likely holds the [FIX]*.esp plugins)
+folder,CommunityShaders_AIO-2026-05-28T17-09Z,26,non_nexus,Jiaye CS fork build (Wabbajack authored file); replaced by official Community Shaders
+folder,Vanilla CS rain TEXTURES,98,custom,probably a local texture tweak for CS rain
+folder,SC_HorseReplacer_SSE,435,non_nexus,ShinglesCat Patreon
+folder,SC_HorseReplacer,436,non_nexus,ShinglesCat Patreon
+folder,Grapple a1.7,559,non_nexus,Smooth Patreon (paid tier)
+folder,anchor animation v2 Part,560,non_nexus,Anchor Patreon
+folder,For Honor in Skyrim Black Prior,1097,non_nexus,Smooth Patreon/Discord
+folder,Curious Adventurer,1831,non_nexus,Aokili Patreon (free tier)
+folder,[full_inu] Armor Pack 01 SSE,1906,non_nexus,blog/Patreon
+folder,[SSE] H2135 Fantasy Series8,1917,non_nexus,Patreon/Discord
+folder,[Kirax] BDOR 2024 Female Collection,1920,non_nexus,ModBooru/LoversLab
+folder,[TalesOfStar] Air Balloons,3372,non_nexus,Patreon/site
+folder,[Dint999] BDOR Hairs SSE 0.23,3896,non_nexus,Patreon/Discord
+folder,Lamas Tiny Hud - Edge version (SUKI),3922,non_nexus,SUKI Patreon
+plugin,[FIX]Falkreath02.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Morthal01.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Riverwood02.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Roadsigns01.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Rorikstead01.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Solitude01.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Spaghetti's Grand Solitude Patch.esp,,custom,author-made [FIX] plugin (not downloadable)
+plugin,[FIX]Volcanictundra01.esp,,custom,author-made [FIX] plugin (not downloadable)
