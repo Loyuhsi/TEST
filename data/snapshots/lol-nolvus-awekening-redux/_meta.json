@@ -1,0 +1,12 @@
+{
+ "slug": "nolvus-awekening-redux",
+ "name": "Nolvus Awakening - Redux",
+ "version": "6.0.20",
+ "updated": "2026-05-29T00:00:33.000000Z",
+ "author": "Railyn",
+ "source": "https://api.loadorderlibrary.com/v1/lists/nolvus-awekening-redux",
+ "files": [
+  "modlist.txt"
+ ],
+ "note": "modlist.txt converted to native MO2 order (first line = highest priority); plugins/loadorder unchanged (first line loads first)."
+}

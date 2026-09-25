@@ -1,0 +1,581 @@
+{
+  "schema": "mv_wabbajack_map/1",
+  "fetched_date": "2026-09-25",
+  "generator": "tools/analysis/mv_wabbajack_map.py",
+  "modlist": {
+    "name": "Mages & Vikings",
+    "version": "2.6.2",
+    "author": "SEE YOU L'HATER",
+    "description": "Do you like Mages? Do you like Vikings? There you go!",
+    "game_type": "SkyrimSpecialEdition",
+    "wabbajack_version": "2.2.2.0",
+    "is_nsfw": false,
+    "website": "http://www.wabbajack.org/",
+    "readme": "https://raw.githubusercontent.com/nicolasbertolino/MagesAndVikings/main/README.md",
+    "community": "https://discord.gg/Newa3dj5pZ"
+  },
+  "source": {
+    "mode": "cdn_ranged",
+    "download_url": "https://authored-files.wabbajack.org/Mages & Vikings.wabbajack_5f2143a6-536f-46b8-a984-05e4a05669c7",
+    "request_base_url": "https://authored-files.wabbajack.org/Mages%20%26%20Vikings.wabbajack_5f2143a6-536f-46b8-a984-05e4a05669c7",
+    "cdn_definition_url": "https://authored-files.wabbajack.org/Mages%20%26%20Vikings.wabbajack_5f2143a6-536f-46b8-a984-05e4a05669c7/definition.json.gz",
+    "cdn_part_count": 2583,
+    "cdn_part_size": 2097152,
+    "wabbajack_file_name": "Mages & Vikings.wabbajack",
+    "wabbajack_file_size": 5416496998,
+    "wabbajack_hash_xxh64_b64": "3T7zoDVWmSQ=",
+    "cdn_uploaded_at": "2026-09-05T21:52:08Z",
+    "http_requests": 19,
+    "http_bytes_transferred": 23497914,
+    "modlist_entry": {
+      "entry_name": "modlist",
+      "compress_type": 8,
+      "compressed_size": 17571754,
+      "uncompressed_size": 131007100,
+      "crc32": "d8c1061a",
+      "local_header_offset": 5392271866,
+      "zip_entry_count": 67996
+    },
+    "gallery_index_url": "https://raw.githubusercontent.com/wabbajack-tools/mod-lists/master/repositories.json",
+    "gallery_repository_url": "https://raw.githubusercontent.com/nicolasbertolino/MagesAndVikings/main/modlists.json",
+    "gallery_machine_url": "MagesAndVikings",
+    "modlist_json_bytes": 131007100,
+    "modlist_json_sha256": "68bbbee40def6801ce83083b29d92c6b4dbe5727ef48b2a7a2b985b9ea85515c"
+  },
+  "gallery": {
+    "title": "Mages & Vikings",
+    "version": "2.6.2",
+    "author": "SEEYOULHATER",
+    "maintainers": [
+      "github/nicolasbertolino"
+    ],
+    "game": "skyrimspecialedition",
+    "official": true,
+    "tags": [
+      "Official",
+      "High Fantasy",
+      "SFW"
+    ],
+    "nsfw": false,
+    "date_updated": "2026-09-05T21:54:20.6174002Z",
+    "machine_url": "MagesAndVikings",
+    "readme": "https://github.com/nicolasbertolino/MagesAndVikings/blob/main/README.md",
+    "nexus_collection": {
+      "collectionId": "503539",
+      "slug": "agq2zq",
+      "domainName": "skyrimspecialedition",
+      "lastRevisionNumber": 4
+    },
+    "download_metadata": {
+      "Hash": "3T7zoDVWmSQ=",
+      "Size": 5416496998,
+      "NumberOfArchives": 3772,
+      "SizeOfArchives": 229998290486,
+      "NumberOfInstalledFiles": 374545,
+      "SizeOfInstalledFiles": 386316461236,
+      "TotalSize": 616314751722
+    }
+  },
+  "game_files": {
+    "game_type": "SkyrimSpecialEdition",
+    "other_games": [],
+    "game_file_source_archives": 178,
+    "game_versions": {
+      "1.7.104.0": 178
+    },
+    "nexus_archives_for_other_games": [
+      {
+        "name": "Bethini Pie-631-4-17-1769903122.7z",
+        "game": "ModdingTools",
+        "mod_id": "631",
+        "file_id": "6848"
+      },
+      {
+        "name": "MO2 Startup Scroll 2074 1.3.0.4 2026-07-04T02-26Z ichknvtxb.zip",
+        "game": "ModdingTools",
+        "mod_id": "2074",
+        "file_id": "8420"
+      }
+    ]
+  },
+  "counts": {
+    "archives_total": 3772,
+    "archives_by_source": {
+      "Nexus": 3540,
+      "HTTP": 51,
+      "GameFile": 178,
+      "WabbajackCDN": 3,
+      "Mega": 0,
+      "GoogleDrive": 0,
+      "Other": 0
+    },
+    "archives_by_downloader_type": {
+      "GameFileSourceDownloader": 178,
+      "HttpDownloader": 51,
+      "NexusDownloader": 3540,
+      "WabbajackCDNDownloader": 3
+    },
+    "archives_referenced_by_directives": 3772,
+    "archives_unreferenced": 0,
+    "unknown_archive_references": 0,
+    "archives_used_by_multiple_folders": 1138,
+    "http_hosts": {
+      "github.com": 4,
+      "www.patreon.com": 47
+    },
+    "nexus_game_names": {
+      "ModdingTools": 2,
+      "SkyrimSpecialEdition": 3538
+    },
+    "directives_total": 374545,
+    "directives_by_type": {
+      "CreateBSA": 17,
+      "FromArchive": 306534,
+      "InlineFile": 7378,
+      "PatchedFromArchive": 60605,
+      "RemappedInlineFile": 11
+    },
+    "archive_hash_path_depth": {
+      "0": 7406,
+      "1": 203,
+      "2": 363229,
+      "3": 3707
+    },
+    "mod_folders": 3694,
+    "mod_folders_separators": 81,
+    "mod_folders_non_separator": 3613,
+    "mod_folders_by_primary_source": {
+      "GameFile": 6,
+      "HTTP": 50,
+      "InlineOnly": 93,
+      "Nexus": 3543,
+      "WabbajackCDN": 2
+    },
+    "mod_folders_inline_only_non_separator": 12,
+    "mod_folders_with_multiple_archives": 634,
+    "mod_folders_with_patched_files": 139,
+    "mod_folders_with_skse_dlls": 313,
+    "mod_folders_with_plugins": 1935,
+    "mod_folders_with_bsa_built_by_wabbajack": 1,
+    "plugins_in_mod_folders": 3625,
+    "skse_dlls_in_mod_folders": 316
+  },
+  "sizes": {
+    "archives_total_bytes": 229998290486,
+    "all_directives_total_bytes": 386316461236,
+    "installed_files_total_bytes": 363810065823,
+    "temp_bsa_files_total_bytes": 22506395413,
+    "mods_total_bytes": 359949357394,
+    "note": "Sums of Archive.Size / Directive.Size. all_directives_total_bytes should equal the gallery's SizeOfInstalledFiles; installed_files_total_bytes excludes TEMP_BSA_FILES staging files; CreateBSA directives report Size 0."
+  },
+  "destinations": {
+    "by_top_level": {
+      "(root files)": 17,
+      "dlls": 45,
+      "explorer++": 5,
+      "licenses": 20,
+      "loot": 2,
+      "mods": 282403,
+      "platforms": 1,
+      "plugins": 1756,
+      "profiles": 45,
+      "qml": 14,
+      "resources": 7,
+      "Stock Game": 26,
+      "styles": 1,
+      "stylesheets": 342,
+      "TEMP_BSA_FILES": 86838,
+      "tools": 2303,
+      "translations": 698,
+      "tutorials": 22
+    },
+    "by_second_level_outside_mods": {
+      "dlls\\imageformats": 10,
+      "dlls\\tls": 3,
+      "plugins\\basic_games": 138,
+      "plugins\\crashlogtools": 219,
+      "plugins\\crdw_auto_mode": 3,
+      "plugins\\data": 953,
+      "plugins\\hide_unlock_button": 1,
+      "plugins\\installer_omod": 6,
+      "plugins\\installer_wizard": 173,
+      "plugins\\mod_bundle_trigger": 3,
+      "plugins\\PageFileManager": 7,
+      "plugins\\plugin_python": 98,
+      "plugins\\quick_hide_delete_downloads": 1,
+      "plugins\\remember_installation_choices": 1,
+      "plugins\\rootbuilder": 114,
+      "profiles\\Default": 45,
+      "qml\\QtQml": 11,
+      "qml\\QtQuick": 3,
+      "Stock Game\\Data": 20,
+      "stylesheets\\1809 Dark Mode": 5,
+      "stylesheets\\Paper": 134,
+      "stylesheets\\Parchment": 9,
+      "stylesheets\\skyrim": 35,
+      "stylesheets\\Transparent-Style": 113,
+      "stylesheets\\vs15": 23,
+      "tools\\Bethini Pie": 49,
+      "tools\\DynDOLOD": 1287,
+      "tools\\PGPatcher": 266,
+      "tools\\Resaver": 259,
+      "tools\\SSEEdit 4.1.5": 256,
+      "tools\\xLODGen": 186,
+      "translations\\qtwebengine_locales": 1
+    },
+    "temp_bsa_files_by_target_bsa": {
+      "mods\\Creation Club\\_ResourcePack.bsa": 463,
+      "Stock Game\\Data\\MarketplaceTextures.bsa": 121,
+      "Stock Game\\Data\\Skyrim - Interface.bsa": 386,
+      "Stock Game\\Data\\Skyrim - Meshes0.bsa": 19443,
+      "Stock Game\\Data\\Skyrim - Meshes1.bsa": 14242,
+      "Stock Game\\Data\\Skyrim - Misc.bsa": 14032,
+      "Stock Game\\Data\\Skyrim - Shaders.bsa": 1,
+      "Stock Game\\Data\\Skyrim - Sounds.bsa": 6198,
+      "Stock Game\\Data\\Skyrim - Textures0.bsa": 5891,
+      "Stock Game\\Data\\Skyrim - Textures1.bsa": 887,
+      "Stock Game\\Data\\Skyrim - Textures2.bsa": 997,
+      "Stock Game\\Data\\Skyrim - Textures3.bsa": 1777,
+      "Stock Game\\Data\\Skyrim - Textures4.bsa": 1166,
+      "Stock Game\\Data\\Skyrim - Textures5.bsa": 5095,
+      "Stock Game\\Data\\Skyrim - Textures6.bsa": 8813,
+      "Stock Game\\Data\\Skyrim - Textures7.bsa": 7084,
+      "Stock Game\\Data\\Skyrim - Textures8.bsa": 242
+    },
+    "temp_bsa_files_unattributed": 0,
+    "note": "Counts of directives by the first component of 'To'. TEMP_BSA_FILES are staging files packed into the listed BSAs by CreateBSA; they are not installed loose."
+  },
+  "folders_with_non_nexus_primary": [
+    {
+      "folder": "[Controller] See Discord for a full breakdown of gamepad controls",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data_Skyrim - Interface.bsa"
+    },
+    {
+      "folder": "[Dint999] HairPack02 SSE 1.12 (base)",
+      "primary_source": "WabbajackCDN",
+      "primary_archive_name": "[Dint999] HairPack02 SSE 1.12 (base).7z"
+    },
+    {
+      "folder": "_Fuse00_ArmorAemond_V1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorAemond_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorAkasha_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorAkasha_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorArianna_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorArianna_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorArtificer_Vanilla male",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorArtificer_Vanilla male 1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorCamarilla_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorCamarilla_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorCamarilla_Vanilla male",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorCamarilla_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorDaemon",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorDaemon.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorFreija_CBBE_1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorFreija_CBBE_1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorFreija_VanillaMale_1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorFreija_CBBE_1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorHelga_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorHelga_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorHighlander_VanillaMale",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorHighlander_VanillaMale.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorKatari_CBBE_1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorKatari_CBBE_1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorKitsuneHunter_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorKitsuneHunter_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorKitsuneHunter_VanillaMale",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorKitsuneHunter_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorLegionary_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorLegionary_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorLegionary_VanillaMale",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorLegionary_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorLeon",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorLeon.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorMelonyCBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorMelonyCBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorOrdinator",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorOrdinator.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorPerseus",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorPerseus.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorPhantom_CBBE_V1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorPhantom_CBBE_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorPhantom_VanillaMale",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorPhantom_CBBE_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorRedWarrior_VanillaMale",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorRedWarrior_VanillaMale.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorSasrir",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorSasrir.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorShadow 1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorShadow 1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorSonaCBBE_V1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorSonaCBBE_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorSonaVanillaMale_V1.2",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorSonaCBBE_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorSpriggan_CBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorSpriggan_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorSpriggan_Vanilla Male",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorSpriggan_CBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorVendalianFemaleCBBE",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorVendalianFemaleCBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_ArmorVendalianMaleVanilla",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_ArmorVendalianFemaleCBBE.rar"
+    },
+    {
+      "folder": "_Fuse00_GeraltHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_GeraltHair.rar"
+    },
+    {
+      "folder": "_Fuse00_HairHilda",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_HairHilda.rar"
+    },
+    {
+      "folder": "_Fuse00_HairKing_noshell",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_HairKing_noshell.rar"
+    },
+    {
+      "folder": "_Fuse00_HairLeon",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00_HairLeon.rar"
+    },
+    {
+      "folder": "_Fuse00AemondHair_V1.1",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00AemondHair_V1.1.rar"
+    },
+    {
+      "folder": "_Fuse00AldoHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00AldoHair.rar"
+    },
+    {
+      "folder": "_Fuse00AlucardHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00AlucardHair.rar"
+    },
+    {
+      "folder": "_Fuse00AmberHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00AmberHair.rar"
+    },
+    {
+      "folder": "_Fuse00DreadlocksHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00DreadlocksHair.rar"
+    },
+    {
+      "folder": "_Fuse00HairPackBraided03",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00HairPackBraided03.rar"
+    },
+    {
+      "folder": "_Fuse00MarcoHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00MarcoHair.rar"
+    },
+    {
+      "folder": "_Fuse00PHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00PHair.rar"
+    },
+    {
+      "folder": "_Fuse00RogueHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00RogueHair.rar"
+    },
+    {
+      "folder": "_Fuse00SirenHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00SirenHair.rar"
+    },
+    {
+      "folder": "_Fuse00TaurielHair",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00TaurielHair.rar"
+    },
+    {
+      "folder": "_Fuse00YenHair_1.2",
+      "primary_source": "HTTP",
+      "primary_archive_name": "_Fuse00YenHair_1.2.rar"
+    },
+    {
+      "folder": "Cleaned Creation Club Plugins",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data_cctwbsse001-puzzledungeon.esm"
+    },
+    {
+      "folder": "Cleaned Vanilla Masters",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data_Dragonborn.esm"
+    },
+    {
+      "folder": "Creation Club",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data__ResourcePack.bsa"
+    },
+    {
+      "folder": "High Poly Head SE",
+      "primary_source": "WabbajackCDN",
+      "primary_archive_name": "High_Poly_Head_v1.4_(SE).zip"
+    },
+    {
+      "folder": "Mages & Vikings - Pandora Output",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data_Skyrim - Animations.bsa"
+    },
+    {
+      "folder": "Mages & Vikings - PGPatcher Output",
+      "primary_source": "GameFile",
+      "primary_archive_name": "Data_Skyrim - Meshes0.bsa"
+    },
+    {
+      "folder": "Maxsu Block Overhaul",
+      "primary_source": "HTTP",
+      "primary_archive_name": "MaxsuBlockOverhaul-v0.22.7z"
+    },
+    {
+      "folder": "Modern Stagger Lock Framework",
+      "primary_source": "HTTP",
+      "primary_archive_name": "Modern.Stagger.Lock-v1.07a.-.AE.-.VR.7z"
+    },
+    {
+      "folder": "SCAR - Skyrim Combos AI Revolution",
+      "primary_source": "HTTP",
+      "primary_archive_name": "SCAR-v2.01.AE.7z"
+    }
+  ],
+  "mo2_modlist_comparison": {
+    "file_name": "modlist.txt",
+    "entries_plus_minus": 3706,
+    "entries_enabled": 3579,
+    "entries_unmanaged_star": 0,
+    "separators_in_txt": 81,
+    "overlap": 3694,
+    "only_in_modlist_txt": {
+      "count": 12,
+      "separators": 0,
+      "names": [
+        "[full_inu] Eredrim, the Venerable SSE",
+        "[Vanilla Start - 21x9] Enable for a vanilla-friendly start (widescreen support)",
+        "Debug Menu - In-Game Navmesh Viewer and More",
+        "dMenu",
+        "dMenu NG",
+        "ImmersiveHUD SKSE",
+        "Jaxonz Positioner Converted",
+        "Load Time Profiler",
+        "Outfit NPCs (Inventory-Equipment) SE",
+        "Papyrus Profiler",
+        "Skyrim Platform - A TypeScript SDK for Skyrim",
+        "Unlimited Fast Travel"
+      ]
+    },
+    "only_in_wabbajack": {
+      "count": 0,
+      "separators": 0,
+      "names": []
+    }
+  },
+  "csv_rules": {
+    "primary": "archive providing the most files to the folder (ties: bytes, name, hash)",
+    "all_archives": "name|source|nexus_mod_id|nexus_file_id, ordered like primary ranking",
+    "file_count": "directives whose To is mods\\<folder>\\... (loose files; a built BSA counts once)",
+    "bsa_staging": "TEMP_BSA_FILES\\<TempID> files count toward archive attribution of the BSA's folder only",
+    "patched_count": "PatchedFromArchive (+TransformedTexture)",
+    "inline_count": "InlineFile + RemappedInlineFile",
+    "skse_dlls": "<folder>\\SKSE\\Plugins\\*.dll",
+    "plugins": "*.esp/*.esm/*.esl at the folder root"
+  }
+}

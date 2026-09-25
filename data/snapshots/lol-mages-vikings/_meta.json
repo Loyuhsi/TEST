@@ -1,0 +1,13 @@
+{
+ "slug": "mages-vikings",
+ "name": "Mages & Vikings",
+ "version": "2.6.2",
+ "updated": "2026-09-05T21:33:14.000000Z",
+ "author": "SEE YOU L'HATER",
+ "source": "https://api.loadorderlibrary.com/v1/lists/mages-vikings",
+ "files": [
+  "loadorder.txt",
+  "modlist.txt"
+ ],
+ "note": "modlist.txt converted to native MO2 order (first line = highest priority); plugins/loadorder unchanged (first line loads first)."
+}

@@ -1,0 +1,14 @@
+{
+ "slug": "nolvus-v6-ultimate-open-beta-start",
+ "name": "Nolvus v6 ULTIMATE Open Beta Start",
+ "version": null,
+ "updated": "2024-12-28T23:35:07.000000Z",
+ "author": null,
+ "source": "https://api.loadorderlibrary.com/v1/lists/nolvus-v6-ultimate-open-beta-start",
+ "files": [
+  "loadorder.txt",
+  "modlist.txt",
+  "plugins.txt"
+ ],
+ "note": "modlist.txt converted to native MO2 order (first line = highest priority); plugins/loadorder unchanged (first line loads first)."
+}

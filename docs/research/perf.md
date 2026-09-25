@@ -1,0 +1,187 @@
+# perf
+
+## SUMMARY
+I re-checked the "perf" result against primary sources (nolvus.net, the Nexus GraphQL API for mod pages, GitHub, NVIDIA, dyndolod.info, Microsoft, the Wabbajack wiki and Load Order Library). I also re-ran the local file analysis. Most facts hold: the Nolvus v6 VRAM and disk tables, Mages & Vikings (MV) metadata and README, CS 1.9.1, Upscaling 1.4.0, NAT.CS III, Effects 11, Grass Optimizations, NGIO, VRAMr, FSMP, Display Tweaks, PageFile Manager, laptop VRAM specs, and the counts of 4044 mods, 81 PBR entries, 48 SMP entries and the overlap figures.
+
+Load-bearing errors I found:
+(1) Nolvus v6 does NOT run on current AE. Nolvus Awakening 6.0.2x ships SKSE 2.0.20, which is the SE build for 1.5.97, plus Crash Logger - 1.5.97. Its STOCK GAME is SkyrimSE 1.5.97. The target's 1.5.97 runtime therefore comes from Nolvus.
+(2) The shared context's claim that "MV runs on 1.5.97 + BOBW" (Best of Both Worlds) is contradicted by MV 2.6.2's own archive list. It uses Engine Fixes AIO for 1.6.1170+, Address Library AIO 1.7.99, SKSE Steam 2.2.8 and "1.6.1170 Missing Files". So MV is on AE, and its SKSE DLLs cannot be copied into the 1.5.97 target.
+(3) The RTX 5090 Laptop performs about like a desktop RTX 4070 Ti Super or 5070, not a desktop 5080.
+(4) Freak's Floral Meadows needs iMinGrassSize=50, not 60.
+(5) Grass Optimizations advises regenerating DynDOLOD without grass LOD (DynDOLOD-Grass-Mode=0) and relying on NGIO extended distance instead. That conflicts with the "grass LOD 50%" advice whenever Grass Optimizations is used.
+(6) Backported Extended ESL Support (BEES) is not specific to 1.5.97.
+(7) The target's CS AIO build (2026-05-28) is a Wabbajack authored file, also used by the Kirbylite modlist. It dates from about the CS 1.6.0 release, which matches Upscaling 1.4.0. It will not include Grass Optimizations, which needs CS 1.9.x.
+(8) Minor fixes: 542 target mods are in none of the snapshots, not 549. Add the RTX 5050 Laptop (8GB) to the 8GB tier. The Nolvus archive download is optional.
+
+Still true: the target is built for CS, and PBR requires CS. 16GB VRAM is a reasonable threshold for running the list as-is, but that is an inference, not a documented figure. On 12GB or less, plan for VRAMr, 2K/1K textures, lighter grass and lower DynDOLOD presets. The current Steam version is 1.7.104, which adds version-drift risk for any list that depends on game-file hashes.
+
+## FACTS
+- [high] Nolvus Awakening (v6) Ultimate without SR Exterior Cities, minimum: 14GB VRAM / RTX 4060 Ti at 1920x1080, 15GB / RTX 4070 Ti Super at 1440p, 16GB / RTX 4090 at 4K. Recommended at 1080p: 14GB / RTX 4070 Ti Super. CPU: i7 10000 series. Size: 426GB installed / 193GB download. With SREX, the 1080p minimum is 16GB / RTX 4080. The page says the download size is OPTIONAL because archiving can be disabled. (https://www.nolvus.net/appendix/installer/requirements)
+- [high] Nolvus v6 Ultra without SREX, minimum at 1080p: 10GB / RTX 3080 (Performance LODs), 11GB / RTX 3080 Ti (Ultra LODs), 10GB / RTX 2080 Ti (Ultra Performance LODs). Recommended: 11GB / RTX 4070 at 1080p with Ultra LODs. Size: 406GB / 188GB. Redux without SREX, minimum: 8GB / GTX 1080 at 1080p and 10GB / GTX 1080 Ti at 1440p; recommended 8GB / RTX 2070 at 1080p; CPU i7 7000 series; 372GB / 170GB. A 'Graphics Only' variant also exists: 235GB / 105GB, minimum 11GB / RTX 3080 Ti at 1080p without SREX. The v5 tables list 32GB RAM; the v6 tables list no RAM figure. (https://www.nolvus.net/appendix/installer/requirements)
+- [high] Nolvus v6 variants: Ultimate has 4K-2K textures and heavily overhauled cities; Ultra has 2K textures; Redux has 2K-1K textures and no trees around or in cities. SR Exterior Cities is optional because it is performance-heavy and uses a lot of VRAM. The monitor ratio (16:9 or 21:9) cannot be changed after install. The v6 Dashboard must sit in a short path such as x:\Nolvus. The Dashboard has a 'downscale' option (for example 1080p on a 1440p screen) that is not compatible with DLAA. The Dashboard translates only the base game, not the mods. (https://www.nolvus.net/appendix/installer/install)
+- [high] The current Nolvus Awakening list (6.0.2x) runs on Skyrim SE 1.5.97, not current AE. It installs Skyrim Script Extender 2.0.0.20, and skse.silverlock.org lists SKSE 2.0.20 as the Special Edition build for game version 1.5.97. The list also has Crash Logger - 1.5.97 1.15.0, SSE Fixes 3.1.5.97 and Backported Extended ESL Support. Third-party projects built against Nolvus Awakening 6.0.20 describe its STOCK GAME\SkyrimSE.exe as 1.5.97. (https://www.nolvus.net/awakening ; https://skse.silverlock.org/ ; https://github.com/GoAhead-at/FreezeLogger (docs/case-study) ; https://github.com/theosw/theosrenderpipeline)
+- [medium] Mages & Vikings 2.6.2 runs on an AE runtime (1.6.1170 and/or 1.7.99), not 1.5.97. Its Wabbajack validation report lists 'Engine Fixes (All-In-One) for 1.6.1170 and newer', 'Address Library All in One (1.7.99.0) v12', 'Skyrim Script Extender (SKSE64) Steam 2.2.8', 'PrivateProfileRedirector AE (RT 1.6.1170)' and '1.6.1170 Missing Files'. That last mod re-adds files for authors compiling on 1.6.1170 while Steam has 1.7.99. The MV modlist has no BEES and no 1.5.97-specific Crash Logger. (https://raw.githubusercontent.com/wabbajack-tools/mod-lists/master/reports/MagesAndVikings/MagesAndVikings/status.md ; https://www.nexusmods.com/skyrimspecialedition/mods/189279 ; local: mages-vikings__modlist.txt)
+- [high] The current Steam Skyrim AE is game version 1.7.104 (SKSE 2.3.1). GOG AE is 1.6.1179 (SKSE 2.2.6). The SE build SKSE 2.0.20 is for 1.5.97. The SKSE site also warns that another Skyrim update is coming. (https://skse.silverlock.org/)
+- [medium] The target appears to run on Skyrim 1.5.97. It has 'Crash Logger - 1.5.97', 'Skyrim Souls RE for Skyrim 1.5' and 'Dynamic Armor Variants for Skyrim 1.5', which is consistent with its Nolvus base. BEES alone is not proof, because it supports 1.5.97 through 1.6.659. (local: user__modlist.txt ; https://www.nexusmods.com/skyrimspecialedition/mods/106441)
+- [high] The Mages & Vikings README recommends an RTX 4070 or higher, 32GB RAM and a modern CPU. It says the list prioritises dense forests, realistic grass and full ENB effects. It prompts you to enlarge the pagefile through PageFile Manager and to run the Set CPU Affinity tool. (https://github.com/nicolasbertolino/MagesAndVikings/blob/main/README.md)
+- [high] Mages & Vikings 2.6.2 metadata: 3772 archives; 229,998,290,486 bytes of archives (about 230GB); 386,316,461,236 bytes installed (about 386GB); total 616.3GB. The .wabbajack file itself is 5,416,496,998 bytes (about 5.4GB). Updated 2026-09-05. (https://raw.githubusercontent.com/nicolasbertolino/MagesAndVikings/main/modlists.json)
+- [high] Mages & Vikings ships NAT.ENB III 3.1.1C with ENB preset options (Amon, Azurite Horizons, Cabbage, Dawnfire, Ebony, Kauz, PI-CHO). Kauz is enabled by default, and ENB Anti-Aliasing and ENB Frame Generation are enabled. Its options include [DynDOLOD - Full] or [DynDOLOD - Performance] and a '[Texture Downscaler] Enable for lower VRAM usage' toggle, which is off by default. (local: mages-vikings__modlist.txt)
+- [high] The target list is built for Community Shaders. It has CommunityShaders_AIO-2026-05-28T17-09Z, NAT.CS III (with NAT-CS.esp and NAT-ENB.esp active), dyndolodCS2, texgenCS, grass CS, lodgen2 and pgpatcher_output. It has 81 enabled entries containing 'PBR', including Faultier's PBR Skyrim AIO 2k. It has no ENB Helper, ENB Frame Generation, ENB Anti-Aliasing, KiLoader or PureDark Upscaler. (local: user__modlist.txt, user__plugins.txt)
+- [medium] The exact file CommunityShaders_AIO-2026-05-28T17-09Z.7z is a Wabbajack authored file (authored-files.wabbajack.org) used by the Kirbylite Modlist. That list also uses NAT.CS III 2.0.0, Freak's Floral Fields, Faultier's PBR Armors, PGPatcher 1.2.0 and VRAMr. The AIO naming matches the official CS CMake/CI packaging (forks such as Open Shaders use the same naming). The build date is 3 days before CS 1.6.0 reached Nexus (2026-05-31). It is therefore probably a CS 1.6.0-era build, but the exact version is unverified. (https://raw.githubusercontent.com/wabbajack-tools/mod-lists/master/reports/SkyrimKIRBYKINGSNSFWEditionModlist/KirbyliteModlist/status.md ; Nexus modFiles for mod 86492)
+- [high] The target has no SR Exterior Cities and no Seasons of Skyrim. It includes JK's Outskirts, Spaghetti's Cities, SKYKLF Modular Whiterun (PBR conversion), Freak's Floral Fields, NGIO - NG (1.5.11), Faster HDT-SMP 4.01, CBPC, 48 SMP entries, eFPS, Skyrim Priority, SSE Display Tweaks, and a 21:9 'Lore-Friendly Load Screen Compendium (21-9) (4K)'. About 14 mods are 4K or larger (Granite Mountains [4K], Sons of Skyrim [4K], Draugrs PBR 4K, Boreal Whiterun 8k-1k, Ash Yam 2K-8K and others). (local: user__modlist.txt)
+- [high] Enabled-mod-name overlap with the target (4044): Nolvus Redux 6.0.20 (3494 enabled) shares 2864; the Feb-2025 v6 snapshot 2767; Victolvus 6.00 (3815) 2961; Nolvus v6 Ultimate open beta (3480) 2743; Mages & Vikings 2.6.2 880. About 542 target mods are in none of these (my recount; the original said 549, so the count depends on method). Nolvus Redux 6.0.20 includes ENB Frame Generation - DisplayTweaks Settings. (local analysis + https://api.loadorderlibrary.com/v1/lists/nolvus-awekening-redux , /victolvus , /nolvus-v6-ultimate-open-beta-start)
+- [high] The current Nolvus Awakening list uses ENB: ENB Binaries 0.505, ENB Helper 1.5, ENB Input Disabler, ENB Anti-Aliasing 1.2.3 with DLAA/FSR presets, and optional ENB Frame Generation 1.0.2. It also includes Seasons of Skyrim 1.7.5, eFPS 2.4.2, Skyrim Priority 3.4 and Faster HDT-SMP 3.0.6. It has no PBR, no Freak's Floral Fields and no CS. The Feb-2025 snapshot had PureDark's Upscaler Base Plugin and Skyrim Upscaler. (https://www.nolvus.net/awakening ; local: nolvus-awakening-v6__modlist.txt)
+- [high] Community Shaders 1.9.1 (2026-09-24) supports Skyrim 1.5.97 or the latest Steam/GOG version; 1.6.640 and other non-latest AE builds are not supported. It needs an NVIDIA 900-series or AMD equivalent GPU with DX11.1; integrated Intel GPUs are unsupported and Intel ARC is supported. It disables itself if ENB is detected. It is incompatible with PureDark Upscaler, EVLAS, AELAS, Trainwreck and ShaderTools. It requires Address Library and SSE Engine Fixes. Performance Overlay, Terrain Shadows, Screen Space Shadows and Cloud Shadows are core; SSGI, Skylighting, Upscaling, Wetness, Effects 11 and Grass Optimizations are optional plugins. CS 1.9.0 added Grass Optimizations, PBR grass and 1.7.99+ support. (https://www.nexusmods.com/skyrimspecialedition/mods/86492 ; https://github.com/community-shaders/skyrim-community-shaders/releases/tag/v1.9.0)
+- [high] Upscaling - Community Shaders 1.4.0 (2026-05-31) says it was 'released for Community Shaders 1.6.0'. It offers DLSS 4 or FSR 3.1 upscaling plus FSR 3 Frame Generation, defaulting to Quality with FG on. FG needs windowed or borderless mode and 120Hz or more. XeSS is not supported, even though the CS main page's plugin list mentions XeSS. It recommends SSE Display Tweaks. It says Skyrim is typically CPU-bound and FG raises FPS regardless of draw-call limits. (https://www.nexusmods.com/skyrimspecialedition/mods/156952 (description and file list))
+- [high] The standalone 'Frame Generation - Community Shaders' mod (v1.0.1) is deprecated since CS 1.4; FG is now in the base install and the Upscaling mod. (https://www.nexusmods.com/skyrimspecialedition/mods/140199)
+- [high] ENB Frame Generation 1.0.2 is ENB-only and uses AMD FSR 3.1 FG. It needs a DirectX 12-capable GPU, a 120Hz+ screen unless forced, and borderless or windowed mode, and it unloads without ENB. It works best at 60fps interpolated to 120. DLSS FG was not added because of compatibility problems and worse frame pacing. ENB Anti-Aliasing 1.2.3 gives DLAA or FSR 3.1 native AA for ENB with no upscaling; its hooks are incompatible with CS, and it unloads without ENB. (https://www.nexusmods.com/skyrimspecialedition/mods/144507 ; https://www.nexusmods.com/skyrimspecialedition/mods/130669)
+- [high] PureDark's Skyrim Upscaler 1.2.1 (last updated 2024-09-16) provides DLSS, FSR2 and XeSS and needs Upscaler Base Plugin. It supports SE 1.5.97 and AE 1.6.640. Its upscaling does not work with ENB; only DLAA does. (https://www.nexusmods.com/skyrimspecialedition/mods/80343)
+- [medium] DynamicShaderFrameGen (created 2026-08-30, updated 2026-09-24) adds FSR 3.1 FG, DLSS upscaling, and an experimental DLSS 5 Neural Rendering and multi-frame generation branch. Native 3x/4x works only on RTX 50; RTX 40 and older need third-party unlockers. It targets AE 1.6.1170 or SE 1.5.97. It is new and unproven. (https://www.nexusmods.com/skyrimspecialedition/mods/190154)
+- [high] NAT.CS III 2.0.0 (2025-10-28) requires NAT.ENB ESP weather plugin 3.1.1C only, Community Shaders, Skylighting and Cloud Shadows. It states it is NOT compatible with CS Effects 11. (https://www.nexusmods.com/skyrimspecialedition/mods/139567)
+- [high] Effects 11 1.0.0 (Nexus page 2026-09-23) is a CS plugin that loads most ENB presets without ENBSeries. Installing ENBSeries or KiLoader alongside it is not allowed, and encrypted presets such as Silent Horizons 2 are not supported. (https://www.nexusmods.com/skyrimspecialedition/mods/192760)
+- [high] Faultier's PBR Skyrim (v3.0) requires Community Shaders and does not work with ENB. It comes in AIO 4k, 2k and 1k versions; the 1k version halves the 2k resolution, and Landscapes is a separate download. (https://www.nexusmods.com/skyrimspecialedition/mods/125308)
+- [high] Grass Optimizations - Community Shaders 1.0.0 (2026-09-23) replaces vanilla grass rendering to cut draw calls and CPU load. The vanilla grass cost drops by 'up to 90%', and the biggest gains are for heavy grass mods like Freak's Floral Fields. It is CS-only (not ENB) and is included in Bottled Shaders and Open Shaders; Jiaye's build still needs to be updated to include it. The page recommends regenerating DynDOLOD LOD without grass, keeping DynDOLOD-Grass-Mode=0, and using NGIO Extend-grass-distance instead. (https://www.nexusmods.com/skyrimspecialedition/mods/188628)
+- [medium] The CS SSGI author measured default settings at 'short of 1ms on my 4060 laptop with 1080p'. Skylighting spreads its cost over several frames, which can cause occasional frame-time spikes. (https://www.nexusmods.com/skyrimspecialedition/mods/130375 ; https://www.nexusmods.com/skyrimspecialedition/mods/139352)
+- [high] No Grass In Objects 1.6.14: a precache usually takes 30-60 minutes; very heavy load orders take about 2.5 hours and 7-8GB. The cache must be rebuilt after landscape, grass, object or grass-config changes, but changes to Overwrite-grass-distance and fade alone do not require it. Settings are Use-grass-cache=true and Only-load-from-cache=true. (https://www.nexusmods.com/skyrimspecialedition/mods/42161)
+- [high] Freak's Floral Fields (v3.2.3) is built for iMinGrassSize=60. Freak's Floral Meadows (v1.0) is the lighter sibling with better performance and is built for iMinGrassSize=50. Neither may reuse an existing grass cache (NGIO must be disabled or re-run). FFF's cliff options also need DynDOLOD to be re-run. (https://www.nexusmods.com/skyrimspecialedition/mods/125349 ; https://www.nexusmods.com/skyrimspecialedition/mods/148525)
+- [high] DynDOLOD has Low, Medium and High presets. Low and Medium use billboards for all tree LOD levels; High uses Level0 (3D) trees at LOD Level 4. LOD textures come in 256px (default) or 128px, and a lower max tile size reduces texture memory. DynDOLOD recommends resetting uGrids to default. PGPatcher must run BEFORE TexGen and DynDOLOD so they can use its CRC32 data. (https://dyndolod.info/Help/Ultra-Tree-LOD ; https://dyndolod.info/Help/Performance ; https://dyndolod.info/Mods/Community-Shaders)
+- [high] DynDOLOD grass LOD: its '50% density or lower' advice is specifically for HD grass LOD billboards, which double the triangles; with the SuperDenseGrass setting it advises 33% or less. Grass mode 1 performs better than mode 2, and lowering fBlockLevel0Distance reduces the grass LOD cost. (https://dyndolod.info/Help/Grass-LOD)
+- [high] DynDOLOD FAQ for running out of memory: use the x64 tools, let the OS handle page-file settings, add -memory if RAM is over 8GB, use TextureCache=10, and lower MaxTextureSize. Nolvus and Wabbajack instead advise a fixed 20-40GB pagefile. (https://dyndolod.info/FAQ)
+- [high] VRAMr (v16.0310) writes downscaled BC7 copies of textures as a separate output mod, has hardware presets, and leaves mountains, dragons and large actors at full resolution. The MGO guide says a run takes hours, the output is large, it goes stale after texture changes, and it is 'highly recommended' under 16GB VRAM. (https://www.nexusmods.com/skyrimspecialedition/mods/90557 ; https://synergyvr.org/mgo/performance/vramr/index.html)
+- [high] Cathedral Assets Optimizer 5.3.15 can resize textures, compress them to BC7 and generate mipmaps. Its author says to always back up your mods first. (https://www.nexusmods.com/skyrimspecialedition/mods/23316)
+- [high] The FSMP settings menu has a Simplification page: disable first-person physics, turn off SMP hair when a wig is worn, and auto-adjust the maximum number of active SMP skeletons by frame time. Other pages control iterations/substeps and wind distance cutoffs. FSMP is currently at v4.1.1 (2026-08-26). (https://github.com/DaymareOn/FSMP-MCM/blob/main/README.md ; https://www.nexusmods.com/skyrimspecialedition/mods/57339)
+- [high] SSE Display Tweaks 0.5.25 uses the DXGI flip model for borderless mode, includes a Havok physics fix and a frame limiter (240 by default), and its on-screen display can show VRAM use against the budget the OS allots. (https://www.nexusmods.com/skyrimspecialedition/mods/34705)
+- [high] Microsoft DXGI docs: if CurrentUsage is greater than Budget, the application may stutter or lose performance. (https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info)
+- [high] NVIDIA laptop GPU memory and 'GPU Subsystem Power': RTX 5090 24GB, 95-150W; 5080 16GB, 80-150W; 5070 Ti 12GB, 60-115W; 5070 12GB or 8GB, 50-100W; 5060 8GB, 45-100W; 5050 8GB, 35-100W; 4090 16GB, 80-150W; 4080 12GB, 60-150W; 4070 8GB, 35-115W; 4060 8GB, 35-115W; 4050 6GB, 35-115W. (https://www.nvidia.com/en-us/geforce/laptops/compare/)
+- [medium] Notebookcheck: the RTX 5080 Laptop performs about like a desktop RTX 5070 and an RTX 4090 Laptop (Time Spy). The RTX 4090 Laptop at 150W is 'in the region of' a desktop RTX 4080. The RTX 5090 Laptop performs about like a desktop RTX 4070 Ti Super, 'just barely faster than a desktop RTX 5070', and 2-19% faster than the RTX 4090 Laptop. (https://www.notebookcheck.net/Nvidia-GeForce-RTX-5080-Laptop-Benchmarks-and-Specs.934946.0.html ; https://www.notebookcheck.net/NVIDIA-GeForce-RTX-4090-Laptop-GPU-Benchmarks-and-Specs.675091.0.html ; https://www.notebookcheck.net/GeForce-RTX-5090-laptops-perform-almost-identically-to-a-desktop-RTX-4070-Ti-Super.993212.0.html)
+- [high] Nolvus: do not install the list on an HDD (the archive folder may be on an HDD). Set a pagefile of 20000-40000MB on the Nolvus drive, especially with 16GB RAM. Set NVIDIA Control Panel Power management mode to 'Prefer Maximum Performance' for skyrimse.exe. Windows scaling above 100% zooms the game; fix it with 100% scaling or a DPI override on STOCK GAME\SkyrimSE.exe. On laptops the Dashboard may miss the NVIDIA GPU; [Misc] ForceAA=True fixes this, but choosing DLAA without an NVIDIA GPU crashes the game. (https://www.nolvus.net/appendix/pagefile ; https://www.nolvus.net/appendix/installer/skyrim_setup ; https://www.nolvus.net/appendix/installer/install ; https://www.nolvus.net/appendix/installer/tech)
+- [medium] Without a MUX switch, frames from the discrete GPU pass through the integrated GPU. Asus reports an average 9% FPS gain from bypassing it. Toggling the MUX needs a reboot. An external monitor on a port wired to the discrete GPU also bypasses it. Advanced Optimus works as an automatic MUX. (https://www.howtogeek.com/780933/what-is-a-mux-switch-in-a-gaming-laptop/)
+- [medium] Windows 11: Power mode (Best power efficiency, Balanced or Best performance) is set separately for Plugged in and On battery. 'Optimizations for windowed games' switches DX10/11 games in windowed or borderless mode to flip-model presentation. Per-app GPU preference is at Settings > System > Display > Graphics; the source for this is a Microsoft Q&A forum answer, not official docs. (https://support.microsoft.com/en-us/windows/change-the-power-mode-for-your-windows-pc-c2aff038-22c9-f46d-5ca0-78696fdf2de8 ; https://support.microsoft.com/en-us/windows/hardware/display-graphics/optimizations-for-windowed-games-in-windows-11 ; https://learn.microsoft.com/en-us/answers/questions/4336196/graphics-performance-preferences)
+- [medium] NVIDIA BatteryBoost turns on automatically when a game runs unplugged and targets about 30+ FPS. Asus ROG laptops enable it by default on battery. (https://www.nvidia.com/en-us/geforce/technologies/battery-boost/ (search snippet; direct fetch returned 404) ; https://rog.asus.com/articles/guides/how-to-improve-your-gaming-laptops-performance-on-battery-power/)
+- [high] Wabbajack: do not install in Windows-managed folders (Program Files, Downloads, Desktop, Documents, OneDrive) or at a drive root. Keep an extra 40-60GB free. Set the pagefile maximum to at least 20GB, on SSDs only. Killer networking software bundled with Dell/Alienware laptops breaks Wabbajack downloads; disable its Prioritization Engine and possibly Auto Bandwidth. (https://wiki.wabbajack.org/user_documentation/Installing%20a%20Modlist.html ; https://wiki.wabbajack.org/user_documentation/Troubleshooting%20FAQ.html)
+- [high] PageFile Manager 0.4.0 is an MO2 plugin that by default sets a 20480-40960MB pagefile on the disk holding the MO2 instance. (https://www.nexusmods.com/skyrimspecialedition/mods/128254)
+- [high] The Nolvus v6 snapshot INI uses uGridsToLoad=5, iMinGrassSize=40, iShadowMapResolution=2048, fShadowDistance=8145, fBlockLevel0Distance=80000, fTreeLoadDistance=140000, and 2560x1440 borderless with TAA off. (local: nolvus-awakening-v6__skyrim.ini, nolvus-awakening-v6__skyrimprefs.ini)
+- [low] Community reports say CS with all features, PBR and placed lights performs about like ENB but with better frame pacing. (https://steamcommunity.com/app/489830/discussions/0/594018609682988765)
+
+## RISKS
+- CORRECTION: The original risk said 'the target runs on 1.5.97 while Nolvus v6 runs on current AE'. That is wrong. Nolvus Awakening 6.0.2x itself runs on 1.5.97: it uses SKSE 2.0.20 (the SE build), Crash Logger - 1.5.97 and a 1.5.97 STOCK GAME. SKSE plugins from the Nolvus instance are generally the right runtime for the target.
+- CORRECTION (to the shared context): Mages & Vikings 2.6.2 is NOT on 1.5.97 + BOBW. Its archive list uses AE-runtime components: Engine Fixes AIO for 1.6.1170+, Address Library AIO 1.7.99, SKSE Steam 2.2.8, PrivateProfileRedirector AE (RT 1.6.1170) and '1.6.1170 Missing Files'. Any SKSE DLL, Address Library bin or Engine Fixes build taken from MV will not load or will crash on the 1.5.97 target. Use the SE/1.5.97 builds of those mods instead, and check every MV-sourced DLL mod for a 1.5.97 version.
+- CORRECTION: The RTX 5090 Laptop is about a desktop RTX 4070 Ti Super, 'barely faster than a desktop RTX 5070' (Notebookcheck), not 'about a desktop 5080'. Its advantage is 24GB of VRAM, not raw GPU speed.
+- CORRECTION: Freak's Floral Meadows needs iMinGrassSize=50, not 60. Swapping FFF for FFM means changing the INI and rebuilding the NGIO grass cache (and DynDOLOD, if grass LOD or cliffs are used).
+- CORRECTION: The 'grass LOD at 50%' advice conflicts with CS Grass Optimizations. Its page recommends regenerating DynDOLOD WITHOUT grass LOD, keeping DynDOLOD-Grass-Mode=0 and using NGIO Extend-grass-distance. DynDOLOD's 50%-density note is specifically about HD grass billboards.
+- CORRECTION: Backported Extended ESL Support covers 1.5.97 through 1.6.659, so it does not by itself prove 1.5.97. The 1.5.97-specific Crash Logger, Souls RE and DAV builds are better evidence.
+- CORRECTION: Target mods found in none of the five reference lists: my recount gives 542, not 549 (the number depends on method). The '3480-3815 Nolvus Ultimate-based lists' range includes Nolvus Redux 6.0.20 (3494), which is not an Ultimate-based list.
+- CORRECTION: The 8GB laptop tier was missing the RTX 5050 Laptop (8GB, 35-100W).
+- CORRECTION: Nolvus's 193GB download (archive) is optional because archiving can be disabled. Disk estimates that count it as mandatory overstate the need.
+- The CS AIO build in the target is a Wabbajack authored file (also used by the Kirbylite list), about CS 1.6.0-era, not a Nexus download. It cannot be fetched from Nexus directly. Swapping it for CS 1.9.1 is a version jump (1.6 to 1.9) that must be retested with NAT.CS III 2.0.0 (2025-10) and Upscaling 1.4.0 (built for CS 1.6.0). Grass Optimizations requires CS 1.9.x and is not in Jiaye's build.
+- Version drift: Steam Skyrim is now 1.7.104 (SKSE 2.3.1), and the SKSE site warns of another update. Wabbajack and Nolvus installs check game files. Lists built on 1.6.1170 (MV) or on a downgraded 1.5.97 (Nolvus) may fail or need workarounds until they are updated. Disable Steam auto-updates and play only from the Stock Game/Game Root copy.
+- Running out of VRAM causes stutter rather than a clean FPS drop (Microsoft DXGI). On 8-12GB laptops, the target's 81 PBR entries plus FFF grass, city overhauls and about 14 4K/8K assets are likely to go over budget.
+- The same GPU name ships at very different power limits (for example the RTX 4080 Laptop at 60-150W), so tier advice can be off by a whole tier for a low-power model.
+- If ENB program files (d3d11.dll and similar) are left in the game folder, CS turns itself off. PureDark Upscaler is incompatible with CS. ENB AA and ENB FG just unload without ENB, so they add clutter but do not break anything. Effects 11 conflicts with NAT.CS III and with KiLoader.
+- Frame generation only runs at 120Hz or higher in borderless or windowed mode. A panel that drops to 60Hz on battery silently disables it. Behaviour through Optimus (no MUX) is untested.
+- Many laptop panels are 16:10. Nolvus offers only 16:9 or 21:9, and the target contains a 21:9 load-screen pack, so some UI or load screens may be stretched or letterboxed.
+- Heat and time: the grass precache (30 minutes to 2.5 hours), PGPatcher, TexGen, DynDOLOD and VRAMr (hours) are long sustained loads. Plug in and watch temperatures.
+- With 16GB RAM, DynDOLOD, Synthesis and PGPatcher runs lean on the pagefile. Guidance conflicts: DynDOLOD says let the OS manage the pagefile, while Nolvus, Wabbajack and PageFile Manager set 20-40GB.
+- Disk: MV about 616GB (plus a 5.4GB .wabbajack file), Nolvus Ultimate 426GB plus an optional 193GB, plus the assembled target (size unmeasured). This can exceed 1.5TB. Running from an HDD is unsupported; an external SSD is undocumented.
+- The target's grass cache and LOD outputs (dyndolodCS2, texgenCS, grass CS, lodgen2, pgpatcher_output) are the author's own generated files. They cannot be downloaded and must be regenerated whenever the mod set changes.
+- DynamicShaderFrameGen, DLSS FG/MFG unlockers and OptiScaler-style workarounds are experimental. CS Upscaling offers only FSR FG, not DLSS FG.
+
+## RECS
+- Standardise the target on Community Shaders running on 1.5.97. Keep NAT.CS III plus NAT-ENB.esp (from the NAT.ENB III mod). Put no ENBSeries files in Stock Game, and do not use Effects 11 or KiLoader. Do not import ENB Helper, ENB Input Disabler, ENB Anti-Aliasing, ENB Frame Generation, Upscaler Base Plugin or Skyrim Upscaler from Nolvus or MV.
+- Fix the runtime basis before assembling: use Nolvus's 1.5.97 Stock Game and its SKSE (2.0.20) and Address Library. For every DLL-bearing mod that exists only in MV, download the 1.5.97/SE build instead of copying MV's AE build. Do not copy Engine Fixes AIO 1.6.1170+, Address Library AIO 1.7.99 or SKSE 2.2.8 from MV.
+- CS version: either keep the list's authored CS AIO (about the 1.6.0 era, from the Kirbylite Wabbajack list) together with Upscaling 1.4.0, or move deliberately to CS 1.9.1 plus current feature plugins and retest NAT.CS III. Consider Grass Optimizations only on CS 1.9.x.
+- Add Upscaling - Community Shaders: DLSS 4 on RTX, FSR 3.1 otherwise, plus FSR FG. Use borderless mode on a 120Hz+ panel. Cap the internal framerate (for example 60 doubled to 120) with SSE Display Tweaks; this also limits heat.
+- First collect the exact laptop specs: GPU and VRAM variant (the 5070 Laptop comes in 8 or 12GB), power limit (W), CPU, RAM and whether it can be upgraded, free NVMe space, panel resolution, refresh rate and aspect ratio, and whether it has a MUX or Advanced Optimus. Then pick a tier from 'data'.
+- Laptop Windows and driver setup:
+- Plug in; Windows Power mode 'Best performance' for Plugged in; the laptop maker's Turbo mode.
+- Turn off BatteryBoost and Whisper Mode.
+- MUX in dGPU/Ultimate mode, or an external monitor on the dGPU port.
+- High-performance GPU preference for STOCK GAME\SkyrimSE.exe.
+- NVIDIA Control Panel: Power management 'Prefer maximum performance'.
+- Windows scaling 100%, or a DPI override.
+- Pagefile 20-40GB on the internal SSD.
+- On Dell/Alienware, disable the Killer Prioritization Engine before running Wabbajack.
+- Stop Steam auto-updating Skyrim.
+- Measure, don't guess. On a fixed test route (Whiterun exterior, Riverwood forest, Solitude, Markarth, an FFF meadow), use the SSE Display Tweaks on-screen display (VRAM against the OS budget) and the CS Performance Overlay. Keep VRAM under the budget with about 1-1.5GB to spare; this margin is a rule of thumb.
+- Regenerate outputs in the documented order: PGPatcher first, then the NGIO precache (iMinGrassSize=60 for FFF, 50 for FFM), then TexGen (256px, or 128px on 12GB or less), then DynDOLOD (High for 16GB+, Medium for 12GB, Low for 8GB), then VRAMr last. If you use CS Grass Optimizations, generate DynDOLOD without grass LOD, set DynDOLOD-Grass-Mode=0 and use NGIO Extend-grass-distance. Otherwise keep grass LOD at 50% or less, or turn it off.
+- To cut VRAM on 12GB or less:
+- Switch the about 14 4K/8K choices to 2K.
+- Use Faultier's PBR 2k or 1k.
+- Run VRAMr on the finished list (MGO calls it highly recommended under 16GB).
+- On 8GB, use VRAMr's most aggressive preset.
+- CPU and grass: keep eFPS and Skyrim Priority. On 8GB or CPU-limited low-power laptops, replace FFF with Freak's Floral Meadows (iMinGrassSize=50, rebuild the cache) or a lighter FFF variant (Short or Relaxed Pine).
+- Physics: update FSMP to 4.1.1 in its 1.5.97-compatible build, and use its Simplification settings: first-person SMP off, hair off under wigs, auto-limit active skeletons. On weak laptops, limit SMP to the player and followers.
+- On 8GB laptops, either play Nolvus Awakening Redux (8GB minimum at 1080p, and the Dashboard's downscale option can help), or MV with [DynDOLOD - Performance] and [Texture Downscaler], or build a clearly reduced target. Do not expect the full target to run smoothly.
+- Storage: put the playable instance on internal NVMe. Keep archives on a secondary drive; Nolvus allows archives on an HDD, or you can turn Nolvus archiving off. Install the base lists one at a time if space is tight.
+- Swap the 21:9 load-screen compendium for its 16:9 version. On 16:10 panels choose the 16:9 options and check the UI in game.
+
+## OPEN
+- What is the exact laptop model: GPU and VRAM variant, power limit, CPU, RAM, free NVMe space, panel resolution, refresh rate and aspect ratio, and MUX/Advanced Optimus availability?
+- Exactly which CS version or branch is CommunityShaders_AIO-2026-05-28T17-09Z: an official dev/RC build before 1.6.0, or an Open Shaders or other fork build? Which feature plugins (Upscaling, SSGI, Skylighting, Cloud Shadows, Wetness) does it bundle?
+- Which exact AE runtime does MV 2.6.2 use: 1.6.1170 on a downgraded Game Root, or 1.7.99? SKSE Steam 2.2.8 and Address Library 1.7.99 point one way, and '1.6.1170 Missing Files' and PrivateProfileRedirector RT 1.6.1170 point the other. Either way, which MV-only DLL mods lack 1.5.97 builds?
+- Is the Kirbylite Wabbajack list (which shares the exact CS AIO file, NAT.CS III, FFF, Faultier's PBR Armors, PGPatcher and VRAMr) a third source of the target's 542-716 unmatched mods? Kirbylite is an NSFW-edition list, so check its content before using it as a source.
+- Do the Nolvus Dashboard and the MV Wabbajack install still work cleanly now that Steam is on 1.7.104? For example, do game-file hash checks or the Nolvus downgrade step fail?
+- What performance does the user want: native resolution or internal 1080p with DLSS, 60 FPS or 120 FPS with FG, and which visual features they will give up?
+- The exact VRAMr preset names and resolutions, and what MV's [Texture Downscaler] actually contains, were not checked against a primary source.
+- Does CS FSR FG behave normally on Optimus laptops without a MUX? No primary source was found.
+- The target's actual VRAM use at 1080p/1440p has not been measured; the tier table is inferred.
+
+## DATA
+DECISION TABLE BY LAPTOP GPU TIER (for the target on 1.5.97 + CS + NAT.CS III; inferred from the Nolvus v6 requirement tables, the MV recommendation and the list's composition — verify with the Display Tweaks VRAM OSD)
+
+Reference points: Nolvus Ultimate without SREX needs 14GB (RTX 4060 Ti) at 1080p. Ultra needs 10-11GB at 1080p. Redux needs 8GB (GTX 1080) at 1080p. MV recommends an RTX 4070. The target is at least as heavy as Ultimate without SREX, and it adds PBR and FFF, which Nolvus lacks.
+
+TIER S – RTX 5090 Laptop (24GB, 95-150W; performance about a desktop 4070 Ti Super / 5070, not a 5080)
+- Feasibility: target as-is; VRAM headroom is the main advantage.
+- Resolution/upscaler: 1440p/1600p with DLSS Quality or DLAA, plus FSR FG.
+- Textures: keep; VRAMr optional.
+- Grass: FFF with NGIO cache; on CS 1.9.x, optionally Grass Optimizations with extended distance.
+- DynDOLOD: High; grass LOD per the grass note below.
+- CS features: all, including SSGI.
+- SMP: default.
+
+TIER A – RTX 4090 Laptop (16GB, 80-150W) / RTX 5080 Laptop (16GB, 80-150W; about a desktop 5070)
+- Feasibility: target nearly as-is.
+- Resolution/upscaler: 1080p-1600p with DLSS Quality/Balanced plus FG.
+- Textures: swap the about 14 4K/8K options to 2K; VRAMr (light preset) only if over budget.
+- Grass: FFF (iMinGrassSize=60) with NGIO precache.
+- DynDOLOD: Medium or High.
+- CS features: all; test SSGI.
+- SMP: FSMP auto-adjust on, first-person SMP off.
+
+TIER B – RTX 4080 Laptop (12GB, 60-150W) / 5070 Ti Laptop (12GB) / 5070 Laptop 12GB
+- Feasibility: target with cuts.
+- Resolution/upscaler: 1080p-1440p with DLSS Balanced/Performance plus FG.
+- Textures: VRAMr required; Faultier's 2k or 1k; no 4K.
+- Grass: lighter FFF variants, or FFM (iMinGrassSize=50, rebuild the cache).
+- DynDOLOD: Medium; TexGen 128/256px; grass LOD off or at most 33-50%.
+- CS features: SSGI off; test Terrain Shadows, Screen Space Shadows and Wetness; shadow map 2048.
+- SMP: cap SMP characters.
+
+TIER C – RTX 4070 / 4060 / 5070 8GB / 5060 / 5050 Laptop (8GB)
+- Feasibility: full target not recommended.
+- Options: Nolvus Redux (Dashboard downscale option available), MV with DynDOLOD Performance and Texture Downscaler, or a reduced target (Redux-level cities, 1K-2K via aggressive VRAMr, FFM).
+- Resolution/upscaler: 1080p internal plus FG.
+- DynDOLOD: Low; no grass LOD.
+- CS features: minimal.
+- SMP: player and followers only.
+
+TIER D – RTX 4050 Laptop (6GB), older or integrated GPUs
+- Feasibility: not viable; integrated Intel GPUs are not supported by CS.
+
+GRASS LOD NOTE
+- With CS Grass Optimizations (needs CS 1.9.x): DynDOLOD without grass LOD, DynDOLOD-Grass-Mode=0, NGIO Extend-grass-distance=true.
+- Without it: DynDOLOD grass LOD at 50% or less (33% or less with SuperDenseGrass), grass mode 1.
+
+RUNTIME NOTE
+- Target, Nolvus v6 and CS all support 1.5.97.
+- MV 2.6.2 is on AE (1.6.1170/1.7.99), so do not transplant MV's SKSE, Address Library or Engine Fixes builds.
+- Steam is currently 1.7.104.
+
+GENERATION ORDER
+- PGPatcher, then NGIO precache, then TexGen, then DynDOLOD, then VRAMr.
+
+ALL TIERS
+- RAM: 32GB recommended; with 16GB, use a 20-40GB SSD pagefile.
+- Storage: internal NVMe; Nolvus archives are optional.
+- Power/display: plugged in; MUX in dGPU mode; High-performance GPU preference; 100% scaling; borderless at 120Hz+ for FG.

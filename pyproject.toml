@@ -1,0 +1,15 @@
+[project]
+name = "pages-modlist-tools"
+version = "0.1.0"
+description = "Tools to assemble a Nolvus v6 + Mages & Vikings hybrid Skyrim SE modlist and localize it to Traditional Chinese"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+# Only needed for the Chinese layer (Phase 6)
+zh = ["opencc>=1.1", "sse-plugin-interface>=1.0.1", "lz4>=4", "anthropic>=1.0"]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

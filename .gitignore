@@ -1,0 +1,14 @@
+# Reports produced on the laptop (upload them in the chat instead of committing)
+reports/
+# Locally generated glossaries are derived from game text - keep them private
+data/zh/glossary*.tsv
+data/zh/pins*.tsv
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+# Secrets must never be committed
+.env
+*.key

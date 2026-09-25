@@ -1,0 +1,14 @@
+{
+ "slug": "nolvus-awakening-v6",
+ "name": "NOLVUS AWAKENING V6",
+ "version": "V6",
+ "updated": "2025-02-09T08:18:37.000000Z",
+ "author": "vg7307",
+ "source": "https://api.loadorderlibrary.com/v1/lists/nolvus-awakening-v6",
+ "files": [
+  "loadorder.txt",
+  "modlist.txt",
+  "plugins.txt"
+ ],
+ "note": "modlist.txt converted to native MO2 order (first line = highest priority); plugins/loadorder unchanged (first line loads first)."
+}

@@ -1,0 +1,5 @@
+# Phase 6 (繁中化) only. Phases 1-5 need nothing beyond Python 3.12.
+opencc>=1.1
+sse-plugin-interface>=1.0.1
+lz4>=4
+anthropic>=1.0
