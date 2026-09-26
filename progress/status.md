@@ -7,7 +7,7 @@
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 工具完成 | | M&V 12:23 裝完；inventory 通過、harvest 注意（缺 2：ImmersiveHUD SKSE、Load Time Profiler）、extract_official 通過；待刪 `D:\WJ-Downloads`（先問使用者），`D:\MV` 保留到第 4 階段 |
-| 3 安裝 Nolvus | 安裝中 | | 13:07 按 Start（6.0.20 Ultimate，**Nudity Yes**＝使用者要求），已通過遊戲檔檢查的 Curios |
+| 3 安裝 Nolvus | 安裝中 | | 13:07 按 Start（6.0.20 Ultimate，**Nudity Yes**＝使用者要求）；遊戲檔檢查與降版完成；13:16 為 Mods 420/3626、錯誤 0 |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -68,4 +68,6 @@
 
 ## 等待雲端或使用者決定的事
 - 雲端：Nudity Yes 是否延伸到 `D:\PM`；`extract_official` 字形判斷抽樣；是否在手冊提醒改語言後啟動器會重建 ini（詳見 `local-report.md`）。
-- 使用者：刪除 `D:\WJ-Downloads`（約 195 GB）；原版遊戲的 `Skyrim.ini` 中文設定要不要改回。
+- 使用者：已同意刪除 `D:\WJ-Downloads`（194.9 GB、7188 個檔，抽查硬連結數皆為 1，不影響 `D:\PM`／`D:\MV`），但本機工具擋下刪除磁碟第一層資料夾，**請使用者自己刪**（Shift+Delete 或 `rmdir /s /q D:\WJ-Downloads`）。Wabbajack 已關閉。
+- 使用者：原版遊戲的 `Skyrim.ini` 維持英文（使用者決定）。
+- 已推送 79cf305（第 2 階段回報），等雲端判讀。
