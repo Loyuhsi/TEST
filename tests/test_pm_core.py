@@ -64,23 +64,30 @@ def test_find_instance_paths(tmp_path):
     assert mo2.qt_bytearray("D:\\PM\\STOCK GAME") == "@ByteArray(D:\\\\PM\\\\STOCK GAME)"
 
 
-def test_locate_instance_skips_a_mods_container_folder(tmp_path):
-    # Nolvus keeps mods/ and profiles/ inside MODS/. On NTFS "root\mods" opens "root\MODS",
-    # so the default "<root>/mods" guess lands on that container; a folder named "mods"
-    # holding mods/ and profiles/ reproduces it on any file system.
-    container = tmp_path / "mods"
-    for sub in ("mods/Some Mod", "profiles/Default", "downloads", "overwrite"):
-        (container / sub).mkdir(parents=True)
+def test_locate_instance_finds_nolvus_mods_without_an_ini(tmp_path):
+    # Nolvus keeps mods\ and profiles\ inside MODS\. On NTFS the default guess "<root>\mods"
+    # opens "<root>\MODS" (the container); on other file systems it does not exist at all.
+    for sub in ("MODS/mods/Some Mod", "MODS/profiles/Default", "MODS/downloads", "MODS/overwrite"):
+        (tmp_path / sub).mkdir(parents=True)
     paths = mo2.locate_instance(tmp_path)
-    assert paths["mods"] == container / "mods"
-    assert paths["profiles"] == container / "profiles"
+    assert (paths["mods"] / "Some Mod").is_dir()      # content check: Windows paths compare case-blind
+    assert (paths["profiles"] / "Default").is_dir()
+
+
+def test_locate_instance_keeps_a_mods_folder_holding_mods_named_mods_and_profiles(tmp_path):
+    (tmp_path / "ModOrganizer.ini").write_text("[General]\n")
+    for sub in ("mods/Real Mod A", "mods/mods", "mods/profiles", "profiles/Default"):
+        (tmp_path / sub).mkdir(parents=True)
+    paths = mo2.locate_instance(tmp_path)
+    assert (paths["mods"] / "Real Mod A").is_dir()
+    assert (paths["profiles"] / "Default").is_dir()
 
 
 def test_locate_instance_keeps_a_plain_mods_folder(tmp_path):
     (tmp_path / "ModOrganizer.ini").write_text("[General]\n")
     (tmp_path / "mods" / "Some Mod").mkdir(parents=True)
     (tmp_path / "profiles" / "Default").mkdir(parents=True)
-    assert mo2.locate_instance(tmp_path)["mods"] == tmp_path / "mods"
+    assert (mo2.locate_instance(tmp_path)["mods"] / "Some Mod").is_dir()
 
 
 # ---------------------------------------------------------------- tes4

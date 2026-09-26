@@ -14,6 +14,7 @@ File conventions (verified against MO2 source, profile.cpp):
 from __future__ import annotations
 
 import configparser
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -283,11 +284,16 @@ def find_instance_paths(instance_dir: Path) -> dict[str, Path]:
 
 
 def _is_mods_container(path: Path) -> bool:
-    """A Nolvus-style MODS folder (holding mods\\ and profiles\\), not a mods folder itself.
+    """True when the guessed '<root>\\mods' really opened Nolvus' '<root>\\MODS' container.
 
-    On NTFS the default guess '<root>\\mods' opens '<root>\\MODS', so it has to be told apart.
+    NTFS ignores case, so the guess exists even for a Nolvus layout. Only the on-disk name tells
+    the two apart; the folder's contents cannot (a mods folder may hold mods named 'mods').
     """
-    return (path / "mods").is_dir() and (path / "profiles").is_dir()
+    try:
+        on_disk = Path(os.path.realpath(path)).name
+    except OSError:
+        return False
+    return on_disk != path.name and (path / "mods").is_dir()
 
 
 def locate_instance(root: Path) -> dict[str, Path]:
