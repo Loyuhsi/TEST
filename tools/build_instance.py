@@ -196,17 +196,55 @@ def cmd_verify(args, rep: Report) -> None:
     rep.data = {"lost_mods": lost, "lost_plugins": other, "pending_generated": pending}
 
 
+def restore_states(current: dict[str, mo2.PluginEntry], expected: list[mo2.PluginEntry],
+                   providers: dict[str, Path]) -> tuple[dict[str, mo2.PluginEntry], list[str], list[str], list[str]]:
+    """Put back the target's enabled flags for expected plugins that an enabled mod provides.
+
+    MO2 lists plugins it has not seen before as disabled, so every plugin installed after the
+    profile was created starts out off. Returns (new current map, switched on, switched off,
+    skipped because no enabled mod has the file).
+    """
+    out = dict(current)
+    on: list[str] = []
+    off: list[str] = []
+    skipped: list[str] = []
+    for e in expected:
+        key = e.name.lower()
+        if key not in providers:
+            skipped.append(e.name)
+            continue
+        cur = out.get(key)
+        if cur is not None and cur.enabled == e.enabled:
+            continue
+        if e.enabled:
+            on.append(e.name)
+        elif cur is not None:
+            off.append(e.name)
+        out[key] = mo2.PluginEntry(cur.name if cur is not None else e.name, e.enabled)
+    return out, on, off, skipped
+
+
 def cmd_sync_order(args, rep: Report) -> None:
     prof = vfs.open_profile(args.pm, args.profile)
-    ref = [p.name for p in mo2.read_plugins(prof.profile_dir / "_expected" / "plugins.txt")] \
-        if (prof.profile_dir / "_expected" / "plugins.txt").exists() else \
-        [p.name for p in mo2.read_plugins(args.target_plugins)]
-    rank = {n.lower(): i for i, n in enumerate(ref)}
+    expected = prof.profile_dir / "_expected" / "plugins.txt"
+    if args.restore_states and not expected.exists():
+        # the raw target list still holds plugins of dropped mods; only _expected is filtered
+        rep.add("states", "FAIL", "啟用狀態", f"找不到 {expected}，沒有處理；請先執行 create --apply")
+        return
+    ref_entries = mo2.read_plugins(expected if expected.exists() else args.target_plugins)
+    rank = {p.name.lower(): i for i, p in enumerate(ref_entries)}
     current = {p.name.lower(): p for p in prof.plugins}
-    providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, None)
+    providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
     for g in vfs.GENERATED_PLUGINS:
         if g.lower() in providers and g.lower() not in current:
             current[g.lower()] = mo2.PluginEntry(g, True)
+    if args.restore_states:
+        current, on, off, skipped = restore_states(current, ref_entries, providers)
+        rep.add("states", "WARN" if off else "PASS", "啟用狀態",
+                f"依目標啟用 {len(on)} 個、停用 {len(off)} 個；檔案不在已啟用的 mod 或遊戲資料夾裡，"
+                f"略過 {len(skipped)} 個（之後要再跑 prune_dependents）")
+        if off:
+            rep.add("states_off", "INFO", "依目標改為停用", ", ".join(off[:15]))
     known = sorted((p for k, p in current.items() if k in rank), key=lambda p: rank[p.name.lower()])
     unknown = [p for k, p in current.items() if k not in rank]
     tail_idx = next((i for i, p in enumerate(known) if p.name in GENERATED_TAIL), len(known))
@@ -243,6 +281,9 @@ def main(argv=None) -> int:
     ap.add_argument("--target-plugins", type=Path, default=DATA / "target" / "plugins.txt")
     ap.add_argument("--ini-from", type=Path, default=None, help="複製 Skyrim.ini 等的來源設定檔資料夾（Nolvus）")
     ap.add_argument("--rewrite-ini", action="store_true", help="重寫已存在的 ModOrganizer.ini（會先備份）")
+    ap.add_argument("--restore-states", action="store_true",
+                    help="sync-order：依 _expected 還原插件的啟用狀態（MO2 會把新裝的插件列為停用）；"
+                         "只處理檔案已在的插件，之後要再跑 prune_dependents")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)

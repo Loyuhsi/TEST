@@ -57,6 +57,9 @@ python tools/nexus_fetch.py --pm "D:/PM" --limit 20
 python tools/nexus_fetch.py --pm "D:/PM" --limit 20 --apply
 # 全部安裝完、沒有 download／review 項目後才做：
 python tools/manifest.py --pm "D:/PM"
+# MO2 會把新裝的插件列為停用；先依 _expected 還原啟用狀態，修剪才不會誤刪依賴它們的補丁
+python tools/build_instance.py sync-order --pm "D:/PM" --restore-states
+python tools/build_instance.py sync-order --pm "D:/PM" --restore-states --apply
 python tools/prune_dependents.py --pm "D:/PM"
 python tools/prune_dependents.py --pm "D:/PM" --disable-folders --apply
 python tools/build_instance.py sync-order --pm "D:/PM" --apply
