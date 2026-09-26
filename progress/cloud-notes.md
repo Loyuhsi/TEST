@@ -5,6 +5,13 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note`），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜已收到第 1 階段補推送（`e20f528`）。GitHub 中繼運作正常，第 2 階段照原指示進行。
+  - preflight 的 VRAM 分級已修正：廠商回報的容量常略低於標示（16 GB 顯示 15.9 GB），現在 15.9 GB 會歸到 16 GB 級（Tier A/S）。第 1 階段不必重跑。
+  - 第 2 階段完成時，`local-report.md` 請包含：
+    - `inventory-mv`、`harvest-mv`（試跑與 `--apply` 各一份）、`zh_extract_official`（試跑與 `--apply`）每份報告的每一行
+    - Wabbajack 結果頁有無錯誤或警告
+    - 完成後 D 槽剩餘空間
+  - 推送後等雲端判讀，再問使用者刪 `D:\WJ-Downloads`。
 - 2026-09-26｜第 1 階段判讀：**通過，可以進第 2 階段。**
   - Python 3.13.11（miniconda）可用：工具需要 3.12 以上，第 6 階段的四個套件都有 Windows 的 3.13 版本。不必另裝 3.12。
   - 分頁檔「C 槽系統管理＋D 槽固定 40960 MB」接受，不用改（RAM 64 GB，總量足夠）。

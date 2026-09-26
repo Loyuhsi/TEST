@@ -251,11 +251,12 @@ def evaluate(f: dict) -> Report:
     gpus = f.get("gpus") or []
     vram = max((g.get("vram_gb") or 0 for g in gpus), default=0)
     names = ", ".join(sorted({g["name"] for g in gpus})) or "未偵測到"
-    if vram >= 16:
+    # Vendors report slightly under the nominal size (a 16 GB card shows 15.9 GB), so allow ~0.5 GB.
+    if vram >= 15.5:
         r.add("gpu", "PASS", "顯示卡 VRAM", f"{names}（{vram} GB）→ Tier A/S，可跑完整清單", vram)
-    elif vram >= 14:
+    elif vram >= 13.5:
         r.add("gpu", "PASS", "顯示卡 VRAM", f"{names}（{vram} GB）→ 達 Nolvus Ultimate 最低需求，需降部分 4K 材質", vram)
-    elif vram >= 12:
+    elif vram >= 11.5:
         r.add("gpu", "WARN", "顯示卡 VRAM", f"{names}（{vram} GB）→ Tier B，需 VRAMr、2K 材質、較輕的草", vram)
     elif vram > 0:
         r.add("gpu", "FAIL", "顯示卡 VRAM", f"{names}（{vram} GB）→ 不建議完整清單，請回報以改用 Redux 路線", vram)

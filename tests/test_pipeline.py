@@ -244,3 +244,11 @@ def test_preflight_defender_placeholder_not_a_path():
     facts = {"windows": True, "install_drive": "D:", "defender_exclusions": None}
     checks = {c.key: c for c in preflight.evaluate(facts).checks}
     assert checks["defender"].status == "INFO"
+
+
+@pytest.mark.parametrize("vram,status,text", [(15.9, "PASS", "Tier A/S"), (13.9, "PASS", "Ultimate"),
+                                              (11.9, "WARN", "Tier B"), (7.9, "FAIL", "Redux")])
+def test_preflight_vram_rounding(vram, status, text):
+    facts = {"windows": True, "gpus": [{"name": "GPU", "vram_gb": vram}]}
+    gpu = next(c for c in preflight.evaluate(facts).checks if c.key == "gpu")
+    assert gpu.status == status and text in gpu.detail and f"{vram} GB" in gpu.detail
