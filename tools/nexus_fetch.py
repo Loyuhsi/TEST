@@ -15,11 +15,13 @@ archives from MO2 into the folder name given in reports\\manifest.csv.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -37,6 +39,18 @@ def api_get(url: str, key: str) -> tuple[object, dict]:
     req = urllib.request.Request(url, headers={**HEADERS, "apikey": key})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read().decode("utf-8")), dict(r.headers)
+
+
+def quote_uri(uri: str) -> str:
+    """Percent-encode spaces and other unsafe characters in a CDN download URI.
+
+    Nexus returns file names with spaces in the path; urllib refuses such URLs.
+    Existing %XX escapes and the signed query string are kept as they are.
+    """
+    parts = urllib.parse.urlsplit(uri)
+    path = urllib.parse.quote(parts.path, safe="/%+()!$&'*,;=:@~")
+    query = urllib.parse.quote(parts.query, safe="=&%+/:,;@!$'()*~")
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
 
 
 def meta_text(mod_id: str, file_id: str, info: dict, url: str) -> str:
@@ -86,7 +100,7 @@ def main(argv=None) -> int:
                     rows.append(row)
                     continue
                 links, hdr = api_get(f"{API}/mods/{mid}/files/{fid}/download_link.json", key)
-                url = links[0]["URI"]
+                url = quote_uri(links[0]["URI"])
                 tmp = dest.with_suffix(dest.suffix + ".part")
                 req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
                 with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
@@ -113,8 +127,9 @@ def main(argv=None) -> int:
                     rows.append(row)
                     rep.add("rate", "WARN", "達到速率上限", "請一小時後再執行")
                     break
-            except (OSError, ValueError, KeyError, IndexError) as e:
-                row["status"] = f"error: {e}"
+            except (OSError, ValueError, KeyError, IndexError, http.client.HTTPException) as e:
+                # drop any signed query string (it carries the user id) before logging
+                row["status"] = f"error: {type(e).__name__}: {str(e).split('?')[0][:160]}"
             rows.append(row)
             time.sleep(max(3.0, args.sleep))
         rep.add("done", "PASS", "本次下載", f"{sum(1 for x in rows if str(x.get('status','')).startswith('downloaded'))} 個")
