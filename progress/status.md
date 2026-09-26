@@ -8,7 +8,7 @@
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 進行中 | | 補擷取 8 個、manifest（download 395／replace_dll 8／review 54）、build_instance create 通過、MO2 首開後 verify modlist 通過；已回報，等雲端判讀 review／replace_dll |
+| 4 組合清單 | 進行中 | | 下載 449/450；install_archives 自動裝約 350 個（含 replace_dll 4 個）；FOMOD 已裝 66／剩 17；10 個下載檔待雲端決定（見 local-report 中途回報 2） |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -81,6 +81,12 @@
   - 批次安裝兩次（20:36、20:43）：已安裝 250 個（含 GUI 裝的 1 個），FOMOD 58 個待 MO2 手動，人工判斷 19 個，`_replaced`／暫存都沒有殘留。
   - `--accept` 放行（看過壓縮檔）：RMS Lux patch、YXZ PBR（provenance 插件欄有誤）、Dragonborn ReVoiced2（DBReV 資料夾）、Icy Windhelm 補丁、Dova Jump、Elden Rim、FDE Aela（目標沒有的選用插件，MO2 會列為停用）、Pandora（工具型 mod，含 exe）。
   - 版本和目標插件不符、待雲端決定：Dreadful Alduin、RUSTIC SOULGEMS、Thrones Expanded、HFs - Whiterun bridges REDONE；Nature of the Wild Lands - Animations Addon 缺插件檔。
+- 下載全部結束（22:4x）：429 下載＋20 已存在；The Restless Dead - At Your Own Pace Patch 的檔案編號錯（=mod 編號）→ 404。封存檔（Vigilant、ParticleWind、Prisma UI 1.4.1、Dirt Cliffs 1.3.0）都下載得到。
+- 第 3、4 次批次安裝（20:43、21:08）：再裝 34＋84 個，replace_dll 4 個（CRDW、Face Discoloration Fix、Native EditorID Fix、Classic Sprinting Redone）舊資料夾搬到 `D:\PM\_replaced`（沒有刪除）。
+- 新增的不符項目（待雲端）：Blubbo Trees Variations、Mostly Treeless Tundra - Northern Scenery、Myrwatch VaultFix USCCCP、Orc Strongholds AIO EFPS。
+- FOMOD 用 MO2 GUI 安裝（File → Install Mod，佔位選 Replace）：已裝 66 個並逐一核對插件（產生的插件都在目標裡；Vanaheimr Landscapes 的 SnowShader.esp 除外，MO2 會列為停用）。選擇紀錄在 local-report 附錄。
+  - MO2 注意：Downloads 分頁篩選後右鍵會對錯列；大型壓縮檔解壓中按 Enter 會中斷（Load Screen Compendium 第一次少了 esp，已重裝）。
+  - Faster HDT-SMP 重裝為 No MCM（MCM 版會多出目標沒有的 FSMPM esp）；Unslaad 重裝為 Silent Voice（比照 Vigilant）。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
