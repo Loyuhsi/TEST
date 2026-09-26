@@ -5,6 +5,25 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note`），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**Nolvus 何時可以和 M&V 同時安裝**（取代下一條的第 5 點）。使用者另外清出 100 多 GB，D 槽目前剩約 1 TB：
+  1. **M&V 還在下載時，不要開始安裝 Nolvus**：兩者分同一條頻寬，只會拖慢 M&V。Dashboard 的準備照下一條第 1–4 點做。
+  2. **Wabbajack 下載完、切到安裝階段時**，用 PowerShell `Get-PSDrive D` 量 D 槽剩餘空間，並記在 `status.md`：
+     - 剩餘 **≥ 950 GB**：可以開始安裝 Nolvus（照 `docs/03`，先確認版本是 6.0.20）。
+       - 依據：M&V 還要 386 GB，加上 Wabbajack 餘裕 60 GB；Nolvus 要 426 GB，加上解壓暫存約 30 GB；再留 50 GB 安全餘裕，合計約 950 GB。
+     - 剩餘 < 950 GB：照原順序，等 M&V 完成。
+  3. 兩者同時安裝時，使用者回來說「繼續」，先看 D 槽剩餘：
+     - 低於 50 GB：在 Dashboard 停止 Nolvus 安裝（之後可以續裝），讓 M&V 先完成。
+     - 兩個安裝都不要中途關閉程式。
+  4. **快速路線（依原順序時）**：
+     - 條件：Wabbajack 結果頁沒有錯誤，而且第 2 階段各份報告都沒有 `[失敗]`。
+     - 做法：不必等雲端判讀。推送 `status.md` 與 `local-report.md`（先問使用者）→ 問使用者刪 `D:\WJ-Downloads`（刪除前照 CLAUDE.md 說明）→ 刪完立刻開始安裝 Nolvus。
+     - `[注意]` 在回報裡說明即可，雲端之後補判讀。
+     - 有任何 `[失敗]`：照舊等雲端判讀。
+  5. 其餘規則不變：
+     - 版本必須是 6.0.20。
+     - 不從 Steam 啟動 Skyrim。
+     - 不按 Wabbajack 或 Nolvus 的更新。
+     - `D:\MV` 保留到第 4 階段 `manifest` 跑完。
 - 2026-09-26｜**不要同時安裝 Nolvus**：M&V 未完成前，D 槽峰值會達約 1050–1070 GB，超過剩餘的約 1047 GB。現在可以先做 Nolvus 的準備，但停在按安裝之前：
   1. 下載 Nolvus Dashboard 到 `D:\Nolvus` 並完成安裝，確認版本 ≥ 3.8.11。
   2. 登入 nolvus.net 帳號，連結 Nexus（SSO）與 mega。
