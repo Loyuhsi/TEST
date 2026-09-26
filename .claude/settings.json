@@ -1,0 +1,57 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python tools/*)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m pip install *)",
+      "Bash(git pull*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add progress/*)",
+      "Bash(git add data/decisions.csv)",
+      "Bash(git commit *)",
+      "PowerShell(python tools/*)",
+      "PowerShell(python tools\\*)",
+      "PowerShell(python -m pytest*)",
+      "PowerShell(python -m pip install *)",
+      "PowerShell(git pull*)",
+      "PowerShell(git status*)",
+      "PowerShell(git add progress/*)",
+      "PowerShell(git commit *)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(python tools/zh/llm_translate.py run *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(git push*)",
+      "PowerShell(python tools/zh/llm_translate.py run *)",
+      "PowerShell(python tools\\zh\\llm_translate.py run *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "PowerShell(git push --force*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.py"]
+          }
+        ]
+      }
+    ]
+  }
+}

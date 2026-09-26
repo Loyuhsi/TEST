@@ -12,3 +12,6 @@ venv/
 # Secrets must never be committed
 .env
 *.key
+
+# Personal local-agent notes
+CLAUDE.local.md

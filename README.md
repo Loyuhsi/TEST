@@ -6,6 +6,8 @@
 - 翻成**台灣繁體中文**。
 - 調整到筆電能順跑。
 
+**想讓筆電上的本地 Claude 代你操作？** 照 [`docs/09-本地Claude代理.md`](docs/09-本地Claude代理.md) 設定 Claude Desktop 的 Code 分頁與電腦操作，貼上開場指令即可。它依 [`CLAUDE.md`](CLAUDE.md) 與技能 `.claude/skills/pages-modlist/` 執行，刪除、花錢、推送前一定會先問你。
+
 完整計畫與研究結論見 [`docs/00-計畫.md`](docs/00-計畫.md)，查證過的研究筆記（英文）在 [`docs/research/`](docs/research/)。
 
 > **分工**
@@ -26,6 +28,7 @@
 | 8 | 凍結、備份與維護 | [08-凍結備份與維護](docs/08-凍結備份與維護.md) | — |
 
 輔助文件：
+- [本地 Claude 代理](docs/09-本地Claude代理.md)
 - [回報格式](docs/回報格式.md)
 - [介面檢查表](docs/介面檢查表.md)
 - [測試路線](docs/測試路線.md)
