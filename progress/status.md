@@ -6,8 +6,8 @@
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
-| 2 安裝 M&V 並擷取 | 進行中 | | Wabbajack 安裝中（[12/14] Installing files）；Curios 雜湊問題已修正 |
-| 3 安裝 Nolvus | 暫停 | | 選項已照 docs/03 選好、版本 6.0.20；已按 Start，但遊戲檔檢查在 Rare Curios 失敗（與 M&V 要的版本衝突），等 M&V 裝完再處理 |
+| 2 安裝 M&V 並擷取 | 進行中 | | Wabbajack 安裝中（12:07 為 [12/14] 227.4/359.8 GB）；Curios 雜湊問題已修正 |
+| 3 安裝 Nolvus | 暫停 | | 選項已照 docs/03 選好、版本 6.0.20；已按 Start，但遊戲檔檢查在 Rare Curios 失敗（與 M&V 要的版本衝突）；**等雲端判讀**（local-report 已寫） |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -52,4 +52,4 @@
 - 使用者已同意的後續做法：M&V 裝完（Curios 已複製進 `D:\MV\Stock Game`）後，① 把 Steam 資料夾的 Steam 版 Curios 搬到備份資料夾（不刪除）；② 先確認 Steam 沒有新版 Skyrim，再從 Steam 啟動遊戲一次，用 Creations 重新下載 Curios，不載入存檔就離開；③ 重開 Nolvus Dashboard 接著安裝。
 
 ## 等待雲端或使用者決定的事
-- （無）
+- 雲端：Rare Curios 衝突的處理方式、最終 `D:\PM` 用哪一版 Curios、Dashboard 沒有 Enemies Resistance／Stances Perk Tree 開關（詳見 `local-report.md`）。使用者要求先等雲端意見再動 Nolvus。
