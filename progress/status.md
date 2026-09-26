@@ -1,14 +1,14 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
-最後更新：2026-09-26
-目前階段：4（中途回報已推送，等雲端判讀 review／replace_dll 後再下載）
+最後更新：2026-09-27
+目前階段：4（中途回報 4：cloud-notes b3477ea 步驟 1–8 完成，等雲端決定；未跑 prune）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 進行中 | | 下載 449/450；install_archives 約 350 個；FOMOD 83 個全部裝完；新增 `sync-order --restore-states`；**目標有 622 個插件找不到檔案（多為擷取的補丁合集選項不同）**＋10 個下載檔等雲端決定；尚未跑 prune（見 local-report 中途回報 3） |
+| 4 組合清單 | 進行中 | | 下載與 FOMOD／合併安裝全部完成（manifest 需下載 0）；fill_plugins 補齊後，目標插件缺檔 622 → **53**（6 個版本不符暫緩、8 個屬捨棄的 Patreon、2 個只有 M&V、37 個找不到來源）；audit_skse 失敗 2（SMP Wind 的 AE 版 hdtSMP64.dll、Dova Jump）；尚未跑 prune（見 local-report 中途回報 4） |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -94,6 +94,16 @@
   - `verify`：modlist 一致；目標插件缺 622 個（完整清單 `data/analysis/missing_target_plugins.csv`）：264 個在 D:\MV 或 D:\Nolvus 的另一份合集裡就有，78 個只在已下載的壓縮檔，約 340 個要另外下載合集。等雲端決定前不跑 `prune_dependents`。
   - Edge UI Racemenu：用 DIP v2.1.5（放在 `D:\PM\tools\DIP`）命令列產生 RaceMenu 的兩個 swf，已完成。
   - 下一步：等雲端回覆第 1、3、4、8 點。
+- 2026-09-27 雲端 b3477ea 的步驟 1–8（中途回報 4）：
+  - manifest（01:05）→ install_archives 裝 9 個（01:12）→ harvest-nolvus（The Restless Dead AYOP，01:13）→ fill_plugins（622 → 337）。
+  - `--plan-downloads` 的清單有 34 筆佔位檔案編號（file id＝mod id），另有 11 個合集沒有檔案編號而被略過。
+    - 改用 Nexus 檔案清單與壓縮檔預覽找到 50 個真正的檔案，寫進 `data/extra_archives.csv`（50cdaa3），下載 49 個（約 5.5 GB）。
+    - fill_plugins 再取出 280 個。
+    - 另外依 FOMOD 選項補了 7 個插件附帶的 43 個模型／材質；Freak's Floral Fields 主插件由 `optional\` 接回；Watertowers 取 Climbable 版。
+  - MO2 GUI：Load Screen 16:9（All-Inclusive、CC）、NotWL Animations MESHES（合併；PLUGINS 的兩個目標插件已是 00 Main，雜湊相同，所以不重裝）、Fortified Morthal 磚＋屋頂、Modern Hay＋Hay Bale Fix、Dwemer Backpack HDT-SMP＋Lantern。
+  - `sync-order --restore-states --apply`：啟用 570 個 → `verify`：modlist 一致、插件缺 53、待重建輸出 7。manifest 重跑：需下載 0、replace_dll 3。
+  - Vanaheimr PBR 2k 與 Riverwood Falls 1.2.1 的壓縮檔暫放 `D:\PM\_hold_downloads`，等雲端決定是否整包重裝（搬移，沒有刪除）。
+  - 下一步：等雲端回覆 local-report「需要雲端決定」1–10 點，之後才跑 prune_dependents。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
