@@ -178,6 +178,60 @@ def read_meta_ini(path: Path) -> ModMeta:
     )
 
 
+def _ini_value(value: str) -> str:
+    """Quote a value the way QSettings needs: list/comment characters, or a leading '@'
+    (QSettings reads '@ByteArray(...)', '@Variant(...)' as typed values)."""
+    if value == value.strip() and not value.startswith("@") and not any(c in value for c in ',;#"\\'):
+        return value
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def install_meta_text(mod_id: str, file_id: str, version: str, installation_file: str) -> str:
+    """meta.ini for a mod installed from a Nexus download (what MO2 writes, minus UI state)."""
+    lines = ["[General]", "gameName=skyrimse", f"modid={mod_id}", f"version={_ini_value(version)}",
+             f"installationFile={_ini_value(installation_file)}", "repository=Nexus", "",
+             "[installedFiles]", f"1\\modid={mod_id}", f"1\\fileid={file_id}", "size=1"]
+    return "\r\n".join(lines) + "\r\n"
+
+
+def mark_download_installed(text: str) -> str:
+    """Return a download .meta text with installed=true / uninstalled=false in [General].
+
+    Blank lines are dropped, which also repairs the doubled CR line ends ("\\r\\r\\n") that
+    older nexus_fetch versions wrote.
+    """
+    wanted = {"installed": "true", "uninstalled": "false"}
+    out: list[str] = []
+    seen: set[str] = set()
+    in_general = found_general = False
+
+    def add_missing() -> None:
+        out.extend(f"{k}={v}" for k, v in wanted.items() if k not in seen)
+        seen.update(wanted)
+
+    for line in (ln for ln in text.splitlines() if ln.strip()):
+        s = line.strip()
+        if s.startswith("[") and s.endswith("]"):
+            if in_general:
+                add_missing()
+            in_general = s.lower() == "[general]"
+            found_general = found_general or in_general
+            out.append(line)
+            continue
+        key = s.partition("=")[0].strip().lower()
+        if in_general and key in wanted:
+            if key not in seen:
+                out.append(f"{key}={wanted[key]}")
+                seen.add(key)
+            continue
+        out.append(line)
+    if in_general:
+        add_missing()
+    if not found_general:
+        out = ["[General]"] + [f"{k}={v}" for k, v in wanted.items()] + out
+    return "\r\n".join(out) + "\r\n"
+
+
 def nexus_url(mod_id: int, file_id: int = 0, game: str = "skyrimspecialedition") -> str:
     if not mod_id:
         return ""
