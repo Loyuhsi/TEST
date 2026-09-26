@@ -6,8 +6,8 @@
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
-| 2 安裝 M&V 並擷取 | 進行中 | | Wabbajack 安裝 M&V 2.6.2（`D:\MV`，下載 `D:\WJ-Downloads`） |
-| 3 安裝 Nolvus | 準備中 | | Dashboard 3.8.11 已放在 `D:\Nolvus`；等使用者完成 Nexus SSO、nolvus.net、mega 登入後選選項；**不按安裝**（依 cloud-notes） |
+| 2 安裝 M&V 並擷取 | 進行中 | | Wabbajack 安裝中（[12/14] Installing files）；Curios 雜湊問題已修正 |
+| 3 安裝 Nolvus | 暫停 | | 選項已照 docs/03 選好、版本 6.0.20；已按 Start，但遊戲檔檢查在 Rare Curios 失敗（與 M&V 要的版本衝突），等 M&V 裝完再處理 |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -42,6 +42,14 @@
 - [ ] 不同時安裝 Nolvus：只準備 Dashboard（下載、登入、建立實例、選項、確認 6.0.20），M&V 完成、第 2 階段工具跑完、刪除 `D:\WJ-Downloads` 後才按安裝。
   - Dashboard：從 nolvus.net 官方連結（作者 GitHub 發行檔）取得 NolvusUpdater 1.3.9.0；GitHub CDN 單一連線只有約 40 KB/s，改用 32 條連線分段下載同一個 `Binaries3811.zip`（大小與官方記錄相符、7-Zip CRC 檢查通過），照 Updater 原始碼的做法解壓到 `D:\Nolvus`。Updater 回報「up to date」。
   - 遊戲路徑用 Auto Detect（Steam 預設庫）；此步驟不改動 Steam 遊戲資料夾。
+- [x] cloud-notes「Nolvus 何時可以和 M&V 同時安裝」：Wabbajack 下載完、進入安裝階段時（2026-09-26 11:39）D 槽剩 **974.6 GB**（≥ 950），使用者同意後在 11:46 按 Nolvus Start。
+
+## Rare Curios 版本衝突（手冊沒寫到，已問使用者）
+- 起因：第 1 階段在遊戲內用 Creations「Download all owned Creation Club Creations」下載 AE 內容時，74 個 CC 全部重新下載，連 Steam 本來就附的 4 個免費 CC 也被覆寫。其中只有 Rare Curios（`ccbgssse037-curios.bsa/.esl`）的 Bethesda.net 版與 Steam 版內容不同（大小相同）。
+- M&V 2.6.2 要 **Steam 版**：Wabbajack 以「Missing game file Data_ccbgssse037-curios.bsa/.esl」中止（FATAL）。modlist 預期雜湊 `DG3YZQj7xwk=`／`STK4THfMHzw=`；Creations 版為 `FQbA20bA5Dw=`／`it6+eSu4OCw=`（Wabbajack xxHash64）。Fish、Survival Mode、AdvDSGS 重寫後雜湊不變。
+  - 處理（使用者同意）：Steam「驗證遊戲檔案完整性」→ 只有這 2 個檔驗證失敗並重新下載 → 雜湊與 M&V 預期相符 → Wabbajack Retry，已順利進入 Installing files。遊戲仍是 1.7.104.0、build 24914197、CC 74 個。
+- Nolvus 6.0.20 要 **另一版**（應為 Creations 版）：Stock Game 檢查到 `ccbgssse037-curios.bsa` 時「Hash … does not match!」，已自動 rollback，沒有留下變更。
+- 使用者已同意的後續做法：M&V 裝完（Curios 已複製進 `D:\MV\Stock Game`）後，① 把 Steam 資料夾的 Steam 版 Curios 搬到備份資料夾（不刪除）；② 先確認 Steam 沒有新版 Skyrim，再從 Steam 啟動遊戲一次，用 Creations 重新下載 Curios，不載入存檔就離開；③ 重開 Nolvus Dashboard 接著安裝。
 
 ## 等待雲端或使用者決定的事
 - （無）
