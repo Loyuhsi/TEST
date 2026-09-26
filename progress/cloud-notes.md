@@ -5,6 +5,40 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note`），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**Rare Curios 衝突判讀**（回應 1ae35a6）。使用者同意的做法可以執行，但要照下面的順序並加上檢查：
+  1. **等 Wabbajack 完全裝完**（結果頁顯示完成）。在那之前不要動 Steam 遊戲資料夾。
+     - 確認 `D:\MV\Stock Game\Data` 已有 `ccbgssse037-curios.bsa/.esl`。
+     - 用 `Get-FileHash` 比對，確認它們與 Steam 資料夾裡的檔案相同。
+  2. 把 Steam 資料夾裡 Steam 版的這 2 個檔**搬到** `D:\Backup\Curios-Steam`。這是搬移不是刪除，使用者已同意。
+  3. **啟動前確認不會被更新**，三項都要符合，任何一項不符就停下來回報：
+     - Steam 遊戲庫的按鈕是「開始遊戲」（PLAY），不是「更新」。
+     - Steam 下載頁沒有 Skyrim 的排程。
+     - SteamDB 上 Skyrim SE 公開分支的 build 仍是 24914197。
+  4. **允許這一次**從 Steam 啟動遊戲，這是「第 3 階段前不從 Steam 啟動 Skyrim」的唯一例外：
+     - 主選單 → CREATIONS，只下載 Rare Curios。
+     - 沒有單項下載的選項時，可以用 OPTIONS →「Download all owned Creation Club Creations」。其他 CC 重下後內容不變：Fish、Survival、Saints & Seducers 在第 1 階段已驗證雜湊相同，其餘本來就是 Creations 版。
+     - 不載入存檔、不購買任何東西，下載完就離開。
+  5. 核對：
+     - 兩個檔的 Wabbajack xxHash64 應為 `FQbA20bA5Dw=`（bsa）／`it6+eSu4OCw=`（esl）。
+     - 遊戲仍是 1.7.104.0、build 24914197，CC 仍是 74 個。
+     - 把這兩個 Creations 版檔案**複製**一份到 `D:\Backup\Curios-Creations`。
+  6. 重開 Nolvus Dashboard，照 1ae35a6 回報的同一組選項再選一次，確認版本是 6.0.20：
+     - D 槽剩餘 **≥ 500 GB**：直接開始安裝，不必等刪 `D:\WJ-Downloads`。預估 M&V 裝完約剩 545 GB，Nolvus 要約 456 GB。
+     - 不足 500 GB：照上一條的快速路線，先刪 `D:\WJ-Downloads`（先問使用者）。
+     - 若遊戲檔檢查又報「Hash … does not match」（不論哪個檔）：停下來，把 `Log.txt` 的相關行寫進 `local-report.md` 回報。不要試其他版本的檔案。
+  7. 第 2 階段的工具（inventory、harvest、extract_official）只讀 `D:\MV`，可以和 Nolvus 安裝同時跑。
+- 2026-09-26｜其他問題的判讀：
+  - **`D:\PM` 用 Nolvus 的 Creations 版 Curios。**
+    - `D:\PM\STOCK GAME` 來自 Nolvus。目標清單裡跟 Curios 有關的 patch 全部來自 Nolvus（`harvest_nolvus`），都是依 Nolvus 的版本做的。例如 LOTD Creation Club Patch 的 `DBM_CC_*CuriosAddon.esp`、`LOTD_TCC_RareCurios.esp`，以及 Creation Club Crossbow Integration、Midwood Isle／Wyrmstooth／Apothecary 的 Curios patch。
+    - `Argentum - Rare Curios Add-On 01` 不在目標清單裡。
+    - 第 4 階段 `check_plugins` 照常執行即可。
+  - **Dashboard 沒有 Enemies Resistance、Stances Perk Tree 開關：可以。**
+    - 這兩個開關是 6.0.21 才加的；nolvus.net 的清單是 6.0.21 版。
+    - 目標用的是舊版 `True Armor` 2.5.2 與舊版 `Nolvus Awakening Stances Perk System`，在 6.0.20 是基本內容。
+    - Nolvus 裝完後，若 `harvest-nolvus` 的「來源缺少」出現 True Armor 或 Stances 相關資料夾，要回報。
+  - **Nudity No、True Nord 預設細項：正確。** 目標清單裡有 Nude 選項的 mod 是 0/4，Milk Drinker 選項的 mod 是 0/9。
+  - Dashboard 用 32 條連線下載官方 `Binaries3811.zip`（大小與 CRC 相符）再解壓：接受。
+  - 手冊已補上 Curios 的說明（`docs/01` 第 4 節、`docs/02` 常見問題、`docs/03` 選項表與常見問題）。
 - 2026-09-26｜**Nolvus 何時可以和 M&V 同時安裝**（取代下一條的第 5 點）。使用者另外清出 100 多 GB，D 槽目前剩約 1 TB：
   1. **M&V 還在下載時，不要開始安裝 Nolvus**：兩者分同一條頻寬，只會拖慢 M&V。Dashboard 的準備照下一條第 1–4 點做。
   2. **Wabbajack 下載完、切到安裝階段時**，用 PowerShell `Get-PSDrive D` 量 D 槽剩餘空間，並記在 `status.md`：

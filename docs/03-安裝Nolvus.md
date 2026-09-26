@@ -4,7 +4,7 @@
 
 - 預估時間：半天左右。Nolvus 官方說有 Premium 和快速網路約 1 小時；193 GB 在 100 Mbps 下光下載就要 4–5 小時。
 - 前提：第 2 階段已完成，D 槽剩餘 500 GB 以上。
-- Steam 語言仍是 English，Steam 版 Skyrim 仍是 1.7.104，而且沒有被啟動過。
+- Steam 語言仍是 English，Steam 版 Skyrim 仍是 1.7.104。第 1 階段之後沒有從 Steam 啟動過（為了換 Rare Curios 而啟動一次除外，見「常見問題」）。
 - `%LOCALAPPDATA%\ModOrganizer` 不存在。
 
 > **注意**：要盡快安裝。Nolvus 6.0.21 目前是 beta，轉正式版後 Dashboard 會改裝 6.0.21，目標用到的 55 個 mod 就會消失。
@@ -41,8 +41,9 @@
 | 螢幕比例 | **16:9** | |
 | 介面（UI） | **Edge** | |
 | 戰鬥附加元件（Combat） | **Fantasy Combat** | |
-| 其他附加元件 | **全部勾選**：Boss Encounter、Alternate Leveling、Gore、Exhaustion、Enemies Resistance、Stances Perk Tree | |
-| 難度 | **True Nord** | |
+| 其他附加元件 | **全部勾選**：Boss Encounter、Alternate Leveling、Gore、Exhaustion | Dashboard 3.8.11 裝 6.0.20 時沒有 Enemies Resistance、Stances Perk Tree 開關（6.0.21 才有），目標用的舊版 True Armor 與 Stances Perk System 已內含 |
+| 裸體（Nudity） | **No** | 目標沒有這個選項的 mod |
+| 難度 | **True Nord** | 細項（Combat Scaling、Exhaustion、Nerf Power Attacks、Boss Encounter）用預設 |
 | BodySlide | **Dressed** | |
 | ENB | 任選一個（例如 Cabbage） | 之後會整個移除 |
 | 封存（Archiving） | **關閉** | 省下 193 GB |
@@ -121,7 +122,17 @@ Nolvus 的 FAQ 提到部分地區無法下載某些檔案、建議使用 VPN。�
 `%LOCALAPPDATA%\ModOrganizer` 還在。改名成 `ModOrganizer.bak` 後重開 Dashboard。
 
 **Dashboard 說遊戲檔案雜湊不符（hash does not match）？**
-通常是 Steam 版不是最新、CC 沒下載齊，或 Steam 語言不是 English。先回到第 1 階段檢查，並回報 Claude。
+先看 Dashboard 的 `Log.txt` 是哪個檔：
+- **`ccbgssse037-curios.bsa`／`.esl`**：Steam 資料夾裡是 Steam 版 Rare Curios（第 2 階段為了 M&V 換回來的），Nolvus 要 Bethesda.net 版。
+  1. 確認 M&V 已經裝完，而且 `D:\MV\Stock Game\Data` 裡有這 2 個檔。
+  2. 把 Steam 資料夾裡的這 2 個檔**搬到** `D:\Backup\Curios-Steam`。
+  3. 如果 `D:\Backup\Curios-Creations` 有第 1 階段的備份，把它**複製**回 Steam 的 `Data`。
+  4. 沒有備份時，只好從 Steam 啟動遊戲一次，到 CREATIONS 重新下載 Rare Curios，不載入存檔就離開。啟動前先確認三件事，否則遊戲可能被更新：
+     - 遊戲庫的按鈕是「開始遊戲」，不是「更新」。
+     - 下載頁沒有 Skyrim 的排程。
+     - SteamDB 的公開 build 沒有變。
+  5. 重開 Dashboard，用同樣的選項再試一次。還是不符就回報 Claude。
+- **其他檔案**：通常是 Steam 版不是最新、CC 沒下載齊，或 Steam 語言不是 English。先回到第 1 階段檢查，並回報 Claude。
 
 **Dashboard 認不出筆電的 NVIDIA 顯示卡？**
 這只影響 DLAA。我們選 TAA，可以直接繼續。
