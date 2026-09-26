@@ -92,7 +92,8 @@
   - Snazzy Misc Locations AIO 的 JK's Palace 目的檔名是 `.esp.esp`，已重裝並改名；Riverwood Falls 的 LFFGM 插件、SDA 立石補丁、Wayshrines 補丁是從壓縮檔單獨取出；FWMF 換成 SE 版 DLL，AE 版 Baka DLL 改名 `.mohidden`，M&V 舊內容在 `D:\PM\_replaced`。
   - MO2 在 00:08 當機一次（ntdll 0xc0000374，安裝完成後檢查更新時）；重開後 modlist 一致。
   - `verify`：modlist 一致；目標插件缺 622 個（完整清單 `data/analysis/missing_target_plugins.csv`）：264 個在 D:\MV 或 D:\Nolvus 的另一份合集裡就有，78 個只在已下載的壓縮檔，約 340 個要另外下載合集。等雲端決定前不跑 `prune_dependents`。
-  - 下一步：Edge UI Racemenu 用 DIP 試做；等雲端回覆第 1、3、4、8 點。
+  - Edge UI Racemenu：用 DIP v2.1.5（放在 `D:\PM	ools\DIP`）命令列產生 RaceMenu 的兩個 swf，已完成。
+  - 下一步：等雲端回覆第 1、3、4、8 點。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。

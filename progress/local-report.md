@@ -9,7 +9,8 @@
   - **FOMOD 83 個全部裝完**（這輪補完 17 個，選擇見附錄最後 17 列；每個都核對過產生的插件）。
   - 新增 `build_instance.py sync-order --restore-states`（c8fc131）：MO2 會把新裝的插件列為停用，235 個目標插件（含 LegacyoftheDragonborn.esm）因此是停用狀態；不先還原，`prune_dependents` 會誤刪大量補丁。已用它把目標插件狀態還原（目前 3575 個目標插件已啟用）。
   - **新發現、需要雲端決定：目標有 622 個插件在硬碟上找不到檔案**（不含第 5 階段才產生的 7 個）。絕大多數屬於從 M&V／Nolvus 擷取來的補丁合集：Pages 在這些合集的 FOMOD 勾了更多補丁，擷取來的版本沒有。見「需要雲端決定」第 8 點。
-  - 之前的 10 個下載檔、Maerchenwald、合併安裝 3 個仍等雲端回覆；Edge UI Racemenu（DIP）尚未處理。
+  - Edge UI Racemenu（DIP）已完成。
+  - 之前的 10 個下載檔、Maerchenwald、合併安裝 3 個仍等雲端回覆。
   - 還沒跑 `prune_dependents`：缺的 622 個插件決定前跑會停用大量補丁。
 
 ## 工具結果（照抄 reports\*.txt 的每一行）
@@ -173,11 +174,16 @@
    - **DBVO Vampira**：語音包註冊必需的「Skyrim Base Game」選項會附帶 41 個 `DBVO Fix - *.esp`，目標都沒有（目標另外的語音包也都不含插件）。它們維持停用。
    - **為了筆電選的**：Water for ENB 貼圖和瀑布 2K（預設 4K）；CS Lights 不裝窗戶光源（室內是選用，Lux 已處理；室外作者不建議）。
    - **JK's Fort Dawnguard - SDA Patch**：照資料夾名稱只放 SDA 補丁。目標另外要的 Cloaks、Arsenal、RDO、WACCF 4 個屬於第 8 點的合集問題。
+   - **Edge UI Racemenu（DIP）已完成**：
+     - 下載 Dynamic Interface Patcher v2.1.5（96891／592350，自帶 Java），放在 `D:\PM\tools\DIP`，不是 mod、不在 modlist。
+     - 補丁 FOMOD 只有一個必選項目，照它的對應放入 `interface\racemenu\buttonart.swf`、`buttonartDD.swf` 和 `Edge UI - RaceMenu - DIP\` 補丁資料夾。「Automatic Patcher」選項要搭配 SkyHorizon3 的外掛，目標沒有，不勾。
+     - 用 DIP 命令列（`DIP.exe <補丁> "<RaceMenu Special Edition>" -o <暫存> -s`）產生 `interface\racesex_menu.swf`、`interface\racemenu\bottombar.swf`。xdelta 會驗證原檔，兩個都成功套用。產物放進「Edge UI Racemenu」。
+     - 它在 LATE LOADERS，會蓋過 Nolvus「RaceMenu Special Edition - Dip Patch (Edge UI Explorer Addon)」的同名兩個 swf（內容不同）。這是目標的順序。
+     - `D:\PM\tools\DIP_extract\fomod` 留有 3 個安裝說明小檔（Image.jpg、info.xml、ModuleConfig.xml），要刪再問使用者。
    - **MO2 當機一次**：00:08 在 Manual 安裝完成後、檢查更新時，ntdll 0xc0000374。安裝內容完整；重開後 `verify` 的 modlist 比對一致。
 
 ## 尚未完成（下一步）
 - 等雲端回覆：第 1 點的 10 個下載檔、Maerchenwald、合併安裝 3 個、第 8 點的 622 個缺漏插件。
-- Edge UI Racemenu（DIP）：Dynamic Interface Patcher v2.1.5（96891，約 63 MB）可以當 MO2 工具執行，輸出會到 overwrite。下一步先試做；做不到再回報。
 - 全部處理完後：`sync-order --restore-states --apply` → `prune_dependents` → `sync-order` → `verify` → `check_plugins` → `audit_skse`。
 
 ## MO2 GUI 操作的注意事項（給手冊）
