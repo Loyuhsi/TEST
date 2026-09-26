@@ -59,3 +59,12 @@ def test_cdn_403_raises_cdn_error_not_http_error(monkeypatch, tmp_path):
 
 def test_quote_uri_without_signed_query():
     assert nexus_fetch.quote_uri("https://h.example/a b.zip") == "https://h.example/a%20b.zip"
+
+
+def test_meta_file_has_single_crlf_line_ends(tmp_path):
+    p = tmp_path / "x.7z.meta"
+    nexus_fetch.write_meta(p, "1", "2", {"name": "A", "version": "1.0"},
+                           "https://www.nexusmods.com/skyrimspecialedition/mods/1")
+    raw = p.read_bytes()
+    assert b"\r\r" not in raw
+    assert b"modID=1\r\nfileID=2\r\n" in raw and b"installed=false\r\n" in raw

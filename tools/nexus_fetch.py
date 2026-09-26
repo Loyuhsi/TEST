@@ -104,6 +104,11 @@ def meta_text(mod_id: str, file_id: str, info: dict, url: str) -> str:
             "installed=false\r\nuninstalled=false\r\npaused=false\r\nremoved=false\r\n")
 
 
+def write_meta(path: Path, mod_id: str, file_id: str, info: dict, url: str) -> None:
+    # newline="" keeps the CRLF as written (text mode would turn "\r\n" into "\r\r\n")
+    path.write_text(meta_text(mod_id, file_id, info, url), encoding="utf-8", newline="")
+
+
 def main(argv=None) -> int:
     fsutil.enable_utf8_console()
     ap = argparse.ArgumentParser(description="限速下載 Nexus 檔案（需要 Premium 與 NEXUS_API_KEY）")
@@ -149,7 +154,7 @@ def main(argv=None) -> int:
                 download_file(url, tmp)
                 tmp.replace(dest)
                 page = f"https://www.nexusmods.com/skyrimspecialedition/mods/{mid}"
-                (dl_dir / (fname + ".meta")).write_text(meta_text(mid, fid, info, page), encoding="utf-8")
+                write_meta(dl_dir / (fname + ".meta"), mid, fid, info, page)
                 row["status"] = "downloaded"
                 row["archive"] = fname
                 done += 1
