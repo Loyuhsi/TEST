@@ -1,14 +1,14 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-27
-目前階段：4（中途回報 4：cloud-notes b3477ea 步驟 1–8 完成，等雲端決定；未跑 prune）
+目前階段：4（中途回報 5：cloud-notes 8ec7ae0 步驟 1–8 完成；_ResourcePack.esl 與 Frescoes 等雲端決定；未跑 prune）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 進行中 | | 下載與 FOMOD／合併安裝全部完成（manifest 需下載 0）；fill_plugins 補齊後，目標插件缺檔 622 → **53**（6 個版本不符暫緩、8 個屬捨棄的 Patreon、2 個只有 M&V、37 個找不到來源）；audit_skse 失敗 2（SMP Wind 的 AE 版 hdtSMP64.dll、Dova Jump）；尚未跑 prune（見 local-report 中途回報 4） |
+| 4 組合清單 | 進行中 | | 下載、FOMOD、重裝全部完成；目標插件缺檔 622 → **16**（15 個屬雲端接受缺少／捨棄，1 個 Dibella Frescoes 等決定）；audit_skse 通過；check_plugins 失敗：缺前置 65（其中 41 個缺 `_ResourcePack.esl`，含 LOTD 本體）、順序 118（目標順序本身）；尚未跑 prune（見 local-report 中途回報 5） |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -104,6 +104,14 @@
   - `sync-order --restore-states --apply`：啟用 570 個 → `verify`：modlist 一致、插件缺 53、待重建輸出 7。manifest 重跑：需下載 0、replace_dll 3。
   - Vanaheimr PBR 2k 與 Riverwood Falls 1.2.1 的壓縮檔暫放 `D:\PM\_hold_downloads`，等雲端決定是否整包重裝（搬移，沒有刪除）。
   - 下一步：等雲端回覆 local-report「需要雲端決定」1–10 點，之後才跑 prune_dependents。
+- 2026-09-27 雲端 8ec7ae0 的步驟 1–8（中途回報 5）：
+  - create（重建 _expected，多 Terrain Helper）→ 開關 MO2 → harvest-mv（Terrain Helper）→ manifest → nexus_fetch（2＋11 個）。
+  - install_archives 重裝 Dova Jump 0.6.1、Skyrim Souls RE 原作 3.1.2（DLL 改 .mohidden）；SMP Wind 的 hdtSMP64.dll 改 .mohidden。
+  - Vanaheimr 改 PBR 2k（臨時 manifest＋--accept）；Riverwood Falls 用 1.2.1 FOMOD 重裝（15 個插件與目標一致），舊內容都在 `_replaced`。
+  - fill_plugins 取出 26 個（寫入 250 個檔）；Praedy Banner 補 2 張材質；COTN Dawnstar 的 2 個 LotD 補丁照 FOMOD 改名放入（regular 版）。
+  - sync-order 啟用 35 個 → verify 缺 16 → audit_skse 通過 → check_plugins 失敗（缺前置 65、順序 118）。
+  - **prune 前要先處理 `_ResourcePack.esl`**：STOCK GAME 的 Skyrim.ccc 有列、檔案不在；不處理的話 LOTD 本體會被停用。
+  - JK Frescoes：D:\PM 的 Frescoes 主檔是 Solitude Only（M&V），已有的 4 個 JK Frescoes 補丁來自 Nolvus 的 Complete 版；Dibella 補丁未裝，等雲端決定。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
