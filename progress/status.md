@@ -1,11 +1,11 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-26
-目前階段：1（進行中，等使用者處理帳號、.NET 6 與 Defender）
+目前階段：1（進行中，等使用者處理 .NET 6、Defender 與帳號確認）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
-| 1 準備筆電 | 進行中 | | 失敗 0；剩 CC 下載（需 Bethesda.net 帳號）、.NET 6、Defender 排除 |
+| 1 準備筆電 | 進行中 | | 失敗 0；CC 已 74/74；剩 .NET 6、Defender 排除、帳號確認、最終 preflight |
 | 2 安裝 M&V 並擷取 | 未開始 | | |
 | 3 安裝 Nolvus | 未開始 | | |
 | 4 組合清單 | 未開始 | | |
@@ -23,7 +23,7 @@
 - [x] `D:\MV`、`D:\Nolvus`、`D:\PM`、`D:\WJ-Downloads` 已建立（D 槽 NTFS，剩約 1047 GB）。
 - [ ] Defender 排除：屬安全設定，待使用者自己加入。
 - [x] Steam 版 Skyrim 1.7.104.0；遊戲語言改為 English、Overlay 關閉、自動更新改為「等到我啟動遊戲的時候」。已擁有 Anniversary Edition 升級。
-- [ ] CC 插件 4/74：遊戲內下載要求 Bethesda.net 帳號（建立或登入並同意條款），待使用者操作。遊戲停在該畫面。
+- [x] CC 插件 74/74（約 5.85 GB）：遊戲內 Creations 需要 Bethesda.net 帳號，登入後用 OPTIONS →「Download all owned Creation Club Creations」下載；`ContentCatalog.txt` 記錄 74 項。未載入存檔，已關閉遊戲。
 - [x] `%LOCALAPPDATA%\ModOrganizer` 已改名為 `ModOrganizer.bak`（未刪除，可改回）。
 - [x] 沒有 Killer 網路軟體。
 - [ ] 帳號：Wabbajack 已有 Nexus（OAuth）與 mega 登入；待使用者確認 Nexus Premium、nolvus.net、夸克。
@@ -38,5 +38,5 @@
 - 雲端：用 Python 3.13.11 代替 3.12 可以嗎？第 6 階段的 opencc 等套件到時再確認。
 - 雲端：preflight 以一般權限執行時，Defender 讀到的是「N/A: Must be an administrator…」字串，被當成路徑而顯示「尚未排除」。是否要讓工具辨識這個字串並改報[資訊]？
 - 雲端：使用者「文件\My Games\Skyrim Special Edition\Skyrim.ini」仍是 `sLanguage=CHINESE`（舊遊玩留下）。Wabbajack、Nolvus 用各自設定檔，應不受影響，請確認。
-- 使用者：Bethesda.net 登入後下載全部 AE 內容、.NET 6、Defender 排除、帳號確認。
+- 使用者：.NET 6、Defender 排除（系統管理員 PowerShell）、最終 preflight、帳號確認（Nexus Premium、nolvus.net、夸克）。
 - 雲端對話 `0e5bdc` 目前不在 ListAgents 清單中，摘要改由使用者轉貼。
