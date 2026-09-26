@@ -3168,7 +3168,7 @@
 *Nature of The Wild Lands - Orc Exiles Bilegulch Patch.esp
 *Orc Exiles - Bilegulch - 3DNPCs patch.esp
 *Orc Exiles - Bilegulch - Embers XD patch.esp
-*Orc Exiles - Bilegulch - IFD Lydia - 3DNPCs patch.esp
+*Orc Exiles - Bilegulch - 3DNPCs - IFD Lydia patch.esp
 *Orc Exiles - Bilegulch - IFD Lydia patch.esp
 *Orc Exiles - Bilegulch - LFFGM patch.esp
 *Orc Exiles - Bilegulch - Natural Waterfalls patch.esp
@@ -3668,7 +3668,7 @@
 *COTN Angas Mill Addon - Lux Orbis patch.esp
 *Half-Moon Mill COTNed - Lux Orbis patch.esp
 *Lux Orbis - Orc Strongholds AIO Patch.esp
-*Lux Orbis - Orc Exiles - Bilegulch Patch 1.3.esp
+*Lux Orbis - Orc Exiles - Bilegulch Patch.esp
 *Lux Orbis - Orc Exiles - Rift Watchtower Patch.esp
 *Lux Orbis - Orc Exiles - The Cracked Tusk Keep Patch.esp
 *Nightgate Inn Revived - Lux Orbis - CRF.esp
@@ -3776,7 +3776,7 @@
 *Faendal Home Overhaul - Lux Patch.esp
 *Lux - Thuldor's Ivarstead.esp
 *Lux - Thuldor's Ivarstead - Tweaks and Fixes.esp
-*Lux - Orc Exiles - Bilegulch.esp
+*Lux - Orc Exiles - Bilegulch Patch.esp
 *Spaghetti's Palaces - Dragonsreach - Lux Patch.esp
 *HSPlayerHomes - Breezehome - LUX.esp
 *Lux - Nightgate Inn Revived patch.esp

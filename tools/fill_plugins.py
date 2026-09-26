@@ -92,6 +92,32 @@ def same_stem_archives(names: list[str], plugin: str) -> list[str]:
             and (Path(n).stem.lower() == stem or Path(n).stem.lower().startswith(stem + " - "))]
 
 
+DOC_EXT = (".txt", ".md", ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".url", ".htm", ".html", ".docx", ".rtf")
+
+
+def parent(member: str) -> str:
+    return member.rsplit("/", 1)[0] if "/" in member else ""
+
+
+def option_folder(members: list[str], folder: str) -> bool:
+    """A sub-folder holding exactly one plugin: treated as a FOMOD option folder (a small data root)."""
+    return bool(folder) and sum(1 for m in members if parent(m) == folder and is_plugin(m)) == 1
+
+
+def option_members(all_members: list[str], folder: str) -> list[str]:
+    """Everything under an option folder except read-me files at its top and FOMOD installer files."""
+    prefix = folder + "/"
+    out = []
+    for m in all_members:
+        if not m.startswith(prefix):
+            continue
+        rel = m[len(prefix):]
+        if not rel or rel.lower().startswith("fomod/") or ("/" not in rel and rel.lower().endswith(DOC_EXT)):
+            continue
+        out.append(m)
+    return out
+
+
 @dataclass
 class Mapping:
     sources: dict[tuple[str, str], tuple[str, str]] = field(default_factory=dict)  # (label, fold) -> (target, mode)
@@ -347,16 +373,21 @@ def plan_downloads(w: World, rows: list[dict]) -> list[dict]:
             continue
         for f in [c.strip() for c in r["candidates"].split(";") if c.strip()]:
             mod, fid, ver = w.folder_ids.get(mo2.fold(f), ("", "", ""))
-            if not mod or not fid or (mod, fid) in have:
+            if not mod or (mod, fid) in have:
                 continue
+            if not fid or fid == mod:             # no file id, or the inventory placeholder (file id = mod id)
+                fid, ver = "", ""
             d = out.setdefault((mod, fid), {"folder": f, "action": "download", "nexus_mod_id": mod,
                                             "nexus_file_id": fid, "nexus_version": ver,
-                                            "url": mo2.nexus_url(int(mod), int(fid)) if mod.isdigit() and fid.isdigit() else "",
+                                            "url": mo2.nexus_url(int(mod), int(fid or 0)) if mod.isdigit() else "",
                                             "note": "", "_n": 0})
             d["_n"] += 1
     rows_out = []
     for d in out.values():
-        d["note"] = f"fill_plugins：候選來源，{d.pop('_n')} 個缺少的插件"
+        n = d.pop("_n")
+        d["note"] = (f"fill_plugins：候選來源，{n} 個缺少的插件" if d["nexus_file_id"] else
+                     f"fill_plugins：候選來源，{n} 個缺少的插件；沒有可用的檔案編號，需要在 Nexus 選檔"
+                     f"（nexus_fetch 會略過這列）")
         rows_out.append(d)
     return rows_out
 
@@ -400,22 +431,31 @@ def apply(w: World, rows: list[dict], pm: Path) -> dict[str, int]:
     archives = {a.name: a for a in w.members}
     for name, items in by_archive.items():
         a = archives[name]
-        wanted: dict[str, list[dict]] = defaultdict(list)
-        for r in items:
-            folder = r["member"].rsplit("/", 1)[0] if "/" in r["member"] else ""
-            sibs = [m for m in w.members[a] if (m.rsplit("/", 1)[0] if "/" in m else "") == folder]
-            for m in [r["member"], *same_stem_archives(sibs, r["plugin"])]:
-                wanted[m].append(r)
+        wanted: dict[str, list[tuple[dict, str]]] = defaultdict(list)   # member -> [(row, path in dest)]
         staging = pm / STAGING_DIR / uuid.uuid4().hex[:8]
         try:
+            full: list[str] | None = None
+            for r in items:
+                folder = parent(r["member"])
+                if option_folder(w.members[a], folder):
+                    # a FOMOD option folder: its meshes/textures belong to the plugin, keep the layout
+                    if full is None:
+                        full = [e.path for e in list_files(a)]
+                    for m in option_members(full, folder):
+                        wanted[m].append((r, m[len(folder) + 1:]))
+                else:
+                    sibs = [m for m in w.members[a] if parent(m) == folder]
+                    for m in [r["member"], *same_stem_archives(sibs, r["plugin"])]:
+                        wanted[m].append((r, m.rsplit("/", 1)[-1]))
             extract_files(a, staging, list(wanted))
-            for m, rs in wanted.items():
+            for m, targets in wanted.items():
                 src = staging / m
-                for r in rs:
-                    dst = w.mods_dir / r["dest"] / m.rsplit("/", 1)[-1]
+                for r, rel in targets:
+                    dst = w.mods_dir / r["dest"] / rel
                     if dst.exists():
                         counts["skipped"] += 1
                     elif src.exists():
+                        dst.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(src, dst)
                         counts["extracted"] += 1
                     else:

@@ -58,7 +58,7 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `provenance.csv` | 目標清單 4046 個 mod 的來源分類與建議動作（使用者上傳 4044 個，另依使用者決定加入裸體版的 The New Gentleman 2 個）。分類：Nolvus 2585（另有舊版 55）、M&V 556、兩者皆有 384、其他 Nexus mod 415（可直接下載 386，需人工確認 29）、找不到來源 26、需重建 9、自製 3、非 Nexus 13 |
+| `provenance.csv` | 目標清單 4047 個 mod 的來源分類與建議動作（使用者上傳 4044 個，另依使用者決定加入裸體版的 The New Gentleman 2 個，以及補上 Terrain Helper）。分類：Nolvus 2585（另有舊版 55）、M&V 556、兩者皆有 384、其他 Nexus mod 415（可直接下載 386，需人工確認 29）、找不到來源 26、需重建 9、自製 3、非 Nexus 13 |
 | `mv_folder_map.csv` | M&V 2.6.2 的 3694 個資料夾 → Nexus 模組／檔案 ID、SKSE DLL、插件 |
 | `nexus_candidates.csv` | 兩份基底清單都沒有的 467 個資料夾在 Nexus 上的候選來源（找到 418 個，其中 390 個附建議檔案） |
 | `drop_list.csv` | 依決定捨棄的項目，以及作者自製的 `[FIX]` 插件 |

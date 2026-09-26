@@ -106,3 +106,9 @@ Nature of the Wild Lands - Animations Addon,download,主檔（MESHES）照裝；
 The Restless Dead - At Your Own Pace Patch,harvest_nolvus,Nolvus 安裝裡有同名資料夾（manifest 原本的檔案編號錯誤，404）,,,
 Maerchenwald - The Archwood Lite - Giant Fantasy Trees,download,插件 maerchenwald - the archwood lite.esp,150187,628849,1.21a
 Maerchenwald - Archwood Lite - Giant Fantasy Trees,drop,和上一個資料夾是同一個檔案（重複），只裝一份,,,
+Vanaheimr - Mines and Caves - Complex Material - PBR,download,目標插件只在 PBR 版：舊的非 PBR 內容先搬到 D:\PM\_replaced，再裝 PBR 2k（壓縮檔有外層資料夾，設為資料根目錄）,137033,724119,5.0
+Riverwood Falls - Waterfall Additions for Riverwood2,download,1.2.1 才有目標的 5 個補丁：舊內容先搬到 D:\PM\_replaced，再用 MO2 的 FOMOD 重裝，選項照目標 plugins.txt（共 15 個插件）,150380,633042,1.2.1
+Dova Jump,replace_dll,沒有 1.5.97 版 DLL：改用 0.6.1（只有 OAR 動畫，沒有 DLL；壓縮檔外層 DOVAJUMP 資料夾設為資料根目錄）,125550,704417,0.6.1
+SMP Wind,keep,它的 hdtSMP64.dll 是 AE 版，會蓋掉 Faster HDT-SMP：改名為 hdtSMP64.dll.mohidden；SMP Wind NG 的 SMP Wind.dll 透過 FSMP 運作,,,
+Skyrim Souls RE - Updated,replace_dll,這個資料夾是原作（27859，舊名 Skyrim Souls RE - Updated），提供 ini、swf、腳本；裝好後把它的 SkyrimSoulsRE.dll 改名 .mohidden（上方的 1.5 移植版提供 DLL）,27859,754726,3.1.2
+Terrain Helper,harvest_mv,M&V 有（支援 1.5.97 與 1.6.1170；ESL 旗標；需要 po3 Tweaks）,,,

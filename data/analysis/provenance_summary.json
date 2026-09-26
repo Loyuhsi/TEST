@@ -1,5 +1,5 @@
 {
- "enabled_mods": 4046,
+ "enabled_mods": 4047,
  "separators": 95,
  "plugins": 4245,
  "plugins_by_ext": {
@@ -11,7 +11,7 @@
   "both": 384,
   "custom": 3,
   "generated": 9,
-  "mv": 556,
+  "mv": 557,
   "nexus_other": 415,
   "nolvus": 2585,
   "nolvus_old": 55,
@@ -21,7 +21,7 @@
  "by_action": {
   "download_nexus": 386,
   "drop": 16,
-  "harvest_mv": 647,
+  "harvest_mv": 648,
   "harvest_nolvus": 2933,
   "regenerate": 9,
   "review": 55

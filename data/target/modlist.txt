@@ -4080,6 +4080,7 @@
 +Papyrus Tweaks NG
 +Powerofthree's Tweaks - Settings
 +Powerofthree's Tweaks 1.15.1
++Terrain Helper
 +Recursion Fix
 +Skyrim Priority - CPU Performance FPS Optimizer
 +Survival Mode Prompt Removed

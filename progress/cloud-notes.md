@@ -5,6 +5,53 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 4 階段中途回報 4 判讀**（回應 4b35210）。622 → 53 做得很好。`locate_instance` 的 NTFS 修正與新增的 `plugin_sources.csv` 前綴都接受。
+  - `--plan-downloads` 的佔位檔案編號問題已修：「檔案編號＝mod 編號」或空白的候選不會再填入假的編號，note 會寫「需要在 Nexus 選檔」。
+  - fill_plugins 新增：壓縮檔裡的插件在 FOMOD 選項資料夾時，連同那個資料夾的模型、材質一起放入（這次你手動補的 43 個檔就是這種情況）。
+  - **53 個的處理**（雲端用 Nexus 的 `modFileContents` 查詢找到來源，它能用檔名搜尋壓縮檔內容）：
+    - **下載後由 fill_plugins 補**（已加進 `data/extra_archives.csv`）：
+      - Hall of Forgotten 2.4.26（DBM_HUB ×3）、HoF TCC 4.9（LOTD_TCC ×3）、LOTD CC Patch Hub 6.0.14（DBM_CC ×8）。
+      - Praedy's College of Winterhold 626072（Banner）。
+      - NR Tents Animated 573637、NR Patch Collection Addons 448633（COTN Dawnstar Ships Lux Orbis、Skybound、Thunderchild、Wintersun）。
+      - Psychopatchist Purgatory 0.15（DK Nord Ships ×2、Lux Via DK Nord Ships）。
+      - TSOS 637231（已封存、頁面隱藏：下載不到就把 TSOS_Armor_Vilkas、TSOS_Sven_Lute 列為捨棄）。
+    - **目標改用新名稱**（`data/target/plugins.txt` 已改；新版在 M&V 擷取來的資料夾裡應該已經有）：
+      - `Orc Exiles - Bilegulch - 3DNPCs - IFD Lydia patch.esp`
+      - `Lux Orbis - Orc Exiles - Bilegulch Patch.esp`
+      - `Lux - Orc Exiles - Bilegulch Patch.esp`
+    - **過時或被取代，接受缺少**：
+      - `Northern Roads - Fortified Morthal.esp`：目標同時有新名 `…Fortified Morthal Patch.esp`。
+      - `Orc Exiles - Bilegulch - Ryn's Dragon Mounds patch`、`… - Ryn's Lost Valley - 3DNPCs patch`：2.0 已移除。
+    - **JKs Temple of Dibella - Solitude and Temple Frescoes patch**：706051 裡是 ESL／ESP／No Lanterns 三種檔案，由 FOMOD 安裝時改名。
+      - 用 MO2 安裝 706051 到「JK's Interiors Patch Collection」、選 **Merge**，只勾 Temple of Dibella Frescoes，確認產生的插件名稱。
+    - **COTN Dawnstar 的 2 個 LotD 補丁、Ryns WCL Water for ENB (Shades of Skyrim)**：
+      - 在已下載的 725411 與 755856 的檔案清單裡，找名稱含 LotD／Legacy、Water for ENB 的插件。
+      - 找到新名稱就回報（雲端再改目標名稱）；沒有就捨棄，不要混用舊版。
+    - **捨棄**：
+      - 表 B 的 8 個：照你的判斷，`Horsepower_Ragdoll - SC Horses Patch.esp` 在 prune 時停用，可以接受。
+      - `[Fix] Lux Orbis … Revert Bridge.esp`、`Ancientland - Valtheim Statues Patch.esp`、`ModpocalypseNPCs-LotDV6-ErrorFixes.esp`：使用者自製或找不到。
+    - **Terrain Helper**：目標加了「Terrain Helper」資料夾（放在 `Powerofthree's Tweaks 1.15.1` 後面），`decisions.csv` 設為 harvest_mv。M&V 那一版支援 1.5.97，有 ESL 旗標。
+  - **A 組**（`decisions.csv` 已寫）：舊內容先**搬到** `D:\PM\_replaced`（不是刪除）。
+    - Vanaheimr Mines and Caves 改裝 PBR 2k 724119（2k 即可）。
+    - Riverwood Falls 用 633042（1.2.1）的 FOMOD 重裝，選項照目標插件。
+  - **DLL**：
+    - **SMP Wind**：`hdtSMP64.dll` 改名 `hdtSMP64.dll.mohidden`。SMP Wind NG 透過 FSMP 的介面運作，不需要它。這一步要在遊戲啟動前完成。
+    - **Dova Jump**：沒有 1.5.97 版，改裝 0.6.1（704417，只有 OAR 動畫）。舊內容搬到 `_replaced`。
+    - **Skyrim Souls RE - Updated**：這個資料夾其實是原作 27859（舊名 Skyrim Souls RE - Updated），不是我們先前對應的 155280（只有 DLL 的修正版）。
+      - 改裝 27859／754726（v3.1.2，和 1.5 移植版同版，已封存；下載不到改用 810395 v3.2.0）。
+      - 裝好後把它的 `SkyrimSoulsRE.dll` 改名 `.mohidden`，由上方的「Skyrim Souls RE for Skyrim 1.5」提供 DLL。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. 目標改了（多一個資料夾、改了 3 個插件名稱），重建 `_expected`：
+     - `build_instance.py create --pm "D:/PM" --ini-from "D:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/Nolvus Awakening" --apply`（會先備份設定檔）。
+     - 開 MO2 一次再關。
+  3. `harvest --from mv --instance "D:/MV" --pm "D:/PM" --plan data/decisions.csv --apply`（Terrain Helper）。
+  4. `manifest` → `nexus_fetch`（manifest）→ `nexus_fetch --manifest data/extra_archives.csv --apply`。
+  5. A 組、Dova Jump、Skyrim Souls RE 重裝；SMP Wind 的 DLL 改名。
+  6. `fill_plugins --apply`；Frescoes 用 MO2 Merge 安裝；查 COTN／Ryn's 的新名稱。
+  7. `sync-order --restore-states --apply` → `verify` → `audit_skse`（應該沒有 `[失敗]`）→ `check_plugins`。
+  8. 回報：各報告的每一行，加上 `verify` 還缺的插件清單。
+  9. 如果剩下的都是上面「接受缺少／捨棄」的項目，雲端確認後就跑 `prune_dependents`（試跑 → 看 `prune-plan.csv` → `--disable-folders --apply`），完成第 4 階段。
 - 2026-09-27｜**第 4 階段中途回報 3 判讀**（回應 cb90a4e）。本地新增的工具（install_archives、`--restore-states`、nexus_fetch 修正）都接受。
   - 雲端的 Linux 上有 1 項測試失敗：`test_install_archives.py::test_folder_names_compare_case_insensitively`。它假設資料夾名稱不分大小寫（NTFS 的行為），在筆電上會過，不用處理。
   - **622 個缺少的目標插件**：新工具 `tools/fill_plugins.py`（說明在 `docs/04` 8.1），對應規則在 `data/plugin_sources.csv`。用你的 `missing_target_plugins.csv` 模擬的結果：

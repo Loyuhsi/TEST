@@ -259,3 +259,37 @@ def test_folder_with_same_prefix_plugins_becomes_the_candidate(world):
     assert fill_plugins.main(w.args("--apply")) == 0
     assert (w.mods / "Occlusion Mod" / "Occ_Skyrim_COTN-Dawnstar_patch.esp").read_bytes() == b"d"
 
+
+def test_option_folder_assets_come_along_but_pooled_patches_do_not(world):
+    w = world
+    w.target("Hall of Forgotten2", {"DBM_HUB_Old.esp": b"o"}, mod="600", fid="6000")
+    w.expected = ["DBM_HUB_Twili_Patch.esp", "Pool A.esp"]
+    w.archive("HoF-600-6000.7z", 600, 6000, {
+        "1Armory/A_20_TWIPRI/DBM_HUB_Twili_Patch.esp": b"tw",
+        "1Armory/A_20_TWIPRI/meshes/dbm/twili.nif": b"nif",
+        "1Armory/A_20_TWIPRI/readme.txt": b"r",
+        "1Armory/A_17_OTHER/DBM_HUB_Other.esp": b"x",
+        "1Armory/A_17_OTHER/meshes/other.nif": b"x",
+        "Patches/Pool A.esp": b"a", "Patches/Pool B.esp": b"b", "Patches/textures/pool.dds": b"t",
+        "fomod/ModuleConfig.xml": b"<x/>"})
+    assert fill_plugins.main(w.args("--apply")) == 0
+    d = w.mods / "Hall of Forgotten2"
+    assert (d / "DBM_HUB_Twili_Patch.esp").read_bytes() == b"tw"
+    assert (d / "meshes" / "dbm" / "twili.nif").read_bytes() == b"nif"          # option folder layout kept
+    assert not (d / "readme.txt").exists() and not (d / "meshes" / "other.nif").exists()
+    assert (d / "Pool A.esp").exists()                                          # pooled folder: plugin only
+    assert not (d / "Pool B.esp").exists() and not (d / "textures").exists()
+
+
+def test_download_plan_never_uses_a_placeholder_file_id(world):
+    w = world
+    w.target("COTN Winterhold Patch Collection2", mod="700", fid="700")       # inventory placeholder
+    w.target("COTN Dawnstar Patch Collection2", mod="701", fid="")
+    w.expected = ["COTN Winterhold - X Patch.esp", "COTN Dawnstar - Y Patch.esp"]
+    assert fill_plugins.main(w.args("--plan-downloads")) == 0
+    dl = {r["folder"]: r for r in read_csv(w.root / "reports" / "fill_plugins_downloads.csv")}
+    assert dl["COTN Winterhold Patch Collection2"]["nexus_file_id"] == ""
+    assert dl["COTN Dawnstar Patch Collection2"]["nexus_file_id"] == ""
+    assert "需要在 Nexus 選檔" in dl["COTN Winterhold Patch Collection2"]["note"]
+    assert dl["COTN Winterhold Patch Collection2"]["url"].endswith("/mods/700")
+
