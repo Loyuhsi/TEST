@@ -40,7 +40,7 @@
 
 ## 第 5 階段的工具
 - Pandora：引數 `-o "D:\PM\mods\Pandora Output"`。
-- BodySlide：Output Path 設為 `D:\PM\mods\BodySlide (Dressed)`。Preset 等雲端指示。
+- BodySlide：Output Path 設為 `D:\PM\mods\BodySlide (Nude)`。Preset 等雲端指示。
 - NGIO 草地快取：先停用 True HUD。會重啟遊戲很多次，屬正常現象；時間 0.5–2.5 小時。
 - DynDOLOD：選 High。完成後依 `docs/05` 搬移輸出。
 

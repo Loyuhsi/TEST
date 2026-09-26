@@ -163,7 +163,9 @@ def test_full_pipeline(world, monkeypatch):
     dec2 = w["tmp"] / "decisions6.csv"
     dec2.write_text("folder,action,note,nexus_mod_id,nexus_file_id,nexus_version\n"
                     "Patch For Hair,drop,patch for dropped Patreon Hair\n"
-                    "Needs Download,download,disabled in MV,166799,753834,3.2.2\n", encoding="utf-8")
+                    "Needs Download,download,disabled in MV,166799,753834,3.2.2\n"
+                    "Quest Mod,harvest_mv,missing in Nolvus\n"
+                    "City Overhaul,download,already fetched,1,2,1.0\n", encoding="utf-8")
     rep2 = w["tmp"] / "reports2"
     assert manifest.main(["--pm", str(w["pm"]), "--target", str(w["tgt"] / "modlist.txt"),
                           "--provenance", str(w["plan"]), "--decisions", str(dec2), "--reports", str(rep2)]) == 0
@@ -172,6 +174,8 @@ def test_full_pipeline(world, monkeypatch):
     assert (nd["action"], nd["nexus_mod_id"], nd["nexus_file_id"], nd["id_source"]) == \
         ("download", "166799", "753834", "decision")
     assert "166799" in nd["url"] and man2["Patch For Hair"]["action"] == "drop"
+    assert man2["Quest Mod"]["action"] == "keep"                 # harvest_mv decision, folder now present
+    assert man2["City Overhaul"]["action"] == "replace_dll"      # fetched, but its DLL is still AE-only
 
     # build instance
     bi = ["--pm", str(w["pm"]), "--manifest", str(w["reports"] / "manifest.csv"),
@@ -249,6 +253,30 @@ def test_vdf_parser():
     assert pe.fixed_file_version(b"xx\xbd\x04\xef\xfe" + (0x00010000).to_bytes(4, "little")
                                  + ((1 << 16) | 5).to_bytes(4, "little") + ((97 << 16) | 0).to_bytes(4, "little")) \
         == "1.5.97.0"
+
+
+def test_exe_version_falls_back_to_version_strings(tmp_path):
+    """Nolvus's downgraded SkyrimSE.exe: VS_FIXEDFILEINFO says 1.0.0.0, the strings say 1.5.97.0."""
+    import struct
+
+    def string_entry(key: str, value: str) -> bytes:
+        k = (key + "\0").encode("utf-16-le")
+        head = struct.pack("<HHH", 0, len(value) + 1, 1) + k
+        pad = b"\0" * (-len(head) % 4)
+        return head + pad + (value + "\0").encode("utf-16-le") + b"\0" * 2
+
+    fixed = b"\xbd\x04\xef\xfe" + struct.pack("<III", 0x00010000, 1 << 16, 0)          # 1.0.0.0
+    blob = b"MZ" + b"\0" * 62 + fixed + b"\0" * 40 + string_entry("CompanyName", "Bethesda") \
+        + string_entry("FileVersion", "1.5.97.0") + string_entry("ProductVersion", "1.5.97.0")
+    exe = tmp_path / "SkyrimSE.exe"
+    exe.write_bytes(blob)
+    assert pe.fixed_file_version(blob) == "1.0.0.0"
+    assert pe.string_file_version(blob) == "1.5.97.0"
+    assert pe.file_version(exe) == "1.5.97.0"
+    exe.write_bytes(b"MZ" + b"\0" * 62 + fixed + string_entry("ProductVersion", "1, 5, 97, 0"))
+    assert pe.file_version(exe) == "1.5.97.0"
+    make_game(tmp_path / "steam", "1.7.104.0")                     # normal exe: fixed info wins
+    assert pe.file_version(tmp_path / "steam" / "SkyrimSE.exe") == "1.7.104.0"
 
 
 def test_preflight_defender_placeholder_not_a_path():

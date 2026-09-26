@@ -29,7 +29,8 @@ DEFAULT_PLAN = REPO_ROOT / "data" / "analysis" / "provenance.csv"
 MO2_SKIP = {"mods", "downloads", "profiles", "overwrite", "stock game", "game root", "webcache",
             "crashdumps", "logs", "modorganizer.ini", "portable.txt", "nxmhandler.ini"}
 ENB_RESHADE = ["d3d11.dll", "d3dcompiler_46e.dll", "d3dcompiler_47.dll", "dxgi.dll", "ReShade.ini",
-               "ReShadePreset.ini", "reshade-shaders", "enbseries", "enbcache", "enblocal.ini", "enbseries.ini"]
+               "ReShadePreset.ini", "ReShade.log", "reshade-shaders", "enbseries", "enbcache", "enblocal.ini",
+               "enbseries.ini"]
 
 
 def index_dirs(parent: Path) -> dict[str, str]:

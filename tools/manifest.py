@@ -56,7 +56,10 @@ def ae_only_dlls(folder: Path) -> list[str]:
 def decide(r: dict, present: bool, ids: dict, decision: dict | None, dlls: list[str]) -> tuple[str, str]:
     cat = r.get("category", "")
     if decision:
-        return decision["action"], decision.get("note", "manual decision")
+        act = decision["action"]
+        fetch = act == "download" or act.startswith("harvest_")
+        if not (fetch and present):       # once fetched, judge the folder like any other present one
+            return act, decision.get("note") or "manual decision"
     if cat == "generated":
         return "regenerate", r.get("note", "")
     if cat in ("custom", "non_nexus"):

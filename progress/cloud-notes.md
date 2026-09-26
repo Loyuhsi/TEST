@@ -5,6 +5,35 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**第 3 階段判讀：通過**（回應 1af902e）。可以進第 4 階段。
+  - **STOCK GAME 顯示 1.0.0.0**：工具的 bug，已修正。Nolvus 降版後的 exe 數字欄位是 1.0.0.0，字串才是 1.5.97.0；`pe.file_version` 現在遇到 1.0.0.0 會改讀字串。
+    - 沒修的話，第 4 階段 `audit_skse` 會誤報「STOCK GAME 遊戲版本」`[失敗]`。
+    - 第 3 階段不必重跑。第 4 階段若仍顯示 1.0.0.0，要回報。
+  - `ReShade.log` 已加進 harvest 的 ENB 移除清單。`D:\PM\STOCK GAME` 裡現有的那個無害，不必刪。
+  - **來源缺少 12 個**，都寫進了 `data/decisions.csv`：
+    - 6 個 `harvest_mv`（從 `D:\MV` 擷取）：Cached Recursive Directory Walk、Collision Sentinel - Crash Fix、Media Keys Fix SKSE、KreatE、Native EditorID Fix、SKSE Menu Framework2（對應 M&V 的 `SKSE Menu Framework`）。
+    - 6 個 `download`（含 Nexus 編號）：SkyPatcher Keyword Framework、Quest Journal Overhaul、Prisma UI、Dirt Cliffs Enhancement - High Quality Ivy、Modern First Person Animation Overhaul、Dawnguard Arsenal - Scabbardless Greatswords Loose File Replacers。
+    - Prisma UI 1.4.1 與 Dirt Cliffs 1.3.0 是封存檔。下載不到時，改用 note 寫的新版檔案，並在回報中說明。
+    - 其中 SKSE 外掛（例如 CRDW、Collision Sentinel、Media Keys Fix、KreatE、Native EditorID Fix、Prisma UI）是否能在 1.5.97 載入，交給 `audit_skse` 判斷。
+  - **裸體版已加進目標**：
+    - `data/target/modlist.txt`：在 `Highly Improved Male Body Overhaul` 後面加入 `The New Gentleman - Nolvus Settings`、`The New Gentleman`，並把 `BodySlide (Dressed)` 改名為 `BodySlide (Nude)`（第 5 階段重建）。
+    - `plugins.txt`：`TheNewGentleman.esp` 放在 `TrueHUD.esl` 前面。它有 ESL 旗標，不佔完整插件名額。
+    - provenance 已重跑：harvest_nolvus 從 2931 變成 2933，其他不變。
+    - `docs/05`、`docs/08`、`gui-steps.md` 的輸出資料夾已改名。
+  - **可以推送** Nolvus 實際安裝的 `modlist.txt`、`plugins.txt`、`loadorder.txt`：
+    - 放到 `data/snapshots/nolvus-6.0.20-installed/`，照原樣複製，不要改排序或換行。
+    - 推送前確認內容只有 mod 與插件名稱，沒有路徑或使用者名稱。
+  - `D:\MV` 仍保留到第 4 階段 `manifest` 跑完、補擷取完成、雲端判讀後再刪（先問使用者）。
+- 2026-09-26｜**第 4 階段開始時先做**（`docs/04` 第 1 節與 `phase-commands.md` 已更新）：
+  1. `git pull --rebase`。
+  2. 補擷取 M&V：`python tools/harvest.py --from mv --instance "D:/MV" --pm "D:/PM" --plan data/decisions.csv`，看過結果（應該 6 個完成）再加 `--apply`。
+  3. 補擷取 Nolvus（**不加** `--stock-game`）：`python tools/harvest.py --from nolvus --instance "D:/Nolvus/Instances/Nolvus Awakening" --pm "D:/PM"`，應該多 2 個（The New Gentleman），再加 `--apply`。
+     - 「來源缺少」仍會顯示那 6 個要下載的，屬正常。
+  4. 接著照 `docs/04` 進行：`manifest` → `build_instance create` → 第一次開 MO2 → `verify` → 下載。
+     - `audit_skse` 不加 `--mv-1597-map`。
+     - `nexus_fetch.py --apply` 需要 `NEXUS_API_KEY`，而且是實際下載。使用者已授權從 Nexus 下載，不必另外問。
+  5. 在 `manifest`、`build_instance verify` 之後先回報一次：各報告的每一行、`manifest` 各 action 的數量、所有 `review` 項目的資料夾名稱。雲端再決定 review 的來源與 replace_dll 的替代版本。
+  - BodySlide 的 preset 等第 5 階段指示，會在第 4 階段回報後給。
 - 2026-09-26｜**第 2 階段判讀：通過**（回應 79cf305）。
   - `harvest-mv` 的 `[注意]`：`ImmersiveHUD SKSE`、`Load Time Profiler` 在 M&V 2.6.2 裡是停用的空項目（`.wabbajack` 沒有檔案）。已寫進 `data/decisions.csv`，含 Nexus 編號，第 4 階段 `manifest` 會列入下載。
     - ImmersiveHUD SKSE：166799／檔案 753834（for Skyrim 1.5，3.2.2）。

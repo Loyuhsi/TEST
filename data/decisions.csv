@@ -1,3 +1,15 @@
 folder,action,note,nexus_mod_id,nexus_file_id,nexus_version
 ImmersiveHUD SKSE,download,M&V 2.6.2 裡是停用的空項目（.wabbajack 沒有檔案）；用主檔「for Skyrim 1.5」,166799,753834,3.2.2
 Load Time Profiler,download,M&V 2.6.2 裡是停用的空項目（.wabbajack 沒有檔案）；第 4 階段 audit_skse 確認能在 1.5.97 載入,173928,730415,1.2.2
+Cached Recursive Directory Walk,harvest_mv,Nolvus 6.0.20 沒有（6.0.21 才加入）；D:\MV 有同名資料夾,,,
+Collision Sentinel - Crash Fix,harvest_mv,Nolvus 6.0.20 沒有（6.0.21 才加入）；D:\MV 有同名資料夾,,,
+Media Keys Fix SKSE,harvest_mv,Nolvus 6.0.20 沒有（6.0.21 才加入）；D:\MV 有同名資料夾,,,
+KreatE,harvest_mv,Nolvus 只在 Kauz ENB 選項安裝；D:\MV 有同名資料夾,,,
+Native EditorID Fix,harvest_mv,Nolvus 只在 Kauz ENB 選項安裝；D:\MV 有同名資料夾,,,
+SKSE Menu Framework2,harvest_mv,Nolvus 6.0.20 沒有；對應 D:\MV 的 SKSE Menu Framework（harvest 自動處理後綴 2）,,,
+SkyPatcher Keyword Framework,download,Nolvus 6.0.21 才加入,127024,646851,1.4.0
+Quest Journal Overhaul,download,Nolvus 6.0.21 才加入；只要主檔,141295,608018,1.3
+Prisma UI - Next-Gen Web UI Framework,download,Nolvus 6.0.21 才加入；1.4.1 已封存，下載不到時改用 1.5.1（檔案 808126）並回報,148718,735761,1.4.1
+Dirt Cliffs Enhancement - High Quality Ivy,download,Nolvus 6.0.21 才加入；1.3.0 已封存，下載不到時改用 1.4.0.0（檔案 806535）並回報,149919,759225,1.3.0
+Modern First Person Animation Overhaul,download,Nolvus 6.0.20 之前就移除（目標從舊版保留下來）,115525,578228,1.0.7
+Dawnguard Arsenal - Scabbardless Greatswords Loose File Replacers,download,Nolvus 6.0.20 之前就移除；Dawnguard Arsenal SSE 的選用檔,25094,412351,1

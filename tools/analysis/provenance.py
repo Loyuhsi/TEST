@@ -34,6 +34,7 @@ from pm import mo2  # noqa: E402
 GENERATED = {
     "Pandora Output": "Pandora Behaviour Engine output (run Pandora with -o)",
     "BodySlide (Dressed)": "BodySlide batch build output",
+    "BodySlide (Nude)": "BodySlide batch build output (nude variant chosen by the user)",
     "SYNTHESSIS": "Synthesis patcher output (Synthesis.esp)",
     "pgpatcher_output": "PGPatcher output (PGPatcher.esp, PG_1.esp, PG_2.esp)",
     "grass CS": "NGIO grass cache",

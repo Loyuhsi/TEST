@@ -42,6 +42,11 @@ python tools/harvest.py --from nolvus --instance "D:/Nolvus/Instances/Nolvus Awa
 
 ## 第 4 階段：組合清單（執行前先關閉 MO2）
 ```bash
+# 先補擷取：decisions.csv 的 harvest_mv 項目，以及目標新加入的 Nolvus 資料夾（不加 --stock-game）
+python tools/harvest.py --from mv --instance "D:/MV" --pm "D:/PM" --plan data/decisions.csv
+python tools/harvest.py --from mv --instance "D:/MV" --pm "D:/PM" --plan data/decisions.csv --apply
+python tools/harvest.py --from nolvus --instance "D:/Nolvus/Instances/Nolvus Awakening" --pm "D:/PM"
+python tools/harvest.py --from nolvus --instance "D:/Nolvus/Instances/Nolvus Awakening" --pm "D:/PM" --apply
 python tools/manifest.py --pm "D:/PM"
 python tools/build_instance.py create --pm "D:/PM" --ini-from "D:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/Nolvus Awakening"
 python tools/build_instance.py create --pm "D:/PM" --ini-from "D:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/Nolvus Awakening" --apply
@@ -57,7 +62,7 @@ python tools/prune_dependents.py --pm "D:/PM" --disable-folders --apply
 python tools/build_instance.py sync-order --pm "D:/PM" --apply
 python tools/build_instance.py verify --pm "D:/PM"
 python tools/check_plugins.py --pm "D:/PM"
-python tools/audit_skse.py --pm "D:/PM" --mv-1597-map data/analysis/mv2401_folder_map.csv
+python tools/audit_skse.py --pm "D:/PM"
 ```
 - 報告：`manifest.txt` + `manifest.csv` + `downloads.html`、`build_instance-*.txt`、`nexus_fetch.txt/.csv`、`prune_dependents.txt` + `prune-plan.csv`、`check_plugins.txt/.csv`、`audit_skse.txt/.csv`。
 - `manifest.csv` 的 `action`：
@@ -66,8 +71,9 @@ python tools/audit_skse.py --pm "D:/PM" --mv-1597-map data/analysis/mv2401_folde
   - `regenerate`：第 5 階段重建
   - `replace_dll`：改裝 1.5.97／NG 版
   - `review`：回報雲端，由雲端寫入 `data/decisions.csv`
+  - `harvest_mv`／`harvest_nolvus`：還沒擷取，先跑上面的補擷取再重跑 manifest
   - `drop`：捨棄
-- 沒有 `mv2401_folder_map.csv` 時，`audit_skse` 拿掉 `--mv-1597-map` 參數再跑。
+- `audit_skse` 不加 `--mv-1597-map`（2.40.1 對照表不做）。
 
 ## 第 5 階段：重建輸出（照 docs/05 的順序；工具從 MO2 執行）
 ```bash

@@ -31,7 +31,7 @@
 +pgpatcher_output
 +SYNTHESSIS
 +overwrite2
-+BodySlide (Dressed)
++BodySlide (Nude)
 +Nature of the Wild Lands - Animations Addon
 +Nature of the Wild Lands - Animations Addon - PBR
 +Guardians of Valtheim ALT MOUNTAIN TXT SCALED
@@ -2729,6 +2729,8 @@
 +Expressive Facial Animation - Female Edition
 +Expressive Facegen Morphs
 +Highly Improved Male Body Overhaul
++The New Gentleman - Nolvus Settings
++The New Gentleman
 +Caliente's Beautiful Bodies Enhancer - 3BA - Wyrmstooth
 +Caliente's Beautiful Bodies Enhancer - 3BA - The Wheels of Lull Patch
 +Caliente's Beautiful Bodies Enhancer - 3BA - Vigilant Bodyslide

@@ -1,9 +1,9 @@
 {
- "enabled_mods": 4044,
+ "enabled_mods": 4046,
  "separators": 95,
- "plugins": 4244,
+ "plugins": 4245,
  "plugins_by_ext": {
-  ".esp": 4140,
+  ".esp": 4141,
   ".esl": 76,
   ".esm": 28
  },
@@ -13,7 +13,7 @@
   "generated": 9,
   "mv": 556,
   "nexus_other": 415,
-  "nolvus": 2583,
+  "nolvus": 2585,
   "nolvus_old": 55,
   "non_nexus": 13,
   "unknown": 26
@@ -22,7 +22,7 @@
   "download_nexus": 386,
   "drop": 16,
   "harvest_mv": 647,
-  "harvest_nolvus": 2931,
+  "harvest_nolvus": 2933,
   "regenerate": 9,
   "review": 55
  },

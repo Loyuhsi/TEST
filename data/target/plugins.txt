@@ -98,6 +98,7 @@
 *ForgottenCity.esp
 *Identity Crisis.esp
 *Undeath.esp
+*TheNewGentleman.esp
 *TrueHUD.esl
 *StandingAmbusherFix.esl
 *Shockwave.esl

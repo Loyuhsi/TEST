@@ -13,6 +13,7 @@ reads the exported SKSEPlugin_Version data block. CommonLibSSE-NG
 
 from __future__ import annotations
 
+import re
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -120,11 +121,41 @@ def fixed_file_version(data: bytes) -> str | None:
     return None
 
 
+def string_file_version(data: bytes) -> str | None:
+    """Return the StringFileInfo FileVersion (or ProductVersion) as 'a.b.c.d'.
+
+    Needed because Nolvus's downgraded SkyrimSE.exe keeps 1.0.0.0 in VS_FIXEDFILEINFO while its
+    version strings say 1.5.97.0.
+    """
+    start = max(data.find(VS_FIXEDFILEINFO_SIG), 0)
+    for key in ("FileVersion", "ProductVersion"):
+        k = (key + "\0").encode("utf-16-le")
+        i = data.find(k, start)
+        while i >= 6:
+            struct_start = i - 6                                  # wLength, wValueLength, wType precede szKey
+            v = struct_start + ((i + len(k) - struct_start + 3) & ~3)
+            while data[v:v + 2] == b"\0\0" and v < i + len(k) + 8:   # tolerate extra padding
+                v += 2
+            end = v
+            while end + 1 < len(data) and data[end:end + 2] != b"\0\0":
+                end += 2
+            m = re.match(r"\s*(\d+)[.,]\s*(\d+)(?:[.,]\s*(\d+))?(?:[.,]\s*(\d+))?",
+                         data[v:end].decode("utf-16-le", "replace"))
+            if m:
+                return ".".join(x or "0" for x in m.groups())
+            i = data.find(k, i + 2)
+    return None
+
+
 def file_version(path: Path) -> str | None:
     try:
-        return fixed_file_version(Path(path).read_bytes())
+        data = Path(path).read_bytes()
     except OSError:
         return None
+    fixed = fixed_file_version(data)
+    if fixed in (None, "1.0.0.0"):
+        return string_file_version(data) or fixed
+    return fixed
 
 
 def build_dll(exports: list[str]) -> bytes:
