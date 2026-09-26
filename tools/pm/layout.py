@@ -19,7 +19,7 @@ DATA_DIRS = frozenset({
     "fonts", "menus", "shaders", "shadersfx", "materials", "trees", "facegen", "grass", "seq",
     "lodsettings", "distantlod", "dyndolod", "skse", "mcm", "dialogueviews", "calientetools",
     "netscriptframework", "dllplugins", "nemesis_engine", "pandora_engine", "lightplacer",
-    "pbrnifpatcher", "pbrtexturesets", "dragonbornvoiceover",
+    "pbrnifpatcher", "pbrtexturesets", "dragonbornvoiceover", "seasons",
 })
 DATA_EXTS = frozenset({".esp", ".esm", ".esl", ".bsa", ".ba2", ".ini", ".modgroups"})
 PLUGIN_EXTS = frozenset({".esp", ".esm", ".esl"})
@@ -89,12 +89,12 @@ def _join(names: Iterable[str]) -> str:
 
 def _check_root(prefix: str, dirs: dict[str, str], files: dict[str, str],
                 expected: Iterable[str], target: set[str] | None, accept: bool) -> Layout:
-    unknown_files = [f for k, f in files.items() if _ext(k) not in DATA_EXTS and not _is_doc_file(k)]
-    if unknown_files:
-        return Layout("manual", prefix, f"資料根目錄有不認得的檔案：{_join(unknown_files)}")
     plugins = tuple(sorted((f for k, f in files.items() if _ext(k) in PLUGIN_EXTS), key=str.lower))
     have = {p.lower() for p in plugins}
     soft = []   # doubts a person may clear after looking at the archive (accept=True)
+    unknown_files = [f for k, f in files.items() if _ext(k) not in DATA_EXTS and not _is_doc_file(k)]
+    if unknown_files:   # game-root files (ENB) or a tool shipped as a mod (Pandora's .exe)
+        soft.append(f"資料根目錄有不認得的檔案：{_join(unknown_files)}")
     unknown_dirs = [d for k, d in dirs.items() if k not in DATA_DIRS and k not in DOC_DIRS]
     if unknown_dirs:
         soft.append(f"資料根目錄有不認得的資料夾：{_join(unknown_dirs)}")
@@ -114,8 +114,8 @@ def classify(files: Iterable[str], expected_plugins: Iterable[str] = (),
     """Decide how to install an archive from the paths of the files inside it.
 
     expected_plugins must all sit at the data root; target_plugins (lower-case names), when
-    given, must contain every plugin found there; folders beside the data must be known.
-    accept=True (a person checked the archive) lets those three doubts pass, noted in the
+    given, must contain every plugin found there; folders and files beside the data must be
+    known. accept=True (a person checked the archive) lets those doubts pass, noted in the
     reason; FOMOD installers, unsafe paths and a missing or ambiguous data root still stop.
     """
     paths = [p for p in (normalise(f) for f in files) if p]

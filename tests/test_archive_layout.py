@@ -93,7 +93,7 @@ def test_backslashes_are_normalised():
 
 
 def test_modern_skse_data_folders_are_known():
-    for top in ("LightPlacer", "PBRNifPatcher", "Nemesis_Engine", "CalienteTools"):
+    for top in ("LightPlacer", "PBRNifPatcher", "Nemesis_Engine", "CalienteTools", "Seasons"):
         assert layout.classify([f"{top}/x.json"]).kind == "simple", top
 
 
@@ -158,8 +158,16 @@ def test_accepted_folder_skips_soft_checks_and_says_so():
     assert lay.kind == "simple" and "Extra.esp" in lay.reason
 
 
+def test_accepted_tool_mod_keeps_its_executable():
+    files = ["Pandora Behaviour Engine+.exe", "Pandora_Engine/mod/x.txt", "FNIS.esp"]
+    lay = layout.classify(files, target_plugins={"fnis.esp"})
+    assert lay.kind == "manual" and ".exe" in lay.reason
+    lay = layout.classify(files, target_plugins={"fnis.esp"}, accept=True)
+    assert (lay.kind, lay.root) == ("simple", "") and ".exe" in lay.reason
+
+
 @pytest.mark.parametrize("files", [["fomod/ModuleConfig.xml", "A/x.esp"], ["2K/textures/a.dds", "4K/textures/a.dds"],
-                                   ["d3d11.dll", "enbseries.ini"], ["../evil.dll", "textures/a.dds"]])
+                                   ["readme.txt"], ["../evil.dll", "textures/a.dds"]])
 def test_accept_does_not_bypass_hard_checks(files):
     assert layout.classify(files, accept=True).kind != "simple"
 
