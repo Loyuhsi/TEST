@@ -70,6 +70,7 @@
 - 16:10 Nolvus：Mods 902/3626（24%），錯誤 3（門檻 50，裝完才列出）。日誌中的下載錯誤：`KS Hairdos SSE`、`Modpocalypse NPCs - Resources`（無法解析 cf-files.nexusmods.com，DNS 暫時失敗）；`Seasonal Tree Mashup - Pine Forest`、`Blubbo Tree Pines For Nolvus`（作業逾時）。
 - 速度：開始時約 38 MB/s；16:10 整體只剩約 0.7 MB/s（Cloudflare 測速 90 KB/s）。Wi-Fi 5 GHz、訊號 82%，但接收速率只有 7.2 Mbps；預設路由走 Wi-Fi，沒有 VPN 出口節點。屬本地網路問題，需使用者處理（改接有線網路、靠近路由器或重新連線）。
 - D 槽 762.6 GB（WJ-Downloads 已刪）。
+- 16:26 網路恢復：Wi-Fi 接收速率 585 Mbps，下載約 36.6 MB/s。Nolvus 為 Mods 972/3626（26%），**錯誤 41／門檻 50**。錯誤原因全是斷線期間的網路錯誤：無法解析 api.nexusmods.com（90 次）、cf-files.nexusmods.com（58）、drive.google.com（4），遠端強制關閉連線（22）、逾時（3）、連線被本機中止（2），共 53 個檔案受影響。若累積到 50 會自動停止；之後重開 Dashboard 會接續安裝並重試失敗的檔案。
 - 雲端 e53c04c 的第 3 階段回報要求（New Gentleman／Nude 的 modlist 行、插件與 ESL 旗標、plugins.txt 行號、`BodySlide (Nude)` 大小）：Nolvus 裝完後照做，不自己改清單。
 
 ## 等待雲端或使用者決定的事
