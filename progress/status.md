@@ -1,13 +1,13 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-26
-目前階段：2（Wabbajack 安裝 M&V 中）
+目前階段：4（等雲端判讀第 3 階段回報）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
-| 3 安裝 Nolvus | 安裝中 | | 13:07 開始（6.0.20 Ultimate，Nudity Yes）；17:08 為 Mods 1991/3626（54%）、錯誤 41／門檻 50（網路恢復後未再增加）、下載約 18 MB/s |
+| 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -61,7 +61,13 @@
   - Nolvus Dashboard 在遊戲切換解析度時跳出 .NET 例外（NullReference），當時它停在錯誤頁、沒有安裝在跑，已結束後重開。
   - 重選選項（與 1ae35a6 相同，只有 **Nudity 改為 Yes**），D 槽剩 676 GB（≥ 500），13:07 按 Start；遊戲檔檢查已通過 CC。
 
-## 最近一次工具結果摘要（第 2 階段）
+## 最近一次工具結果摘要（第 3 階段）
+- inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
+- harvest-nolvus（試跑與 --apply）：通過 1（STOCK GAME 543 檔、移除 ENB/ReShade）、注意 1（2931 個計畫中 2919 完成、來源缺少 12）、資訊 1–2、失敗 0。
+- 第一次啟動：主選單 OK；skse64.log 174 個外掛 loaded correctly、無錯誤；無 crash log。
+- Profile 備份：`D:\Backups\Nolvus-Awakening-profile-2026-09-26.zip`。
+
+## 第 2 階段工具結果摘要
 - inventory-mv：通過 1、資訊 7、注意 0、失敗 0（3694 個 mod、336.1 GB、Stock Game 1.6.1170.0）。
 - harvest-mv（試跑與 --apply）：通過 1、注意 1（647 個計畫中 645 完成、來源缺少 2）、資訊 3、失敗 0；`D:\PM` 有 645 個 mod、MO2 與 tools。
 - zh_extract_official（試跑與 --apply）：通過 3、資訊 1、失敗 0；21 個字串表，有內容的全是繁體（工具抽樣到空檔才顯示 unknown）。
