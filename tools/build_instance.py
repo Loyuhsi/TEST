@@ -36,6 +36,7 @@ KNOWN_TOOLS = {  # exe name (lower) -> MO2 title
     "pandora behaviour engine+.exe": "Pandora", "synthesis.exe": "Synthesis", "bethini.exe": "BethINI Pie",
 }
 GENERATED_TAIL = ["FNIS.esp", "Synthesis.esp", "PG_1.esp", "PG_2.esp", "DynDOLOD.esp", "Occlusion.esp"]
+OPENSSL_DLLS = ("libssl-3-x64.dll", "libcrypto-3-x64.dll")
 
 
 def backup(files: list[Path], profile_dir: Path, apply: bool) -> Path | None:
@@ -147,6 +148,14 @@ def cmd_create(args, rep: Report) -> None:
                 copied.append(name)
                 if apply:
                     shutil.copy2(src, pdir / name)
+    # MO2 keeps libssl in dlls\; without a copy next to the exe, Windows may load an
+    # incompatible libssl from PATH (miniconda, Git) and MO2 fails to start.
+    ssl = [n for n in OPENSSL_DLLS if (pm / "dlls" / n).exists() and not (pm / n).exists()]
+    if ssl:
+        if apply:
+            for n in ssl:
+                shutil.copy2(pm / "dlls" / n, pm / n)
+        rep.add("openssl", "PASS", "OpenSSL DLL", f"複製 {', '.join(ssl)} 到 D:\\PM 根目錄（避免載入 PATH 上的其他版本）")
     ini = pm / "ModOrganizer.ini"
     tools = find_tools(pm)
     if not ini.exists() or args.rewrite_ini:

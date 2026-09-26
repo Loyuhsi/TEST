@@ -31,8 +31,9 @@
 - 設定檔選 `Pages-ZH`。左側清單越**下面**的 mod 優先權越高。
 - 安裝下載的壓縮檔：
   1. 名稱欄一律改成 `manifest.csv` 的 `folder` 值，一字不差。
-  2. 跳出「已存在」時選 **Replace**（取代佔位資料夾）。
-- FOMOD：選能產生 `data/target/plugins.txt` 所列插件的選項。拿不準就截圖回報。
+  2. 跳出「已存在」時選 **Replace**（取代佔位資料夾）。資料夾已經有內容（replace_dll 重裝）時，Replace 會刪掉舊內容：先問使用者。
+- FOMOD：選能產生 `data/target/plugins.txt` 所列插件的選項；`data/decisions.csv` 的 `note` 有指定時照 note。拿不準就截圖回報。
+- 設定 →「Plugins」分頁：停用 **Crash Log Labeler**（crashlogtools 用 cp950 讀 crash log 會報錯）。
 - 執行任何 `tools/*.py` 前先關閉 MO2，因為 MO2 關閉時會覆寫設定檔。
 - 工具的輸出：
   - 看 Overwrite → 右鍵 Move content to Mod…，移到對應的輸出資料夾（`docs/05` 的對照表）。

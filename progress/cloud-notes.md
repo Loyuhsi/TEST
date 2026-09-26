@@ -5,6 +5,33 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**第 4 階段中途判讀**（回應 74772e8）。補擷取、`build_instance`、modlist 比對都正確；Nolvus 安裝清單已收到。
+  - **review 54 個已決定**（寫進 `data/decisions.csv`）：
+    - 50 個 `download`，含 Nexus 檔案編號。
+    - 4 個 `drop`（Nexus 找不到）：Unslaad PBR、clockwork pbr、horseAnimations2、Smooth Special Idle。它們的插件（例如 HorseAnimaTest.esp）交給 `prune_dependents` 處理。
+  - **缺檔案編號的 20 個 download** 也補上了。
+  - **replace_dll**：
+    - 5 個要換成 1.5.97 版：Flat World Map Framework2、CRDW、Face Discoloration Fix、Native EditorID Fix、Classic Sprinting Redone。檔案編號和 FOMOD 選項寫在 note。
+    - Flat World Map Framework2 **不要勾 Baka World Map Speed**：它沒有 1.5.97 版，放棄（只影響地圖拖曳速度）。
+    - 3 個改為 `keep`：Dynamic Armor Variants（上方的 1.5.97 移植版資料夾下載後會覆蓋）、I4、COCKS（上方的「- Patch」資料夾已提供 1.5.97 DLL，`audit_skse` 已確認）。
+  - **note 欄要照著做**：
+    - 裝兩個檔合併到同一資料夾：Fortified Morthal、Modern Hay、Dwemer Researcher Backpack。第二個檔用 MO2 安裝時選 **Merge**。
+    - FOMOD 指定選項：ERM 選 PBR、MOIST 選 BOS、Yggdrasil 選 Floating Tree、各 Patch Hub 只選目標 plugins.txt 裡有的補丁、Asura's Guard 選 3BA 2K。
+    - 已封存或舊版的檔案（Vigilant 657510、ParticleWind 752520、Prisma UI 735761、Dirt Cliffs 759225）下載不到時，照 note 改用替代檔，或回報。
+    - Edge UI Racemenu 是 DIP 補丁：要用 Dynamic Interface Patcher（Nexus 96891）產生輸出，放進這個資料夾。做不到就先略過並回報。
+    - note 以「中：」開頭的是中等信心：裝完看插件名稱是否和目標相符，不符就回報。
+  - **OpenSSL**：你的處理正確。`build_instance create` 以後會自動把 `dlls\libssl-3-x64.dll` 複製到根目錄。這台已經有了，不必重跑。
+  - **crashlogtools**：到 MO2 設定 →「Plugins」停用 **Crash Log Labeler**。不要改外掛的 .py 檔（它和 `D:\MV` 是硬連結）。
+  - `manifest.py` 更新：`replace_dll` 的決定在資料夾換好（沒有 AE DLL）後會變成 `keep`，所以重跑不會一直要求重裝。
+- 2026-09-26｜**第 4 階段接下來**：
+  1. `git pull --rebase`，停用 Crash Log Labeler。
+  2. 請使用者在 MO2 設定 →「Nexus」連結帳號。建議使用者也照 `docs/09` 第 3 節設定 `NEXUS_API_KEY`（使用者自己設定，不要貼進對話），約 450 個檔案用 `nexus_fetch.py` 批次下載比較快。
+  3. 重跑 `python tools/manifest.py --pm "D:/PM"`。預期：review 0、download 約 445、replace_dll 5、drop 20、keep 約 3567、regenerate 9。數字差很多時先回報。
+  4. 下載並用 MO2 安裝（名稱照 `folder` 欄，FOMOD 照 note 或 plugins.txt）。可以分批做，每批結束更新 `status.md`。
+  5. replace_dll 的 5 個資料夾已經有內容，用 Replace 重裝前**一次列出來問使用者**（Replace 會刪掉舊內容；`D:\MV` 的原檔不受影響）。
+  6. 全部裝完、`manifest` 沒有 download／review／replace_dll 後，照 `docs/04` 第 8、9 節：`prune_dependents` → `sync-order` → `verify` → `check_plugins` → `audit_skse`（不加 `--mv-1597-map`）。
+  7. 回報各報告的每一行，特別是 `check_plugins` 的完整插件數、缺少的前置，以及 `audit_skse` 的 `[失敗]`。
+  - 下載途中有檔案下載不到（封存、隱藏、成人內容）時，記下來一起回報，先繼續其他的。
 - 2026-09-26｜**第 3 階段判讀：通過**（回應 1af902e）。可以進第 4 階段。
   - **STOCK GAME 顯示 1.0.0.0**：工具的 bug，已修正。Nolvus 降版後的 exe 數字欄位是 1.0.0.0，字串才是 1.5.97.0；`pe.file_version` 現在遇到 1.0.0.0 會改讀字串。
     - 沒修的話，第 4 階段 `audit_skse` 會誤報「STOCK GAME 遊戲版本」`[失敗]`。

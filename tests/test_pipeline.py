@@ -165,7 +165,7 @@ def test_full_pipeline(world, monkeypatch):
                     "Patch For Hair,drop,patch for dropped Patreon Hair\n"
                     "Needs Download,download,disabled in MV,166799,753834,3.2.2\n"
                     "Quest Mod,harvest_mv,missing in Nolvus\n"
-                    "City Overhaul,download,already fetched,1,2,1.0\n", encoding="utf-8")
+                    "City Overhaul,replace_dll,SE build,1,2,1.0\n", encoding="utf-8")
     rep2 = w["tmp"] / "reports2"
     assert manifest.main(["--pm", str(w["pm"]), "--target", str(w["tgt"] / "modlist.txt"),
                           "--provenance", str(w["plan"]), "--decisions", str(dec2), "--reports", str(rep2)]) == 0
@@ -175,12 +175,15 @@ def test_full_pipeline(world, monkeypatch):
         ("download", "166799", "753834", "decision")
     assert "166799" in nd["url"] and man2["Patch For Hair"]["action"] == "drop"
     assert man2["Quest Mod"]["action"] == "keep"                 # harvest_mv decision, folder now present
-    assert man2["City Overhaul"]["action"] == "replace_dll"      # fetched, but its DLL is still AE-only
+    co = man2["City Overhaul"]                                  # present, DLL still AE-only -> keep asking
+    assert (co["action"], co["nexus_file_id"], co["id_source"]) == ("replace_dll", "2", "decision")
 
     # build instance
     bi = ["--pm", str(w["pm"]), "--manifest", str(w["reports"] / "manifest.csv"),
           "--target", str(w["tgt"] / "modlist.txt"), "--target-plugins", str(w["tgt"] / "plugins.txt"),
           "--out", str(w["reports"])]
+    (w["pm"] / "dlls").mkdir(exist_ok=True)                     # MO2 ships libssl only in dlls\
+    (w["pm"] / "dlls" / "libssl-3-x64.dll").write_bytes(b"MZssl")
     assert build_instance.main(["create", *bi, "--ini-from",
                                 str(w["nol"] / "MODS" / "profiles" / "Nolvus Awakening"), "--apply"]) == 0
     pdir = w["pm"] / "profiles" / "Pages-ZH"
@@ -189,6 +192,7 @@ def test_full_pipeline(world, monkeypatch):
     assert (w["pm"] / "mods" / "Needs Download").is_dir()            # placeholder so MO2 keeps the line
     assert (w["pm"] / "mods" / "MV_separator" / "meta.ini").exists()
     assert (pdir / "Skyrim.ini").exists() and (w["pm"] / "portable.txt").exists()
+    assert (w["pm"] / "libssl-3-x64.dll").read_bytes() == b"MZssl"
     ini = (w["pm"] / "ModOrganizer.ini").read_text()
     assert "gamePath=@ByteArray(" in ini and "SSEEdit" in ini and "selected_profile=@ByteArray(Pages-ZH)" in ini
     assert build_instance.main(["verify", *bi]) == 0

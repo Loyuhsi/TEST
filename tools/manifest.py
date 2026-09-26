@@ -57,7 +57,7 @@ def decide(r: dict, present: bool, ids: dict, decision: dict | None, dlls: list[
     cat = r.get("category", "")
     if decision:
         act = decision["action"]
-        fetch = act == "download" or act.startswith("harvest_")
+        fetch = act in ("download", "replace_dll") or act.startswith("harvest_")
         if not (fetch and present):       # once fetched, judge the folder like any other present one
             return act, decision.get("note") or "manual decision"
     if cat == "generated":
