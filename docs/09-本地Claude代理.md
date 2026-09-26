@@ -56,25 +56,27 @@ git clone -b claude/sharp-faraday-b8ax3h https://github.com/Loyuhsi/TEST C:\Page
 確認 Python 3.12、Git 與 D 槽空間都正常後，從第 1 階段開始。
 我授權你照 CLAUDE.md 幾乎全自動執行：只有刪除檔案或資料夾、花錢、修改 Windows 安全設定、
 git push 之前要先問我；需要登入、輸入密碼或按 UAC 時叫我。
-每個階段結束時更新 progress/status.md 並提交，再用 SendMessage 把摘要傳給雲端對話（用 ListAgents 找識別碼 0e5bdc 的那一列，名稱會變動）；
-傳不過去就把摘要給我，我會貼到雲端。
+每個階段結束時，更新 progress/status.md、把去除個資的摘要寫進 progress/local-report.md，
+提交後 git push（推送前問我），再提醒我回雲端對話說「已推送」。
 ```
 
-## 5. 測試與雲端直連（Remote Control）
-本地與雲端要互相傳話，有三條路，依序嘗試：
-1. **本地 → 雲端**：本地代理會試著用 SendMessage 傳摘要給雲端對話。它的顯示名稱會變動（例如 `test-25`、`test-17`），所以會用 ListAgents 找識別碼 `0e5bdc` 的那一列。成功的話，雲端對話會直接收到。
-2. **雲端 → 本地**：雲端把判讀與決定提交到 GitHub，寫在 `progress/cloud-notes.md` 與 `data/decisions.csv`。本地代理每個階段開始前會 `git pull` 讀取。
-3. **直連（實驗性）**：
-   1. 在本地對話輸入 `/remote-control`。如果 Code 分頁沒有這個指令，改在 PowerShell 執行（第一次要先用 `irm https://claude.ai/install.ps1 | iex` 安裝 Claude Code 指令列版本，並用 `claude` 登入 claude.ai 帳號）：
-      ```powershell
-      cd C:\PagesTools
-      claude remote-control
-      ```
-   2. 回到雲端對話告訴我「本地已開」。
-   3. 我會檢查能不能直接傳訊息給它。這需要 Pro／Max／Team／Enterprise 方案，並用 claude.ai 帳號登入，不能用 API 金鑰登入。
+## 5. 本地與雲端怎麼傳話（GitHub 中繼）
+已實測：本地對話與雲端對話互相看不到，無法直接傳訊息。所以改用 GitHub 分支 `claude/sharp-faraday-b8ax3h` 當中繼站：
 
-三條路都不通時：本地代理把摘要給你，由你貼到雲端對話，或上傳 `reports\` 的檔案。
-倉庫是**公開的**，所以報告檔不會推上 GitHub。
+1. **本地 → 雲端**：
+   1. 每個階段結束，本地代理把去除個資的摘要寫進 `progress/local-report.md`，連同 `progress/status.md` 提交並推送。
+   2. 推送前它會問你，你按允許。
+   3. 你回到雲端對話說「**已推送**」。
+2. **雲端 → 本地**：雲端讀完後，把判讀與決定寫進 `progress/cloud-notes.md` 或 `data/decisions.csv` 並推送。本地代理下一次開始前會 `git pull` 讀到。
+
+你要做的只有兩件事：**核准推送**、**回雲端說「已推送」**。
+
+- **第一次推送**：Git 會跳出 GitHub 登入視窗，用你的 GitHub 帳號（Loyuhsi）登入一次即可。
+- **推送失敗**：請本地代理顯示 `progress/local-report.md` 的內容，你把它貼到雲端對話。
+
+倉庫是**公開的**：
+- 推上去的只有摘要，不含使用者名稱、帳號、序號或金鑰。
+- 原始報告檔、日誌和截圖都不會上傳。
 
 ## 6. 它會在什麼時候叫你
 
@@ -85,7 +87,7 @@ git push 之前要先問我；需要登入、輸入密碼或按 UAC 時叫我。
 | 刪除 `D:\MV`、下載資料夾、`D:\Nolvus` 或 mod | 確認它說的報告都沒有失敗，再同意 |
 | Windows Defender 排除 D:\MV、D:\Nolvus、D:\PM | 同意，或自己照 `docs/01` 設定 |
 | LLM 翻譯前會先報出估計金額 | 同意才會開始花錢 |
-| `git push` | 確認只推 `progress/` 或 `data/decisions.csv` |
+| `git push` | 確認只推 `progress/status.md`、`progress/local-report.md` 或 `data/decisions.csv`，再回雲端說「已推送」 |
 | 等候下載、安裝或產生（數小時） | 讓電腦插電保持開機；完成後回來說「繼續」 |
 
 ## 7. 使用中的注意事項

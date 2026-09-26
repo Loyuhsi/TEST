@@ -32,13 +32,22 @@ description: 在這台 Windows 筆電上依階段執行 Pages 混合清單（Nol
    - 工具結果統計（例如「通過 12、注意 2、失敗 0」）
    - 待決問題
    - 不要貼報告全文、硬體序號、使用者名稱或金鑰。
-3. 提交進度：`git add progress/status.md && git commit -m "Phase N: <結論>"`（不要 push，除非使用者同意）。
-4. 回報雲端：先執行 ListAgents，找標示為雲端、識別碼 `[0e5bdc]` 的那一列，用它當下顯示的名稱（會變動，例如 `test-25`、`test-17`）以 SendMessage 傳送。內容：
-   - 階段、結果
-   - 各報告的關鍵行（例如 `[注意]` 項目原文）
+3. 寫回報：覆寫 `progress/local-report.md`（格式見檔案內範本）：
+   - 階段、日期、結論
+   - 每個工具報告（`reports\*.txt`）的每一行結果，原文照抄 `[通過]`／`[注意]`／`[失敗]` 行
    - 需要雲端決定的事
-   - 如果傳送失敗，請使用者把同樣內容貼到雲端對話。
-5. 等雲端回覆（會以提交 `progress/cloud-notes.md` 或 `data/decisions.csv` 的形式出現）。沒有待決問題就直接進下一階段。
+   - 不寫 Windows 使用者名稱、帳號、序號、金鑰，不附截圖或整份日誌。
+4. 提交並推送：
+   ```bash
+   git add progress/status.md progress/local-report.md
+   git commit -m "Phase N: <結論>"
+   git push
+   ```
+   push 會先跳出確認，由使用者核准。第一次推送時 Git 會跳出 GitHub 登入視窗，請使用者登入。
+5. 請使用者回到雲端對話說「已推送」。雲端會把判讀寫進 `progress/cloud-notes.md` 或 `data/decisions.csv` 並推送；下一次 `git pull` 就會看到。
+   - 沒有待決問題就直接進下一階段。
+   - 推送失敗時，請使用者把 `local-report.md` 的內容貼到雲端對話。
+   - SendMessage 只在 ListAgents 出現識別碼 `[0e5bdc]` 時使用（本地與雲端互相看不到，已實測）。
 
 ## 4. 卡住時
 - 手冊沒寫到、兩份資料互相矛盾、工具 FAIL 找不到原因，或遊戲當機：

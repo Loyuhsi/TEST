@@ -24,7 +24,7 @@
 - **刪除任何檔案或資料夾**，包括在檔案總管或其他 GUI 裡按刪除。例如 `D:\MV`、下載資料夾、`D:\Nolvus`、任何 mod 資料夾。刪除前先確認報告沒有錯誤，並說明硬連結會保留 D:\PM 的檔案。
 - **花錢**：`llm_translate.py run --yes`（先跑 `estimate` 報出金額），以及任何購買或 Patreon 訂閱。
 - **修改 Windows 安全設定**：Defender 排除項目、關閉防護。
-- `git push`（倉庫是公開的：推送前確認只有 `progress/`、`data/decisions.csv` 這類無個資的檔案）。
+- `git push`（倉庫是公開的：推送前確認只有 `progress/status.md`、`progress/local-report.md`、`data/decisions.csv` 這類無個資的檔案）。
 
 `.claude/hooks/guard.py` 會對 shell 裡的刪除、付費、推送指令強制跳出確認。GUI 操作它攔不到，要靠你自己遵守。
 
@@ -36,16 +36,21 @@
 - 使用大學漢化；新增任何翻譯用 ESP（插件名額只剩約 27 個）。
 - 修改 `D:\PM` 裡硬連結的原始檔（ini 之類的設定改在獨立 mod「Pages - 設定覆寫」）。
 
-## 協作流程（雲端 Claude 對話：識別碼 `0e5bdc`）
-雲端對話的顯示名稱會變動（例如 `test-25`、`test-17`）。傳訊息前先執行 ListAgents，找標示為雲端、識別碼 `[0e5bdc]` 的那一列，用那一列當下顯示的名稱傳送。
+## 協作流程：用 GitHub 分支當中繼（雲端 Claude 對話識別碼 `0e5bdc`）
+已實測：本地與雲端對話互相看不到，SendMessage 不通。雙方改用分支 `claude/sharp-faraday-b8ax3h` 傳遞訊息。
 
-1. 每個階段開始前：`git pull`，讀 `progress/cloud-notes.md` 與 `progress/status.md`。
+1. 每個階段開始前：`git pull`，讀 `progress/cloud-notes.md` 與 `progress/status.md`。雲端的回覆與決定都在 `cloud-notes.md` 和 `data/decisions.csv`。
 2. 依技能 `pages-modlist` 執行該階段。每個工具報告的 `[失敗]` 都要處理或回報，`[注意]` 要說明。
-3. 階段結束：
-   1. 更新 `progress/status.md`（只寫進度與結論，不貼報告內容），然後 `git commit`。
-   2. 用 SendMessage 傳一段摘要給雲端對話（識別碼 `0e5bdc`）：階段、結果、報告重點與待決問題。雲端無法直接回覆，回覆會以提交到 `progress/cloud-notes.md` 或 `data/decisions.csv` 的方式出現。
-   3. 如果 SendMessage 失敗，請使用者把摘要貼到雲端對話，或上傳 `reports\` 的檔案。
-4. 手冊沒寫到、工具 FAIL 又找不到原因，或與手冊結論矛盾時：停下來寫進 status，問使用者或回報雲端，不要猜。
+3. 階段結束，或卡住需要雲端判斷時：
+   1. 更新 `progress/status.md`（進度與結論）。
+   2. 把去除個資的摘要寫進 `progress/local-report.md`：
+      - 要寫：階段、日期，以及各工具 `reports\*.txt` 的每一行結果（`[通過]`／`[注意]`／`[失敗]`＋標題＋說明），還有待決問題。
+      - 不要寫：Windows 使用者名稱、帳號、序號、金鑰；不要附截圖或整份日誌。
+   3. `git add progress/status.md progress/local-report.md`，`git commit`，然後 `git push`（guard 會先問使用者）。
+   4. 請使用者回到雲端對話說「已推送」，然後等雲端在 `cloud-notes.md` 回覆。沒有待決問題時可以直接進下一階段。
+   5. 推送失敗（例如未登入 GitHub、沒有寫入權限）：請使用者把 `progress/local-report.md` 的內容貼到雲端對話。
+4. SendMessage 只在 ListAgents 真的出現識別碼 `[0e5bdc]` 時才用（顯示名稱會變動）。
+5. 手冊沒寫到、工具 FAIL 又找不到原因，或與手冊結論矛盾時：停下來寫進 status 與 local-report，問使用者或回報雲端，不要猜。
 
 ## 長時間工作
 下載、Wabbajack／Nolvus 安裝、DynDOLOD、草地快取可能要好幾小時：
