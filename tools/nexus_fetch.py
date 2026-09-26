@@ -18,6 +18,7 @@ import argparse
 import http.client
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -41,16 +42,59 @@ def api_get(url: str, key: str) -> tuple[object, dict]:
         return json.loads(r.read().decode("utf-8")), dict(r.headers)
 
 
-def quote_uri(uri: str) -> str:
-    """Percent-encode spaces and other unsafe characters in a CDN download URI.
+_SIGNED_QUERY = re.compile(r"\?(expires=[^?#]*)$")
+_VALID_ESCAPE = re.compile(r"%[0-9A-Fa-f]{2}")
+_PATH_SAFE = "/+()!$&'*,;=:@~"
+_QUERY_SAFE = "=&+/:,;@!$'()*~"
 
-    Nexus returns file names with spaces in the path; urllib refuses such URLs.
-    Existing %XX escapes and the signed query string are kept as they are.
+
+def _quote_keep_escapes(text: str, safe: str) -> str:
+    """quote() everything except valid %XX escapes (a lone '%' becomes %25)."""
+    out, pos = [], 0
+    for m in _VALID_ESCAPE.finditer(text):
+        out.append(urllib.parse.quote(text[pos:m.start()], safe=safe))
+        out.append(m.group(0))
+        pos = m.end()
+    out.append(urllib.parse.quote(text[pos:], safe=safe))
+    return "".join(out)
+
+
+def quote_uri(uri: str) -> str:
+    """Percent-encode unsafe characters in a CDN download URI.
+
+    Nexus returns raw file names in the path (spaces, '#', '?', '%', brackets, non-ASCII);
+    urllib refuses spaces, and '#'/'?' would otherwise swallow the signed query. The signed
+    query always ends the URI as '?expires=...', so it is split off first and kept intact.
     """
-    parts = urllib.parse.urlsplit(uri)
-    path = urllib.parse.quote(parts.path, safe="/%+()!$&'*,;=:@~")
-    query = urllib.parse.quote(parts.query, safe="=&%+/:,;@!$'()*~")
-    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+    m = _SIGNED_QUERY.search(uri)
+    if m:
+        base, query = uri[:m.start()], m.group(1)
+    elif "?" in uri:
+        base, _, query = uri.rpartition("?")
+    else:
+        base, query = uri, None
+    scheme, sep, rest = base.partition("://")
+    if sep:
+        host, slash, path = rest.partition("/")
+        prefix, path = f"{scheme}://{host}", slash + path
+    else:
+        prefix, path = "", base
+    quoted = prefix + _quote_keep_escapes(path, _PATH_SAFE)
+    return quoted if query is None else quoted + "?" + _quote_keep_escapes(query, _QUERY_SAFE)
+
+
+class CdnHTTPError(Exception):
+    """HTTP error from the CDN download itself (not from the Nexus API)."""
+
+
+def download_file(url: str, tmp: Path) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
+            while chunk := resp.read(1 << 20):
+                fh.write(chunk)
+    except urllib.error.HTTPError as e:
+        raise CdnHTTPError(e.code) from None
 
 
 def meta_text(mod_id: str, file_id: str, info: dict, url: str) -> str:
@@ -102,10 +146,7 @@ def main(argv=None) -> int:
                 links, hdr = api_get(f"{API}/mods/{mid}/files/{fid}/download_link.json", key)
                 url = quote_uri(links[0]["URI"])
                 tmp = dest.with_suffix(dest.suffix + ".part")
-                req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
-                with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
-                    while chunk := resp.read(1 << 20):
-                        fh.write(chunk)
+                download_file(url, tmp)
                 tmp.replace(dest)
                 page = f"https://www.nexusmods.com/skyrimspecialedition/mods/{mid}"
                 (dl_dir / (fname + ".meta")).write_text(meta_text(mid, fid, info, page), encoding="utf-8")
@@ -127,6 +168,9 @@ def main(argv=None) -> int:
                     rows.append(row)
                     rep.add("rate", "WARN", "達到速率上限", "請一小時後再執行")
                     break
+            except CdnHTTPError as e:
+                # a single bad CDN link must not look like a rejected API key or stop the run
+                row["status"] = f"cdn_http_{e.args[0]}"
             except (OSError, ValueError, KeyError, IndexError, http.client.HTTPException) as e:
                 # drop any signed query string (it carries the user id) before logging
                 row["status"] = f"error: {type(e).__name__}: {str(e).split('?')[0][:160]}"
