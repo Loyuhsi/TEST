@@ -6,8 +6,8 @@
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
-| 2 安裝 M&V 並擷取 | 進行中 | | Wabbajack 安裝中（12:07 為 [12/14] 227.4/359.8 GB）；Curios 雜湊問題已修正 |
-| 3 安裝 Nolvus | 暫停 | | 選項已照 docs/03 選好、版本 6.0.20；已按 Start，但遊戲檔檢查在 Rare Curios 失敗（與 M&V 要的版本衝突）；**等雲端判讀**（local-report 已寫） |
+| 2 安裝 M&V 並擷取 | 工具完成 | | M&V 12:23 裝完；inventory 通過、harvest 注意（缺 2：ImmersiveHUD SKSE、Load Time Profiler）、extract_official 通過；待刪 `D:\WJ-Downloads`（先問使用者），`D:\MV` 保留到第 4 階段 |
+| 3 安裝 Nolvus | 安裝中 | | 13:07 按 Start（6.0.20 Ultimate，**Nudity Yes**＝使用者要求），已通過遊戲檔檢查的 Curios |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -50,6 +50,22 @@
   - 處理（使用者同意）：Steam「驗證遊戲檔案完整性」→ 只有這 2 個檔驗證失敗並重新下載 → 雜湊與 M&V 預期相符 → Wabbajack Retry，已順利進入 Installing files。遊戲仍是 1.7.104.0、build 24914197、CC 74 個。
 - Nolvus 6.0.20 要 **另一版**（應為 Creations 版）：Stock Game 檢查到 `ccbgssse037-curios.bsa` 時「Hash … does not match!」，已自動 rollback，沒有留下變更。
 - 使用者已同意的後續做法：M&V 裝完（Curios 已複製進 `D:\MV\Stock Game`）後，① 把 Steam 資料夾的 Steam 版 Curios 搬到備份資料夾（不刪除）；② 先確認 Steam 沒有新版 Skyrim，再從 Steam 啟動遊戲一次，用 Creations 重新下載 Curios，不載入存檔就離開；③ 重開 Nolvus Dashboard 接著安裝。
+- 雲端 45e52d6 判讀：照做並加檢查；`D:\PM` 用 Nolvus 的 Creations 版；沒有 Enemies Resistance／Stances 開關正常；Nudity No 正確（但使用者之後要求改 Yes）。
+- 執行結果（2026-09-26）：
+  - M&V 的 Curios 在 `D:\MV\mods\Creation Club\ccBGSSSE037-Curios.*`（不在 `Stock Game\Data`），SHA256 與 Steam 資料夾相同，且是獨立副本（不同磁碟）。
+  - Steam 版搬到 `D:\Backup\Curios-Steam`（雜湊相同）。
+  - 啟動前檢查：遊戲庫按鈕「開始遊戲」、下載頁無 Skyrim 排程、`appmanifest` 的 build／TargetBuildID 都是 24914197、StateFlags 4。SteamDB 被瀏覽器驗證頁擋住，改看 Steam 官方新聞 API：最新更新仍是 1.7.99（8/27 更新）。
+  - 啟動器因 `Skyrim_Default.ini` 變新（第 1 階段改語言）而重新偵測硬體，**重建了 `文件` 裡的 `Skyrim.ini`（現為 sLanguage=ENGLISH）與 `SkyrimPrefs.ini`**（Ultra、2560x1600、全螢幕）。使用者原本的中文與畫面設定被覆蓋，只影響原版遊戲，不影響 M&V／Nolvus／`D:\PM`。
+  - 第一次啟動下載中途遊戲失去焦點而暫停，後來遊戲結束；使用者同意後再啟動一次，Creations 補完下載（148 個 cc 檔重寫、74 個插件），出現「All Creations Downloaded」後關閉遊戲。沒有載入存檔、沒有購買。
+  - 核對：Curios 為 `FQbA20bA5Dw=`／`it6+eSu4OCw=`（Creations 版）；Fish、Survival、AdvDSGS 雜湊不變；遊戲 1.7.104.0、build 24914197、74 個 CC。Creations 版複製到 `D:\Backup\Curios-Creations`。
+  - Nolvus Dashboard 在遊戲切換解析度時跳出 .NET 例外（NullReference），當時它停在錯誤頁、沒有安裝在跑，已結束後重開。
+  - 重選選項（與 1ae35a6 相同，只有 **Nudity 改為 Yes**），D 槽剩 676 GB（≥ 500），13:07 按 Start；遊戲檔檢查已通過 CC。
+
+## 最近一次工具結果摘要（第 2 階段）
+- inventory-mv：通過 1、資訊 7、注意 0、失敗 0（3694 個 mod、336.1 GB、Stock Game 1.6.1170.0）。
+- harvest-mv（試跑與 --apply）：通過 1、注意 1（647 個計畫中 645 完成、來源缺少 2）、資訊 3、失敗 0；`D:\PM` 有 645 個 mod、MO2 與 tools。
+- zh_extract_official（試跑與 --apply）：通過 3、資訊 1、失敗 0；21 個字串表，有內容的全是繁體（工具抽樣到空檔才顯示 unknown）。
 
 ## 等待雲端或使用者決定的事
-- 雲端：Rare Curios 衝突的處理方式、最終 `D:\PM` 用哪一版 Curios、Dashboard 沒有 Enemies Resistance／Stances Perk Tree 開關（詳見 `local-report.md`）。使用者要求先等雲端意見再動 Nolvus。
+- 雲端：Nudity Yes 是否延伸到 `D:\PM`；`extract_official` 字形判斷抽樣；是否在手冊提醒改語言後啟動器會重建 ini（詳見 `local-report.md`）。
+- 使用者：刪除 `D:\WJ-Downloads`（約 195 GB）；原版遊戲的 `Skyrim.ini` 中文設定要不要改回。
