@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from pm import bsa, pex, strings as st, tes4
-from zh import common, diff_pack, fontconfig, llm_translate, mcm_txt, strings_glossary
+from zh import common, diff_pack, extract_official, fontconfig, llm_translate, mcm_txt, strings_glossary
 
 opencc = pytest.importorskip("opencc")
 
@@ -115,6 +115,21 @@ def test_diff_pack_judge(tmp_path):
     assert diff_pack.judge(js, good, idx, set())[0] == "skip"
     h = pex.parse(pex.build("Q.psc", 5, ("a", "b")))
     assert (h.source, h.compile_time, h.string_count) == ("Q.psc", 5, 2)
+
+
+# ---------------------------------------------------------------- extract_official script check
+def test_extract_official_script_summary(tmp_path):
+    empty = tmp_path / "_resourcepack_chinese.dlstrings"
+    trad = tmp_path / "skyrim_chinese.strings"
+    simp = tmp_path / "mod_chinese.strings"
+    st.write(empty, {})
+    st.write(trad, {1: "這個劍與門", 2: "們說"})
+    st.write(simp, {1: "这个剑与门"})
+    status, detail = extract_official.script_summary([empty, trad])
+    assert status == "PASS" and "繁體 1 個" in detail and "_resourcepack_chinese.dlstrings" in detail
+    status, detail = extract_official.script_summary([empty, trad, simp])
+    assert status == "WARN" and "mod_chinese.strings=simplified" in detail
+    assert extract_official.script_summary([empty])[0] == "WARN"
 
 
 # ---------------------------------------------------------------- synthetic PM with a real plugin

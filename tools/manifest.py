@@ -7,6 +7,8 @@ Usage (Windows):
 Inputs: data/target/modlist.txt, data/analysis/provenance.csv, data/analysis/nexus_candidates.csv,
 data/analysis/mv_folder_map.csv, reports/inventory-*.csv, data/decisions.csv (manual overrides)
 and what is already inside D:\\PM\\mods.
+data/decisions.csv columns: folder,action,note[,nexus_mod_id,nexus_file_id,nexus_version]; IDs given
+there win over every other ID source.
 Outputs: reports/manifest.csv, reports/downloads.html, reports/manifest.txt/.json
 """
 
@@ -100,6 +102,10 @@ def run(args) -> Report:
                        "file_id": hit.get("file_id") or hit.get("nexus_file_id"),
                        "version": hit.get("version") or hit.get("nexus_version"), "source": src}
                 break
+        dec = decisions.get(key)
+        if dec and (dec.get("nexus_mod_id") or "").strip():
+            ids = {"mod_id": dec["nexus_mod_id"].strip(), "file_id": (dec.get("nexus_file_id") or "").strip(),
+                   "version": (dec.get("nexus_version") or "").strip(), "source": "decision"}
         if not ids:
             nx = nexus.get(key)
             if nx and nx.get("nexus_mod_id") and nx.get("confidence") in ("high", "medium") \
@@ -108,7 +114,7 @@ def run(args) -> Report:
                        "version": nx.get("suggested_file_version", ""),
                        "source": f"nexus_search:{nx.get('confidence')}"}
         dlls = ae_only_dlls(folder) if present else []
-        action, note = decide(p, present, ids, decisions.get(key), dlls)
+        action, note = decide(p, present, ids, dec, dlls)
         mid = ids.get("mod_id", "")
         fid = ids.get("file_id", "")
         rows.append({

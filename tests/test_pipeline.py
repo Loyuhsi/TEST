@@ -159,6 +159,20 @@ def test_full_pipeline(world, monkeypatch):
     assert man["Needs Download"]["action"] == "review"
     assert (w["reports"] / "downloads.html").read_text(encoding="utf-8").count("<tr>") >= 2
 
+    # a decision row may carry Nexus IDs (6-column format); old 3-column rows still read fine
+    dec2 = w["tmp"] / "decisions6.csv"
+    dec2.write_text("folder,action,note,nexus_mod_id,nexus_file_id,nexus_version\n"
+                    "Patch For Hair,drop,patch for dropped Patreon Hair\n"
+                    "Needs Download,download,disabled in MV,166799,753834,3.2.2\n", encoding="utf-8")
+    rep2 = w["tmp"] / "reports2"
+    assert manifest.main(["--pm", str(w["pm"]), "--target", str(w["tgt"] / "modlist.txt"),
+                          "--provenance", str(w["plan"]), "--decisions", str(dec2), "--reports", str(rep2)]) == 0
+    man2 = {r["folder"]: r for r in csv.DictReader(open(rep2 / "manifest.csv", encoding="utf-8-sig"))}
+    nd = man2["Needs Download"]
+    assert (nd["action"], nd["nexus_mod_id"], nd["nexus_file_id"], nd["id_source"]) == \
+        ("download", "166799", "753834", "decision")
+    assert "166799" in nd["url"] and man2["Patch For Hair"]["action"] == "drop"
+
     # build instance
     bi = ["--pm", str(w["pm"]), "--manifest", str(w["reports"] / "manifest.csv"),
           "--target", str(w["tgt"] / "modlist.txt"), "--target-plugins", str(w["tgt"] / "plugins.txt"),

@@ -40,6 +40,32 @@ def script_guess(text: str) -> str:
     return "traditional" if t >= s * 3 else ("simplified" if s >= t * 3 else "mixed")
 
 
+def script_summary(paths: list[Path]) -> tuple[str, str]:
+    """Judge every string table, skipping empty ones. Returns (status, detail) for the report."""
+    trad, unknown, odd, errors = 0, [], [], []
+    for p in paths:
+        try:
+            text = " ".join(list(st.read(p).values())[:3000])
+        except (OSError, ValueError, IndexError) as e:
+            errors.append(f"{p.name}（{e}）")
+            continue
+        guess = script_guess(text)
+        if guess == "traditional":
+            trad += 1
+        elif guess == "unknown":
+            unknown.append(p.name)
+        else:
+            odd.append(f"{p.name}={guess}")
+    detail = f"繁體 {trad} 個"
+    if unknown:
+        detail += f"；無法判斷（空表或沒有特徵字）{len(unknown)} 個：{', '.join(unknown[:8])}"
+    if odd:
+        detail += f"；不是繁體 {len(odd)} 個：{', '.join(odd[:8])}"
+    if errors:
+        detail += f"；讀取失敗 {len(errors)} 個：{', '.join(errors[:4])}"
+    return ("WARN" if odd or errors or not trad else "PASS"), detail
+
+
 def main(argv=None) -> int:
     fsutil.enable_utf8_console()
     ap = argparse.ArgumentParser(description="取出官方繁中字串與字型（預設試跑）")
@@ -97,12 +123,8 @@ def main(argv=None) -> int:
                 n += 1
         rep.add("fallback", "INFO", "以英文字串暫代", f"{n} 個檔案（之後可用 llm_translate 翻譯）")
     if args.apply and tables:
-        sample = args.out_mod.joinpath(*tables[0].split("\\"))
-        try:
-            text = " ".join(list(st.read(sample).values())[:3000])
-            rep.add("script", "INFO", "字形判斷", f"{Path(tables[0]).name}：{script_guess(text)}")
-        except (OSError, ValueError, IndexError) as e:
-            rep.add("script", "WARN", "字形判斷失敗", str(e))
+        status, detail = script_summary([args.out_mod.joinpath(*t.split("\\")) for t in tables])
+        rep.add("script", status, "字形判斷", detail)
     rep.data = {"zh_files": sorted(zh_found), "english_tables": sorted(en_found), "missing_chinese": missing}
     path = rep.save(args.out, stem="zh_extract_official")
     print(rep.text())

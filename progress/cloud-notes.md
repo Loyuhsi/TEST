@@ -2,9 +2,26 @@
 
 雲端 Claude 對話（識別碼 `0e5bdc`；顯示名稱會變動，例如 `test-25`、`test-17`）把判讀結果、決策與修正寫在這裡，並提交到分支 `claude/sharp-faraday-b8ax3h`。
 本地代理每個階段開始前 `git pull` 後閱讀；已處理的項目在 `progress/status.md` 註記。
-個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note`），`tools/manifest.py` 會自動採用。
+個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**第 2 階段判讀：通過**（回應 79cf305）。
+  - `harvest-mv` 的 `[注意]`：`ImmersiveHUD SKSE`、`Load Time Profiler` 在 M&V 2.6.2 裡是停用的空項目（`.wabbajack` 沒有檔案）。已寫進 `data/decisions.csv`，含 Nexus 編號，第 4 階段 `manifest` 會列入下載。
+    - ImmersiveHUD SKSE：166799／檔案 753834（for Skyrim 1.5，3.2.2）。
+    - Load Time Profiler：173928／檔案 730415（1.2.2），第 4 階段 `audit_skse` 確認能在 1.5.97 載入。
+    - 之後若再跑 `harvest --from mv`，這 2 個仍會顯示「來源缺少」，屬正常。
+  - `zh_extract_official` 的「字形判斷 unknown」：工具只抽第一個表，而它剛好是空表。已改成逐一判斷所有表、跳過空表。你的逐表檢查（有內容的全是繁體）就是結論，**不必重跑**。
+  - SteamDB 被驗證頁擋住時，改用 appmanifest 的 `buildid`＝`TargetBuildID` 加上 Steam 新聞確認：接受。不要嘗試繞過驗證頁。
+  - **可以問使用者刪 `D:\WJ-Downloads`**。刪除前照 CLAUDE.md 說明：報告沒有 `[失敗]`、`D:\PM` 的硬連結不受影響。`D:\MV` 保留到第 4 階段 `manifest` 跑完。
+  - 原版遊戲 `文件` 裡的 `Skyrim.ini`／`SkyrimPrefs.ini`：使用者決定**先不用管**，不要改。
+- 2026-09-26｜**裸體版：使用者決定最後的 `D:\PM` 也用裸體版**（與 Nolvus 的 Nudity Yes 一致）。
+  - Nolvus 裝完後，照 `docs/03` 第 6–8 節完成（第一次啟動、備份 Profile、inventory、harvest `--stock-game`）。第 3 階段回報除了各報告的每一行，另外附上：
+    1. Nolvus 設定檔 `MODS\profiles\Nolvus Awakening\modlist.txt` 裡，所有名稱含 `New Gentleman` 或 `Nude` 的行，每行連同上下各 2 行，照原樣抄。
+    2. 這些資料夾裡的插件（`.esp/.esm/.esl`）名稱，以及是否有 ESL（light）旗標。
+    3. 這些插件在 Nolvus `plugins.txt` 的行號與前後各 2 行。
+    4. `BodySlide (Nude)` 資料夾的大小與檔案數。
+  - 雲端收到後才會改 `data/target`、重跑 provenance，並更新 `docs/05` 的 BodySlide 輸出資料夾。之後再跑一次 harvest（`--apply`）就會補上 The New Gentleman。**現在不要自己改清單。**
+  - `decisions.csv` 現在是 6 欄（多了 Nexus 編號），`docs/04` 已更新。
 - 2026-09-26｜**Rare Curios 衝突判讀**（回應 1ae35a6）。使用者同意的做法可以執行，但要照下面的順序並加上檢查：
   1. **等 Wabbajack 完全裝完**（結果頁顯示完成）。在那之前不要動 Steam 遊戲資料夾。
      - 確認 `D:\MV\Stock Game\Data` 已有 `ccbgssse037-curios.bsa/.esl`。

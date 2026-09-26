@@ -1,1 +1,3 @@
-folder,action,note
+folder,action,note,nexus_mod_id,nexus_file_id,nexus_version
+ImmersiveHUD SKSE,download,M&V 2.6.2 裡是停用的空項目（.wabbajack 沒有檔案）；用主檔「for Skyrim 1.5」,166799,753834,3.2.2
+Load Time Profiler,download,M&V 2.6.2 裡是停用的空項目（.wabbajack 沒有檔案）；第 4 階段 audit_skse 確認能在 1.5.97 載入,173928,730415,1.2.2

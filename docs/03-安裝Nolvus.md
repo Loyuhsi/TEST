@@ -127,10 +127,13 @@ Nolvus 的 FAQ 提到部分地區無法下載某些檔案、建議使用 VPN。�
   1. 確認 M&V 已經裝完，而且 `D:\MV\Stock Game\Data` 裡有這 2 個檔。
   2. 把 Steam 資料夾裡的這 2 個檔**搬到** `D:\Backup\Curios-Steam`。
   3. 如果 `D:\Backup\Curios-Creations` 有第 1 階段的備份，把它**複製**回 Steam 的 `Data`。
-  4. 沒有備份時，只好從 Steam 啟動遊戲一次，到 CREATIONS 重新下載 Rare Curios，不載入存檔就離開。啟動前先確認三件事，否則遊戲可能被更新：
-     - 遊戲庫的按鈕是「開始遊戲」，不是「更新」。
-     - 下載頁沒有 Skyrim 的排程。
-     - SteamDB 的公開 build 沒有變。
+  4. 沒有備份時，只好從 Steam 啟動遊戲一次，到 CREATIONS 重新下載 Rare Curios，不載入存檔就離開。
+     - 遊戲失去焦點時下載會暫停，下載期間不要切到別的視窗。
+     - 啟動器可能重建 `文件` 裡原版的 `Skyrim.ini`／`SkyrimPrefs.ini`，想保留就先備份。
+     - 啟動前先確認三件事，否則遊戲可能被更新：
+       - 遊戲庫的按鈕是「開始遊戲」，不是「更新」。
+       - 下載頁沒有 Skyrim 的排程。
+       - 公開 build 沒有變：看 SteamDB；進不去時，看 `steamapps\appmanifest_489830.acf` 的 `buildid` 與 `TargetBuildID` 是否相同。
   5. 重開 Dashboard，用同樣的選項再試一次。還是不符就回報 Claude。
 - **其他檔案**：通常是 Steam 版不是最新、CC 沒下載齊，或 Steam 語言不是 English。先回到第 1 階段檢查，並回報 Claude。
 
