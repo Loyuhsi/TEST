@@ -55,6 +55,12 @@ python tools/build_instance.py verify --pm "D:/PM"
 # 下載（需要環境變數 NEXUS_API_KEY；也可以在 downloads.html 逐一按 Mod Manager Download）
 python tools/nexus_fetch.py --pm "D:/PM" --limit 20
 python tools/nexus_fetch.py --pm "D:/PM" --limit 20 --apply
+# 補齊缺少的插件（docs/04 8.1；先試跑，再 --apply；剩下的回報雲端）：
+python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening"
+python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening" --apply
+python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening" --plan-downloads
+python tools/nexus_fetch.py --pm "D:/PM" --manifest reports/fill_plugins_downloads.csv --limit 100 --apply
+python tools/nexus_fetch.py --pm "D:/PM" --manifest data/extra_archives.csv --apply
 # 全部安裝完、沒有 download／review 項目後才做：
 python tools/manifest.py --pm "D:/PM"
 # MO2 會把新裝的插件列為停用；先依 _expected 還原啟用狀態，修剪才不會誤刪依賴它們的補丁

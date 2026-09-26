@@ -7,8 +7,10 @@ and stdin is closed so a password-protected archive fails instead of waiting for
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -106,5 +108,28 @@ def extract(archive: Path, dest: Path) -> None:
     Path(dest).mkdir(parents=True, exist_ok=True)
     # \\?\ prefix: deep mod trees can pass 260 characters under the staging folder
     r = _run(["x", "-y", "-bd", "-sccUTF-8", f"-o{long_path(dest)}", str(archive)])
+    if r.returncode != 0:
+        raise SevenZipError(_failure(r))
+
+
+def extract_args(archive: Path, dest: Path, listfile: Path) -> list[str]:
+    """Arguments for extracting only the members named in listfile (UTF-8, one per line)."""
+    return ["x", "-y", "-bd", "-sccUTF-8", "-scsUTF-8", f"-o{long_path(dest)}", str(archive), f"@{listfile}"]
+
+
+def extract_files(archive: Path, dest: Path, members: list[str]) -> None:
+    """Extract only the given members (paths as list_entries reports them), keeping their folders.
+
+    The names go through a list file so hundreds of members never hit the command-line limit.
+    """
+    Path(dest).mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(suffix=".txt", prefix="7z-list-")
+    listfile = Path(name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write("".join(m.replace("/", os.sep) + "\n" for m in members))
+        r = _run(extract_args(archive, dest, listfile))
+    finally:
+        listfile.unlink(missing_ok=True)
     if r.returncode != 0:
         raise SevenZipError(_failure(r))

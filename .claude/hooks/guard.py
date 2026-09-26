@@ -67,7 +67,7 @@ def main() -> int:
     for cmd in commands(event.get("tool_input", {})):
         found += reasons_for(cmd)
     if found:
-        sys.stdout.write(json.dumps(decision(found), ensure_ascii=False))
+        sys.stdout.write(json.dumps(decision(found)))  # ASCII only: survives a cp950 console
     return 0
 
 

@@ -63,7 +63,7 @@ FuzzBeed's Giant Camps AIO - Mihail Giant Club Variety,download,選用檔；它�
 FuzzBeed's Giant Camps AIO - LFFGM patch,download,選用檔,126195,528995,1.0.0
 FuzzBeed's Giant Camps - Flora Aloe and Agave,download,選用檔,126195,539741,1.1.0
 Yet another patch hub for Ryn's Skyrim2,download,Ryn's Skyrim patch collection（舊名 Yet another patch hub）；FOMOD 選目標 plugins.txt 裡有的補丁,128196,782987,2.3.3
-Yggdrasil - Floating Tree Redux,download,FOMOD 選 Floating Tree,112376,710533,1.5.2
+Yggdrasil - Floating Tree Redux,download,FOMOD：Redux，選 Yggdrasil Trees (both)（會產生目標的 Yggdrasil Trees.esp）,112376,710533,1.5.2
 Vigilant - English Voices Addon 1.8 esp,download,已封存（ARCHIVED）；裝在 Silent 翻譯之上；下載不到時回報,11894,657510,1.8.0
 Praedy's Chantry of Auriel - PBR,download,2K,145417,608301,1.0
 YXZ True Diverse Northern Roads Reforged-Complex Parallax Material-PBR CORE,download,PBR Core Distribution Files（含 YXZ_NRoad PBR DGS.esp）,182981,771583,v1.2
@@ -93,3 +93,16 @@ Classic Sprinting Redone (SKSE64),replace_dll,SE 版 2.2；DLL 名稱不同（Cl
 Dynamic Armor Variants,keep,1.5.97 移植版是上方的 Dynamic Armor Variants for Skyrim 1.5（待下載），裝好後會覆蓋 DLL,,,
 Inventory Interface Information Injector,keep,上方的 - Patch 資料夾提供 1.5.97 DLL（audit_skse 已確認）,,,
 Constructible Object Custom Keyword System,keep,上方的 - Patch 資料夾提供 1.5.97 DLL（audit_skse 已確認）,,,
+Dreadful Alduin,download,目標插件是 Dreadful Alduin Graphics Only.esp：Graphics Only 4K（已封存）；下載不到改用 578735（Graphics Only 8K）,136437,578737,1.4
+RUSTIC SOULGEMS - Special Edition,download,目標插件是 RUSTIC SOULGEMS - Unsorted.esp：2K Unsorted,5785,12945,1.0
+HFs - Whiterun bridges REDONE,download,目標沒有它的 esp：用沒有 ESP 的 2K 版,158471,662495,1
+Blubbo Trees Variations,download,目標插件是 Blubbo_Trees_Variations_Nexus_noVanillaTrees.esp,119870,503110,0.9
+Mostly Treeless Tundra - Northern Scenery Tundra,download,目標插件 Mostly Treeless Tundra - Northern Scenery - Whiterun Tundra Patch.esp 在 Patches Collection 頁面,154818,717711,1.1.0
+Orc Strongholds - AIO - EFPS Patch,download,目標插件 Orc Strongholds - All In One - EFPS Patch.esp 在 AIO 頁面的選用檔,150246,627969,1.0EFPS
+Lore-Friendly Load Screen Compendium (21-9) (4K),download,筆電是 16:10：改用 16:9 2K 版（與目標同為 2.1，插件同名 LoadScreenCompendium.esp）；資料夾名稱不變,138294,625267,2.1
+Thrones Expanded,download,主檔照裝（ThronesExpanded.esp 不在目標，會是停用）；目標的 ThronesExpandedBOS.esp 由 fill_plugins 從 M&V 的 BOS 資料夾合併,139544,587744,1.2.1
+Myrwatch - TnE - MyrwatchVaultFix - USCCCP Patch,download,照裝；它的 esp 不在目標（目標的 MyrwatchVaultFix - USCCCP Patch.esp 由 Myrwatch - House Fix - USCCCP Patch 提供）,97659,479879,1.4
+Nature of the Wild Lands - Animations Addon,download,主檔（MESHES）照裝；另外合併 extra_archives.csv 的 669507（PLUGINS FOMOD，選預設擺動幅度）產生 Nature of the Wild Lands - Animation Plugin.esp,148132,715711,1.04
+The Restless Dead - At Your Own Pace Patch,harvest_nolvus,Nolvus 安裝裡有同名資料夾（manifest 原本的檔案編號錯誤，404）,,,
+Maerchenwald - The Archwood Lite - Giant Fantasy Trees,download,插件 maerchenwald - the archwood lite.esp,150187,628849,1.21a
+Maerchenwald - Archwood Lite - Giant Fantasy Trees,drop,和上一個資料夾是同一個檔案（重複），只裝一份,,,

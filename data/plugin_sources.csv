@@ -1,0 +1,48 @@
+kind,source,match,target,mode,note
+source,mv,Lux (patch hub),Lux - Patch Hub3,plugins,M&V 的 Lux 補丁合集；目標的是 Nolvus 那份
+source,mv,Lux Orbis (patch hub),Lux Orbis - Patch Hub2,plugins,
+source,nolvus,Lux Via - Patch Hub,Lux - Via (patch hub)2,plugins,
+source,nolvus,JS Dragon Claws AE Anniversary Edition [2K],JS Dragon Claws AE Anniversary Edition 2,plugins,
+source,nolvus,JK's Solitude Outskirts - Patch Collection,JK's Solitude Outskirts Patch Collection3,plugins,
+source,nolvus,Nolvus - Northern Roads Grass Patches,Northern Roads Patch Compendium,plugins,
+source,nolvus,Lux Orbis,Lux Orbis cs,whole,Lux Orbis 本體（主插件＋模型）；目標的 Lux Orbis cs 與 Lux (cs) 同樣是本體加 CS 選項
+source,mv,Thrones Expanded - Base Object Swapper,Thrones Expanded,whole,目標用 BOS 版插件（ThronesExpandedBOS.esp）
+prefix,,JKs ,JK's Interiors Patch Collection|JKs Guild HQ Interiors Patch Collection,,JK's 室內與公會據點的補丁
+prefix,,JKs Raven Rock,JK's Raven Rock Patch Collection2,,
+prefix,,JKs Tel Mithryn,JK's Tel Mithryn Patch Collection2,,
+prefix,,JKs Riften Outskirts,JK's Riften Outskirts Patch Collection2,,
+prefix,,JKs Solitude Outskirts,JK's Solitude Outskirts Patch Collection3,,
+prefix,,JKs Windhelm Outskirts,JK's Windhelm Outskirts Patch Collection2,,
+prefix,,DBM_,Legacy of the Dragonborn Patches (Official)2,,LOTD 官方補丁
+prefix,,LOTD_TCC,Legacy of the Dragonborn Patches (Official)2,,
+prefix,,TGCotN Winterhold,The Great City of Winterhold Patch Collection2,,
+prefix,,COTN Dawnstar,COTN Dawnstar Patch Collection2,,
+prefix,,COTN Winterhold,COTN Winterhold Patch Collection2,,
+prefix,,COTN Falkreath,Cities of the North - Falkreath Patch Collection2,,
+prefix,,Snazzy ,Snazzy Interiors Patch Collection2,,
+prefix,,Nightgate Inn Revived,Nightgate Inn Revived - Patches and Addons,,
+prefix,,Orc Exiles,Orc Exiles - Bilegulch - Patch Collection|Orc Exiles - Rift Watchtower - Patches Collection,,
+prefix,,Orc Strongholds,Orc Strongholds - AIO - Patches Collection,,
+prefix,,Medieval Markets,Medieval Markets - Patches Collection3,,
+prefix,,Candlehearth,Candlehearth - Unofficial Patches2,,
+prefix,,Thuldor,Thuldor's Ivarstead - Patch Collection2,,
+prefix,,Fortified Morthal,Fortified Morthal - Patches Collection2,,
+prefix,,Great Town of Karthwasten,The Great Town of Karthwasten Patch Collection2,,
+prefix,,Great Village of Kynesgrove,The Great Village of Kynesgrove Patch Collection2,,
+prefix,,Great Town of Shor's Stone,The Great Town of Shor's Stone Patch Collection,,
+prefix,,Great Village of Old Hroldan Watertowers,Watertowers of Skyrim - Patch Collection and Add-ons2,,
+prefix,,Moon and Star Watertower,Watertowers of Skyrim - Patch Collection and Add-ons2,,
+prefix,,Nature of the Wild Lands,Nature of the Wild Lands - Patch Collection2,,
+prefix,,NotWL,Nature of the Wild Lands - Patch Collection2,,
+prefix,,Northern Roads,Northern Roads Patch Collection|Northern Roads Patch Collection3|Northern Roads - Patches Compendium|Northern Roads Patch Compendium,,
+prefix,,Whiterun Has Walls,Whiterun Has Walls Redone - Patch Hub2,,
+prefix,,Ryns Whiterun City Limits,Ryn's Whiterun City Limits - Patch Collection,,
+prefix,,Lux Orbis,Lux Orbis - Patch Hub2,,
+prefix,,Lux Via,Lux - Via (patch hub)2,,
+prefix,,Lux - ,Lux - Patch Hub3,,
+prefix,,Madmen,Madmen - Patches,,
+prefix,,Ivy - ,Ivy - Cozy Corner Patch Hub3,,
+prefix,,Faendal Home Overhaul,Ivy - Faendal Home Overhaul,,本體的 FOMOD 選項
+prefix,,Riverwood Timber Rest,Ivy - Riverwood Timber Rest - Player Home,,本體的 FOMOD 選項
+prefix,,Riverwood Falls,Riverwood Falls - Waterfall Additions for Riverwood2,,本體的 FOMOD 選項
+prefix,,Myrwatch - TnE - USCCP Merged,CC Myrwatch - Tweaks and Enhancements (MyrTE),,extra_archives.csv 的 664142

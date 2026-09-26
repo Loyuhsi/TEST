@@ -5,6 +5,55 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 4 階段中途回報 3 判讀**（回應 cb90a4e）。本地新增的工具（install_archives、`--restore-states`、nexus_fetch 修正）都接受。
+  - 雲端的 Linux 上有 1 項測試失敗：`test_install_archives.py::test_folder_names_compare_case_insensitively`。它假設資料夾名稱不分大小寫（NTFS 的行為），在筆電上會過，不用處理。
+  - **622 個缺少的目標插件**：新工具 `tools/fill_plugins.py`（說明在 `docs/04` 8.1），對應規則在 `data/plugin_sources.csv`。用你的 `missing_target_plugins.csv` 模擬的結果：
+    - 從 M&V／Nolvus 安裝補上約 254 個：同名 178、手動對應 57、名稱加數字後綴 19。
+      - `Lux Orbis` 本體整個合併進 `Lux Orbis cs`；`Thrones Expanded - Base Object Swapper` 整個合併進 `Thrones Expanded`。
+    - 從已下載的壓縮檔補上約 24 個。
+    - 約 324 個有候選合集，用 `--plan-downloads` 下載後再補。
+    - 約 20 個沒有候選，例如 HorseAnimaTest、H2135、Curious Adventurer 這些已捨棄 mod 的插件，以及 TerrainHelper、Occ_Skyrim_*（Occ_* 會依已存在的同前綴插件找到資料夾）。
+  - **10 個錯檔**：已改 `data/decisions.csv`。
+    - 改檔案：
+      - Dreadful Alduin → 578737（Graphics Only 4K；下載不到改 578735）
+      - RUSTIC SOULGEMS → 12945（2K Unsorted）
+      - HFs Whiterun bridges → 662495（沒有 ESP 的 2K 版）
+      - Blubbo → 503110
+      - Mostly Treeless Tundra - Northern Scenery Tundra → 154818／717711（Patches Collection 頁面）
+      - Orc Strongholds - AIO - EFPS Patch → 150246／627969（AIO 頁面）
+      - Load Screen Compendium → 625267（**16:9** 2K，同為 2.1；筆電是 16:10，不要用 21:9）
+    - The Restless Dead - At Your Own Pace Patch → `harvest_nolvus`（Nolvus 有同名資料夾）。
+    - Thrones Expanded、Myrwatch VaultFix 照原檔安裝。它們的 esp 不在目標，會是停用；BOS 插件由 fill_plugins 補。
+    - NotWL Animations Addon：主檔照裝，再用 MO2 Merge 裝 669507（PLUGINS FOMOD，預設擺動幅度）。
+  - **Yggdrasil**：你選 Yggdrasil Trees (both) 是對的（note 已更正）。
+  - **Maerchenwald**：只裝 3418「The Archwood Lite」，3419 改為 drop。
+  - **合併安裝的第二個檔**：列在新的 `data/extra_archives.csv`，用 `nexus_fetch.py --manifest data/extra_archives.csv --apply` 下載，再用 MO2 安裝到同一資料夾、選 **Merge**：Fortified Morthal 707429、Modern Hay 652905、Dwemer Backpack 723624、NotWL 669507。
+    - 其中 MyrTE 664142 不用裝，fill_plugins 會只取出 esp。
+  - **FOMOD 選擇**：全部接受。
+    - BnP 維持 no frostnip 預設（目標沒有 Frostnip 相關 mod）。
+    - Lux CS 的 LightPlacer 可以；Vigilant／Unslaad 英文加 Silent Voice 可以；Bladedancer ESL 可以。
+    - 為了筆電改選的 CVEO 512p、Ivy 2k、Wolves 2k、Texture Downscaler BALANCED、Water for ENB 2K、CS Lights 不裝窗戶光源，都可以。
+    - Load Screen 照上面改 16:9。
+    - 你的 Snazzy `.esp.esp` 更正、Riverwood Falls 直接放 esp、SDA／Wayshrines 手動取出、FWMF 的 `.mohidden`、DBVO Fix 維持停用、DIP 產生的 Edge UI Racemenu：都正確。
+  - **MO2 外掛**：
+    - 關 MO2 後，把 `D:\PM\plugins\crashlogtools` 整個資料夾**搬到** `D:\PM\_disabled_plugins\`。在設定裡停用不夠。
+    - PageFile Manager 也一樣搬走：它會改 Windows 分頁檔，而分頁檔已在第 1 階段設定好。
+    - 這是搬移不是刪除，不必問使用者；`D:\MV` 裡的原檔不受影響。
+  - **guard.py**：改成純 ASCII 的 JSON 輸出，cp950 主控台下 `test_guard_hook` 應該全過。
+  - `D:\PM\tools\DIP_extract\fomod` 的 3 個小檔可以留著，第 8 階段再一起清。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2）：
+  1. `git pull --rebase`，跑 `python -m pytest -q`。
+  2. 搬走上面兩個 MO2 外掛。
+  3. `manifest` → `nexus_fetch`（manifest）→ `nexus_fetch --manifest data/extra_archives.csv` → `install_archives`（需要時加 `--accept`）→ 要 Merge 的用 MO2 裝。
+  4. `harvest --from nolvus --plan data/decisions.csv --apply`（補 The Restless Dead 的 AYOP 補丁）。
+  5. `fill_plugins` 試跑 → 看 `fill_plugins.csv` → `--apply`。
+  6. `--plan-downloads` → `nexus_fetch --manifest reports/fill_plugins_downloads.csv --limit 100 --apply`（會下載多個補丁合集，先看清單大小）→ 再跑 `fill_plugins --apply`。
+  7. `sync-order --restore-states --apply` → `verify`。
+  8. 回報：
+     - 各報告的每一行。
+     - `fill_plugins.csv` 裡還剩下的 `ambiguous`／`unresolved`（插件名稱、candidates、note）。
+     - `verify` 還缺幾個。
+  9. **還不要跑 `prune_dependents`**，等雲端看過剩下的清單再決定。
 - 2026-09-26｜**DLSS 5**（使用者詢問）：結論寫在 `docs/07` 3.4 節。
   - Skyrim 只有非官方的實驗模組；開了很吃效能，而且要關掉 CS 的 Upscaling 與 HDR。
   - 第 4–7 階段**不要安裝**任何 DLSS 5 相關檔案（DynamicShaderFrameGen、`nvngx_dlssnr.dll`、ReShade DLSS5 套件）。

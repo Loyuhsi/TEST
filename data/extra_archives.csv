@@ -1,0 +1,6 @@
+folder,action,nexus_mod_id,nexus_file_id,nexus_version,note
+Fortified Morthal - PBR Brick and Roof,download,169263,707429,1.0,第二個檔（2K PBR Roof）：用 MO2 安裝到同一資料夾，選 Merge
+Modern Hay - PBR and CM,download,155815,652905,1,第二個檔（Hay Bale Fix PBR）：用 MO2 安裝到同一資料夾，選 Merge（覆蓋主檔的同名模型）
+Dwemer Researcher Backpack - Standalone and Remiel replacer - SE by Xtudo - Lucien patch lantern,download,169893,723624,1.2,第二個檔（Remi Lantern）：用 MO2 安裝到同一資料夾，選 Merge
+Nature of the Wild Lands - Animations Addon,download,148132,669507,1.03,PLUGINS FOMOD（預設擺動幅度）：用 MO2 安裝到同一資料夾，選 Merge
+CC Myrwatch - Tweaks and Enhancements (MyrTE),download,97659,664142,1.5.4,MyrTE - USCCP Merged（目標的 Myrwatch - TnE - USCCP Merged.esp）；fill_plugins 會只取出 esp
