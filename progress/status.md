@@ -76,6 +76,11 @@
 - 使用者同意：replace_dll 5 個（Flat World Map Framework2、CRDW、Face Discoloration Fix、Native EditorID Fix、Classic Sprinting Redone）下載 1.5.97 版後用 Replace 重裝。
 - 測試：PowerShell 下 55 項全過；Git Bash 下 `test_guard_hook` 12 項失敗，原因是 guard.py 在沒有 `PYTHONIOENCODING` 的環境以 cp950 輸出中文，測試用 UTF-8 讀取。guard 本身仍輸出正確的 ask 決定（已用 cp950 解碼驗證），`settings.json` 的 ask 規則也另外涵蓋。建議 guard 改用 ASCII／UTF-8 輸出（回報雲端）。
 - 等使用者設定 `NEXUS_API_KEY`（Personal API Key）後，用 `nexus_fetch.py` 分批下載。
+- 使用者設定金鑰後，19:43 起 `nexus_fetch.py --limit 450 --apply` 背景下載；修了 CDN 網址編碼（空格、#、?、%）、CDN 403 誤判為金鑰無效、`.meta` 換行 `\r\r\n`（4000736、2dc3916、2f607f1）。20:43 已下載 328 個（55 GB）。
+- 使用者選擇「寫批次安裝工具」：`tools/install_archives.py`（d218985、a1859e3），先寫測試（127 項全過），兩輪 code review 的 HIGH 都已修正（佔位資料夾中斷保護、Explorer 檔、復原日誌）。
+  - 批次安裝兩次（20:36、20:43）：已安裝 250 個（含 GUI 裝的 1 個），FOMOD 58 個待 MO2 手動，人工判斷 19 個，`_replaced`／暫存都沒有殘留。
+  - `--accept` 放行（看過壓縮檔）：RMS Lux patch、YXZ PBR（provenance 插件欄有誤）、Dragonborn ReVoiced2（DBReV 資料夾）、Icy Windhelm 補丁、Dova Jump、Elden Rim、FDE Aela（目標沒有的選用插件，MO2 會列為停用）、Pandora（工具型 mod，含 exe）。
+  - 版本和目標插件不符、待雲端決定：Dreadful Alduin、RUSTIC SOULGEMS、Thrones Expanded、HFs - Whiterun bridges REDONE；Nature of the Wild Lands - Animations Addon 缺插件檔。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
