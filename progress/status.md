@@ -1,14 +1,14 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-26
-目前階段：4（等雲端判讀第 3 階段回報）
+目前階段：4（中途回報已推送，等雲端判讀 review／replace_dll 後再下載）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 未開始 | | |
+| 4 組合清單 | 進行中 | | 補擷取 8 個、manifest（download 395／replace_dll 8／review 54）、build_instance create 通過、MO2 首開後 verify modlist 通過；已回報，等雲端判讀 review／replace_dll |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -60,6 +60,16 @@
   - 核對：Curios 為 `FQbA20bA5Dw=`／`it6+eSu4OCw=`（Creations 版）；Fish、Survival、AdvDSGS 雜湊不變；遊戲 1.7.104.0、build 24914197、74 個 CC。Creations 版複製到 `D:\Backup\Curios-Creations`。
   - Nolvus Dashboard 在遊戲切換解析度時跳出 .NET 例外（NullReference），當時它停在錯誤頁、沒有安裝在跑，已結束後重開。
   - 重選選項（與 1ae35a6 相同，只有 **Nudity 改為 Yes**），D 槽剩 676 GB（≥ 500），13:07 按 Start；遊戲檔檢查已通過 CC。
+
+## 第 4 階段進行紀錄
+- harvest-mv（decisions 補擷取）：通過（6 個）；harvest-nolvus 補擷取：注意（新連結 The New Gentleman 2 個，來源缺少 12＝已處理／待下載）。
+- manifest：keep 3564、download 395、regenerate 9、replace_dll 8、review 54、drop 16。
+- build_instance create：通過（Pages-ZH，modlist 4125 行、plugins 4233、佔位 553）。
+- MO2 首次開啟：M&V 的 MO2 2.5.2 會先在 PATH 載入 miniconda 的 libssl 3.5.5 而失敗；使用者同意後把 `D:\PM\dlls\libssl-3-x64.dll` 複製到 `D:\PM` 根目錄，已正常。crashlogtools 外掛讀舊 crash log 時有 cp950 解碼錯誤（按 OK 可繼續）。
+- build_instance verify：modlist 一致（通過）、plugins 缺 973（尚未下載，注意）。
+- audit_skse：失敗（7 個 AE 專用 DLL，屬 replace_dll），STOCK GAME 1.5.97.0 通過。
+- 已推送 Nolvus 實際清單到 `data/snapshots/nolvus-6.0.20-installed/`。
+- `NEXUS_API_KEY` 未設定；下載前需使用者在 MO2 連結 Nexus 或設定金鑰。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。

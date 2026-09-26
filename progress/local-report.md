@@ -2,97 +2,151 @@
 
 > 公開倉庫：只寫摘要。不寫 Windows 使用者名稱、帳號、序號、金鑰；不附截圖或整份日誌。
 
-- 階段：3 安裝 Nolvus
+- 階段：4 組合清單（中途回報：manifest 與 build_instance verify 之後，下載之前）
 - 日期：2026-09-26
-- 結論：**完成**。Nolvus Awakening 6.0.20 Ultimate（無 SREX，Nudity Yes）已安裝並能開到主選單；inventory 通過；harvest `--stock-game --apply` 注意（來源缺少 12，沒有失敗）。`D:\PM` 現有 3565 個 mod 資料夾與 1.5.97 STOCK GAME。
+- 結論：補擷取完成、`D:\PM` 實例建立、MO2 第一次開啟正常（修正了一個 OpenSSL 載入問題）、modlist 比對 `[通過]`。**等雲端判讀 review 54 個、replace_dll 8 個**。另外依 192f48e 推送了 Nolvus 實際安裝清單。
 
 ## 工具結果（照抄 reports\*.txt 的每一行）
 ```
-== inventory-nolvus 報告 (2026-09-26 18:16) ==
-[通過] mod 資料夾數：3684（設定檔 Nolvus Awakening 啟用 3683 個）
-[資訊] 含 Nexus ID 的 mod：3302/3684
-[資訊] SKSE DLL 類型：ae_only=3, multi=97, not_skse=1, se=80
-[資訊] mods 總大小：392.3 GB
-[資訊] 遊戲執行檔版本：1.0.0.0（STOCK GAME）
-[資訊] SKSE 版本檔：skse64_1_5_97.dll, skse64_steam_loader.dll
-[資訊] 遊戲根目錄的 ENB/ReShade 檔：d3d11.dll, d3dcompiler_46e.dll, dxgi.dll, enbseries.ini, enblocal.ini, enbseries/
-[資訊] Skyrim - Interface.bsa：存在
+== harvest-mv 報告 (2026-09-26 18:39)（--plan data/decisions.csv，試跑與 --apply 相同）==
+[資訊] 模式：實際執行
+[通過] 計畫中要從 mv 擷取的資料夾：6 個：完成/已存在 6，來源缺少 0（見 harvest-mv.csv）
+[資訊] 共享資料量（硬連結不佔額外空間）：77.6 MB
+[資訊] 下一步：刪除 D:\MV 前，先執行 tools\zh\extract_official.py 取出官方繁中字串與字型
+總結：[通過]
+（6 個：Cached Recursive Directory Walk、Collision Sentinel - Crash Fix、Media Keys Fix SKSE、KreatE、Native EditorID Fix、SKSE Menu Framework2 ← SKSE Menu Framework）
+
+== harvest-nolvus 報告 (2026-09-26 18:39)（不加 --stock-game；試跑與 --apply 相同）==
+[資訊] 模式：實際執行
+[注意] 計畫中要從 nolvus 擷取的資料夾：2933 個：完成/已存在 2921，來源缺少 12（見 harvest-nolvus.csv）
+[資訊] 共享資料量（硬連結不佔額外空間）：345.0 MB
+總結：[注意]
+（新連結 2 個：The New Gentleman - Nolvus Settings、The New Gentleman。來源缺少 12 個＝上次的 12 個：其中 6 個已從 D:\MV 補進 D:\PM，6 個是 decisions.csv 的 download）
+
+== manifest 報告 (2026-09-26 18:40) ==
+[資訊] 目標資料夾：4046 個
+[資訊] 已就位：3564 個
+[資訊] 需從 Nexus 下載：395 個
+[資訊] 第五階段重建：9 個
+[注意] 需換成 1.5.97 版 DLL：8 個
+[注意] 尚無來源，需人工確認：54 個
+[資訊] 捨棄：16 個
+[資訊] 輸出：reports\manifest.csv、reports\downloads.html
+總結：[注意]
+
+== build_instance-create 報告 (2026-09-26 18:40 試跑／18:41 --apply，內容相同) ==
+[資訊] 模式：實際執行
+[通過] ModOrganizer.ini：寫入：遊戲路徑 D:\PM\STOCK GAME，工具 BethINI Pie, BodySlide, DynDOLOD, PGPatcher, SSEEdit, SSEEdit QuickAutoClean, TexGen, xLODGen
+[通過] 設定檔 Pages-ZH：modlist 4125 行（捨棄 16），plugins 4233 個（排除 12 個自製插件）
+[資訊] 佔位資料夾：553 個（之後用 MO2 安裝到同名資料夾並選 Replace）
+[通過] 遊戲 ini：Skyrim.ini, SkyrimPrefs.ini, SkyrimCustom.ini
 總結：[通過]
 
-== harvest-nolvus 報告 (2026-09-26 18:17)（試跑）==
-[資訊] 模式：試跑（未寫入任何檔案，加 --apply 才會執行）
-[通過] STOCK GAME 已連結：543 個檔案；移除 ENB/ReShade：d3d11.dll, d3dcompiler_46e.dll, dxgi.dll, ReShade.ini, reshade-shaders, enbseries, enbcache, enblocal.ini, enbseries.ini
-[注意] 計畫中要從 nolvus 擷取的資料夾：2931 個：完成/已存在 2919，來源缺少 12（見 harvest-nolvus.csv）
-[資訊] 共享資料量（硬連結不佔額外空間）：305.1 GB
+== build_instance-verify 報告 (2026-09-26 18:58)（MO2 第一次開啟並關閉之後）==
+[資訊] 模式：試跑（加 --apply 才會寫入）
+[通過] modlist.txt 與預期比對：一致
+[注意] plugins.txt 與預期比對：缺少 973 個（mod 尚未安裝或已被修剪）；待重建輸出 8 個；例如：LegacyoftheDragonborn.esm, Water for ENB.esm, Vigilant.esm, Snazzy Interiors - Sarethi Farm.esp, Snazzy Black Briar Lodge.esp
 總結：[注意]
 
-== harvest-nolvus 報告 (2026-09-26 18:18)（--apply）==
-[資訊] 模式：實際執行
-[通過] STOCK GAME 已連結：543 個檔案；移除 ENB/ReShade：d3d11.dll, d3dcompiler_46e.dll, dxgi.dll, ReShade.ini, reshade-shaders, enbseries, enbcache, enblocal.ini, enbseries.ini, enbcomplexparallax.ini, enbgrasscollisions.ini
-[注意] 計畫中要從 nolvus 擷取的資料夾：2931 個：完成/已存在 2919，來源缺少 12（見 harvest-nolvus.csv）
-[資訊] 共享資料量（硬連結不佔額外空間）：305.1 GB
-總結：[注意]
+== audit_skse 報告 (2026-09-26 18:58)（不加 --mv-1597-map；額外先跑一次供判讀）==
+[資訊] 生效的 SKSE DLL：AE 專用（1.5.97 無法載入）=7, 多版本 NG（可用）=103, 非 SKSE 外掛（相依函式庫）=1, SE 版（可用）=67
+[失敗] 需替換的 DLL：7 個：BakaWorldMapSpeed.dll（Flat World Map Framework2）, ClassicSprintingRedone.dll（Classic Sprinting Redone (SKSE64)）, CRDW.dll（Cached Recursive Directory Walk）, DynamicArmorVariants.dll（Dynamic Armor Variants）, FaceGenFixes.dll（Face Discoloration Fix）, FlatMapMarkersSSE.dll（Flat World Map Framework2）, NativeEditorIDFix.dll（Native EditorID Fix）
+[通過] STOCK GAME 遊戲版本：1.5.97.0（需要 1.5.97.0）
+[通過] SKSE 1.5.97：skse64_loader.exe + skse64_1_5_97.dll
+[通過] Address Library（version-1-5-97-0.bin）：已找到
+[通過] 遊戲根目錄的 ENB/ReShade 殘留：無（Community Shaders 可正常運作）
+[資訊] 含 Root 資料夾的 mod（Root Builder 會部署到遊戲資料夾）：無
+總結：[失敗]
 ```
+- `pe.file_version` 修正有效：STOCK GAME 顯示 1.5.97.0。
 
-## 說明
-- **遊戲執行檔版本 1.0.0.0**：Nolvus 降版後的 `STOCK GAME\SkyrimSE.exe`（34,769,792 bytes）字串版本 FileVersion／ProductVersion 都是 **1.5.97.0**，只有 VS_FIXEDFILEINFO 的數字欄位是 1.0.0.0；`pm/pe.file_version` 讀的是後者（M&V 與 Steam 版兩個欄位一致，分別是 1.6.1170.0、1.7.104.0）。SKSE 以 runtime 01050610（1.5.97）初始化。建議工具在數字欄位是 1.0.0.0 時改讀字串版本。
-- **第一次啟動（docs/03 第 6 節）**：Dashboard 的 Play 會開 Nolvus 自己的 MO2 2.4.4（設定檔 Nolvus Awakening，啟用 3615 個 mod、3765 個插件），從 MO2 以「Nolvus」執行檔 Run。遊戲載入到 Nolvus 主畫面，出現 Open Animation Replacer 2.3.6、Immersive Equipment Displays 等 SKSE 通知後關閉，沒有載入存檔。`skse64.log`：SKSE 2.0.20、**174 個外掛 loaded correctly，沒有 error／fail／incompatible**；沒有 crash log。之後關閉遊戲與 MO2。
-- **Profile 備份（第 7 節）**：`D:\Backups\Nolvus-Awakening-profile-2026-09-26.zip`（modlist、plugins、loadorder、各 ini）。
-- **harvest 之後**：`D:\PM\STOCK GAME\SkyrimSE.exe` 存在；ENB／ReShade 已移除，只剩 `ReShade.log`（工具的移除清單沒有它，無害）；`D:\Nolvus` 原本的 ENB 檔仍在；`harvest-nolvus.csv` 錯誤 0；`D:\PM\mods` 共 3565 個資料夾（M&V 645＋Nolvus 2919＋官方繁中字串 1）；D 槽剩 457.9 GB。
-- **`[注意]` 來源缺少 12 個**（`missing_in_source`），我在 Nolvus 與 `D:\MV\mods` 找同名資料夾：
+## manifest 各 action 數量
+keep 3564、download 395（有檔案編號 375、沒有 20）、regenerate 9、replace_dll 8、review 54、drop 16，合計 4046。
 
-| 資料夾 | provenance 選項／版本 | Nolvus 6.0.20 | `D:\MV\mods` |
-|---|---|---|---|
-| Cached Recursive Directory Walk | Always Install 1.1.4 | 無 | **有同名** |
-| Collision Sentinel - Crash Fix | Always Install 2.1.0 | 無 | **有同名** |
-| Media Keys Fix SKSE | Always Install 1.0.1 | 無 | **有同名** |
-| KreatE | Kauz ENB 1.3.1 | 無（我們選 Cabbage） | **有同名** |
-| Native EditorID Fix | Kauz ENB 1.2.2 | 無（我們選 Cabbage） | **有同名** |
-| SKSE Menu Framework2 | Always Install 3.9 | 無 | 只有 `SKSE Menu Framework`（無 2） |
-| SkyPatcher Keyword Framework | Always Install 1.4.0 | 無（只有 `SkyPatcher`） | 無 |
-| Quest Journal Overhaul | Always Install 1.3 | 無（只有 `Quest Journal Limit Bug Fixer`） | 無 |
-| Prisma UI - Next-Gen Web UI Framework | Always Install 1.4.1 | 無 | 無 |
-| Dirt Cliffs Enhancement - High Quality Ivy | Always Install 1.3.0 | 無 | 無 |
-| Modern First Person Animation Overhaul | 6.0.21 頁面沒有（6.0.20 快照有） | 無（有 `Comprehensive First Person Animation Overhaul`） | 無 |
-| Dawnguard Arsenal - Scabbardless Greatswords Loose File Replacers | 6.0.21 頁面沒有（6.0.20 快照有） | 無 | 無 |
+- regenerate：Pandora Output、dyndolodCS2、texgenCS、grass CS、lodgen2、pgpatcher_output、SYNTHESSIS、overwrite2、BodySlide (Nude)
+- drop：CS shaders、CustomFixes1、CommunityShaders_AIO-2026-05-28T17-09Z、Vanilla CS rain TEXTURES、SC_HorseReplacer_SSE、SC_HorseReplacer、Grapple a1.7、anchor animation v2 Part、For Honor in Skyrim Black Prior、Curious Adventurer、[full_inu] Armor Pack 01 SSE、[SSE] H2135 Fantasy Series8、[Kirax] BDOR 2024 Female Collection、[TalesOfStar] Air Balloons、[Dint999] BDOR Hairs SSE 0.23、Lamas Tiny Hud - Edge version (SUKI)
 
-  前 5 個可改從 `D:\MV` 擷取（`D:\MV` 保留到第 4 階段 `manifest`）。其餘應是 6.0.21 才加入或改名，需要雲端判斷來源。
-- **Nolvus 安裝過程**：13:07 開始，18:08「Instance Finalized」。中途家中 Wi-Fi 斷線，41 個 mod 在重試 3 次後失敗（無法解析 api／cf-files.nexusmods.com、drive.google.com 等網路錯誤），Dashboard 顯示「Installation Failed：41 errors on 50 maximum」。網路恢復後按 Retry → Resume，41 個全部重新下載安裝，最後錯誤 0、3626/3626。
-- 使用者已刪除 `D:\WJ-Downloads`。
+## replace_dll（8 個；行號｜資料夾｜AE 專用 DLL｜目前 Nexus 編號）
+- 24｜Flat World Map Framework2｜BakaWorldMapSpeed.dll; FlatMapMarkersSSE.dll｜29932/29932 1.85
+- 3942｜Inventory Interface Information Injector｜InventoryInjector.dll｜85702/85702 1.1.0
+- 3980｜Constructible Object Custom Keyword System｜CraftingCategories.dll｜81409/81409 1.0.1
+- 4020｜Cached Recursive Directory Walk｜CRDW.dll｜186434/784136 1.1.4.0
+- 4026｜Face Discoloration Fix｜FaceGenFixes.dll｜42441/319047 1.0.3.0
+- 4037｜Dynamic Armor Variants｜DynamicArmorVariants.dll｜65963/65963 1.0.5
+- 4101｜Native EditorID Fix｜NativeEditorIDFix.dll｜85260/488800 1.2.2.0
+- 4103｜Classic Sprinting Redone (SKSE64)｜ClassicSprintingRedone.dll｜20166/474483 2.3.1.0
+- 注意：`audit_skse`（看生效的 DLL）只列 6 個 mod；`InventoryInjector.dll` 與 `CraftingCategories.dll` 沒被列入，可能被後面的 mod 以 1.5.97 可用版本覆蓋。
 
-## 雲端要求的 Nude／New Gentleman 資料（e53c04c）
-1. Nolvus `MODS\profiles\Nolvus Awakening\modlist.txt`（名稱含 `New Gentleman` 或 `Nude` 的行，前後各 2 行，行號從 1 起算）：
+## review（54 個；行號｜資料夾｜category）
 ```
-   31: +Grass Cache - Ultimate
-   32: +LODGEN
-   33: +BodySlide (Nude)
-   34: +Nemesis Output
-   35: +Synthesis Patch - NOSREX
+   42 | NordwarUA Legions PBR | unknown
+  118 | Edge UI Racemenu | nexus_other
+  120 | Quest Journal Overhaul - Wide Screen | nexus_other
+  125 | Seasonal Wigfrid's Erdtrees Replacer | unknown
+  138 | RMS Lux patch | nexus_other
+  141 | ErdtreeGildergreen - PBR 2.0 | unknown
+  147 | Faultier's PBR Windows | unknown
+  148 | Faultier's PBR Road Signs | unknown
+  149 | Unslaad PBR | unknown
+  155 | clockwork pbr | unknown
+  158 | Children of the North Wind - PBR | nexus_other
+  160 | Kvetchi Mercenary Set - PBR | nexus_other
+  161 | Colovian Prince Set - PBR | nexus_other
+  162 | Armors of the Velothi Pt. I - PBR | nexus_other
+  163 | TMD The Rift Leaves PBR 2k | nexus_other
+  164 | Flora Additions Waterplants PBR | nexus_other
+  165 | A PBR Nirnroot - 2k | nexus_other
+  168 | HDT-SMP Silver Armor PBR Patch | nexus_other
+  178 | Tomato's Windhelm PBR - 2K | unknown
+  179 | Tomato's Riften PBR - 2k | unknown
+  194 | Faultier's PBR Skyrim AIO 2k | unknown
+  198 | ERM - Textures pbr | unknown
+  218 | 3D Whiterun Trellis pbr | nexus_other
+  224 | Icy Windhelm - Windhelm Entrance Overhaul patch | nexus_other
+  238 | Ashe 3 | nexus_other
+  239 | JK's Fort Dawnguard - SDA Patch | nexus_other
+  240 | SDA - Standing stones patch | nexus_other
+  242 | SDA Patch Hub SE | unknown
+  268 | Immersive Magic Brooms Legacy of the Dragonborn Patch (Optional) | nexus_other
+  276 | ParticleWind NG 3.5 | unknown
+  280 | Wayshrines - JK's Skyhaven patch | unknown
+  428 | horseAnimations2 | nexus_other
+  515 | Immersive Dialogue Expansion - Stormcloaks | nexus_other
+  518 | IDE Jorrvaskr | unknown
+  590 | Dismembering Framework - Wolves of Skyrim | unknown
+  591 | Dismembering Framework - 4thUnknown Trolls | nexus_other
+ 1099 | Smooth Special Idle | unknown
+ 1296 | Skurkbro's Retexture Project - Dwemer Pipe Patch | unknown
+ 1523 | Wolves of Skyrim - Wolf Pelts | nexus_other
+ 1908 | Breton Field Knight Armor Set - with PBR 2K | nexus_other
+ 1909 | Breton Field Knight Armor Set - with PBR | nexus_other
+ 2746 | Caliente's Beautiful Bodies Enhancer - 3BA NORMALMAPS | unknown
+ 2812 | Ulvenwald Series - Erdtrees of Skyrim | nexus_other
+ 3017 | Landscape Fixes For Grass Mods - Great Cities patch | nexus_other
+ 3128 | Mahrlek1´s trees compilation - Whiterun Trees module | unknown
+ 3141 | Ryn's Whiterun City Limits - Patch Collection | nexus_other
+ 3209 | Ivy Stendarr Beacon Overhaul | nexus_other
+ 3271 | FuzzBeed's Giant Camps AIO - USSEP patch | unknown
+ 3272 | FuzzBeed's Giant Camps AIO - Mihail Giant Club Variety | unknown
+ 3273 | FuzzBeed's Giant Camps AIO - LFFGM patch | unknown
+ 3274 | FuzzBeed's Giant Camps - Flora Aloe and Agave | unknown
+ 3285 | Yet another patch hub for Ryn's Skyrim2 | unknown
+ 3350 | Yggdrasil - Floating Tree Redux | nexus_other
+ 3677 | Vigilant - English Voices Addon 1.8 esp | unknown
+```
+（note 都是「no Nexus ID yet - identify manually and add to data/decisions.csv」。分類：unknown 26、nexus_other 28）
 
- 2742: +Expressive Facegen Morphs
- 2743: +Highly Improved Male Body Overhaul
- 2744: +The New Gentleman - Nolvus Settings
- 2745: +The New Gentleman
- 2746: +Caliente's Beautiful Bodies Enhancer - 3BA - Wyrmstooth
- 2747: +Caliente's Beautiful Bodies Enhancer - 3BA - The Wheels of Lull Patch
-```
-2. 這些資料夾的插件：
-   - `BodySlide (Nude)`：沒有插件。
-   - `The New Gentleman - Nolvus Settings`：沒有插件。
-   - `The New Gentleman`：`TheNewGentleman.esp`，**ESL 旗標：有**（ESM 旗標也有），3 個前置檔。
-3. `plugins.txt` 位置（第 133 行，前後各 2 行）：
-```
-  131: *IcyFixesLite.esl
-  132: *WindhelmIcicles.esl
-  133: *TheNewGentleman.esp
-  134: *TrueHUD.esl
-  135: *Draugr Armor Warrior.esl
-```
-4. `BodySlide (Nude)`：8292 個檔案，6527.7 MB。
-- 補充：`Highly Improved Male Body Overhaul` 在官方清單是 Always Install，目標清單已有（harvest_nolvus），不屬於 Nude 選項。
+## MO2 第一次開啟時遇到的問題（已處理，請確認）
+1. **OpenSSL 載入錯誤**：`D:\PM\ModOrganizer.exe`（M&V 的 MO2 2.5.2）啟動時跳出系統錯誤「無法找到程序輸入點 OSSL_LIB_CTX_get_data（在 `…\miniconda3\Library\bin\libssl-3-x64.DLL`）」。MO2 自己的 `libssl-3-x64.dll`（3.3.0）只在 `D:\PM\dlls\`，根目錄只有 `libcrypto-3-x64.dll`；載入時 Windows 先在 PATH 找到 miniconda 的 libssl 3.5.5（miniconda 在使用者 PATH；本機工作階段的 PATH 另有 Git mingw64 的 3.5.4，也會中）。使用者同意後，把 `D:\PM\dlls\libssl-3-x64.dll` **複製一份到 `D:\PM\libssl-3-x64.dll`**（新檔案、不是硬連結、不改任何原檔）。之後即使 PATH 有 miniconda／Git，MO2 也從 `D:\PM` 載入自己的 libssl，正常開啟。建議把這步加進 `build_instance create` 或手冊。
+2. **crashlogtools 外掛錯誤**：MO2 啟動後跳出 Error：`UnicodeDecodeError: 'cp950' codec can't decode byte 0x94 …`（`D:\PM\plugins\crashlogtools\crashlogutil.py(128) read_file ← crashloglabeler.py(88) onUserInterfaceInitializedCallback`）。這是 MO2 的 Python 外掛用系統編碼 cp950 讀取「文件」裡舊的 crash log。按 OK 後 MO2 正常運作，但之後每次開啟應該都會跳。要停用這個外掛，還是有其他做法？
+3. 首次提示「Category Migration」選 Close（不改分類）。Nexus 尚未連結（Connect to Nexus 需使用者在瀏覽器授權），下載前會請使用者做。
+
+## 其他
+- 已推送 `data/snapshots/nolvus-6.0.20-installed/`：`modlist.txt`（3762 行）、`plugins.txt`（3687 行）、`loadorder.txt`（3766 行），與 Nolvus Profile 的檔案雜湊相同，內容只有 mod／插件名稱（檢查過沒有路徑、使用者名稱）。Git 在倉庫內會以 LF 儲存換行。
+- `NEXUS_API_KEY`、`ANTHROPIC_API_KEY` 目前都還沒設定。下載會先用 `downloads.html`＋MO2（需使用者先在 MO2 連結 Nexus），或等使用者設好金鑰後用 `nexus_fetch.py`。
+- D 槽剩約 458 GB。
 
 ## 需要雲端決定的事
-1. 12 個來源缺少的資料夾要從哪裡取得（前 5 個 `D:\MV` 有同名資料夾）。
-2. The New Gentleman 與 BodySlide (Nude) 加入 `D:\PM` 的方式（data/target、provenance、docs/05）。
-3. 要不要把 Nolvus 6.0.20 實際安裝的 `modlist.txt`／`plugins.txt`／`loadorder.txt` 全文推上來（例如 `data/snapshots/nolvus-6.0.20-installed/`）？目前只有備份在本機。
-4. `pm/pe.file_version` 讀數字欄位的問題（見上），以及 harvest 的 ENB 移除清單可加上 `ReShade.log`。
+1. review 54 個的來源（寫進 `data/decisions.csv`）。
+2. replace_dll 8 個的 1.5.97 替代版本（含 audit_skse 沒列的 2 個是否還要換）。
+3. MO2 的 libssl 修正是否要納入工具／手冊；crashlogtools 外掛的處理方式。
