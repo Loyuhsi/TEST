@@ -33,7 +33,7 @@ description: 在這台 Windows 筆電上依階段執行 Pages 混合清單（Nol
    - 待決問題
    - 不要貼報告全文、硬體序號、使用者名稱或金鑰。
 3. 提交進度：`git add progress/status.md && git commit -m "Phase N: <結論>"`（不要 push，除非使用者同意）。
-4. 回報雲端：用 SendMessage 傳給 `test-25`（若清單裡的名稱不同，用 ListAgents 找「雲端」那一列）。內容：
+4. 回報雲端：先執行 ListAgents，找標示為雲端、識別碼 `[0e5bdc]` 的那一列，用它當下顯示的名稱（會變動，例如 `test-25`、`test-17`）以 SendMessage 傳送。內容：
    - 階段、結果
    - 各報告的關鍵行（例如 `[注意]` 項目原文）
    - 需要雲端決定的事

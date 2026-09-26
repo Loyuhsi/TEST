@@ -36,12 +36,14 @@
 - 使用大學漢化；新增任何翻譯用 ESP（插件名額只剩約 27 個）。
 - 修改 `D:\PM` 裡硬連結的原始檔（ini 之類的設定改在獨立 mod「Pages - 設定覆寫」）。
 
-## 協作流程（雲端 Claude 對話名為 `test-25`）
+## 協作流程（雲端 Claude 對話：識別碼 `0e5bdc`）
+雲端對話的顯示名稱會變動（例如 `test-25`、`test-17`）。傳訊息前先執行 ListAgents，找標示為雲端、識別碼 `[0e5bdc]` 的那一列，用那一列當下顯示的名稱傳送。
+
 1. 每個階段開始前：`git pull`，讀 `progress/cloud-notes.md` 與 `progress/status.md`。
 2. 依技能 `pages-modlist` 執行該階段。每個工具報告的 `[失敗]` 都要處理或回報，`[注意]` 要說明。
 3. 階段結束：
    1. 更新 `progress/status.md`（只寫進度與結論，不貼報告內容），然後 `git commit`。
-   2. 用 SendMessage 傳一段摘要給 `test-25`：階段、結果、報告重點與待決問題。雲端無法直接回覆，回覆會以提交到 `progress/cloud-notes.md` 或 `data/decisions.csv` 的方式出現。
+   2. 用 SendMessage 傳一段摘要給雲端對話（識別碼 `0e5bdc`）：階段、結果、報告重點與待決問題。雲端無法直接回覆，回覆會以提交到 `progress/cloud-notes.md` 或 `data/decisions.csv` 的方式出現。
    3. 如果 SendMessage 失敗，請使用者把摘要貼到雲端對話，或上傳 `reports\` 的檔案。
 4. 手冊沒寫到、工具 FAIL 又找不到原因，或與手冊結論矛盾時：停下來寫進 status，問使用者或回報雲端，不要猜。
 

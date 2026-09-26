@@ -56,13 +56,13 @@ git clone -b claude/sharp-faraday-b8ax3h https://github.com/Loyuhsi/TEST C:\Page
 確認 Python 3.12、Git 與 D 槽空間都正常後，從第 1 階段開始。
 我授權你照 CLAUDE.md 幾乎全自動執行：只有刪除檔案或資料夾、花錢、修改 Windows 安全設定、
 git push 之前要先問我；需要登入、輸入密碼或按 UAC 時叫我。
-每個階段結束時更新 progress/status.md 並提交，再用 SendMessage 把摘要傳給雲端對話 test-25；
+每個階段結束時更新 progress/status.md 並提交，再用 SendMessage 把摘要傳給雲端對話（用 ListAgents 找識別碼 0e5bdc 的那一列，名稱會變動）；
 傳不過去就把摘要給我，我會貼到雲端。
 ```
 
 ## 5. 測試與雲端直連（Remote Control）
 本地與雲端要互相傳話，有三條路，依序嘗試：
-1. **本地 → 雲端**：本地代理會試著用 SendMessage 傳摘要給雲端對話 `test-25`。成功的話，雲端對話會直接收到。
+1. **本地 → 雲端**：本地代理會試著用 SendMessage 傳摘要給雲端對話。它的顯示名稱會變動（例如 `test-25`、`test-17`），所以會用 ListAgents 找識別碼 `0e5bdc` 的那一列。成功的話，雲端對話會直接收到。
 2. **雲端 → 本地**：雲端把判讀與決定提交到 GitHub，寫在 `progress/cloud-notes.md` 與 `data/decisions.csv`。本地代理每個階段開始前會 `git pull` 讀取。
 3. **直連（實驗性）**：
    1. 在本地對話輸入 `/remote-control`。如果 Code 分頁沒有這個指令，改在 PowerShell 執行（第一次要先用 `irm https://claude.ai/install.ps1 | iex` 安裝 Claude Code 指令列版本，並用 `claude` 登入 claude.ai 帳號）：
