@@ -6,8 +6,8 @@
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
-| 2 安裝 M&V 並擷取 | 工具完成 | | M&V 12:23 裝完；inventory 通過、harvest 注意（缺 2：ImmersiveHUD SKSE、Load Time Profiler）、extract_official 通過；待刪 `D:\WJ-Downloads`（先問使用者），`D:\MV` 保留到第 4 階段 |
-| 3 安裝 Nolvus | 安裝中 | | 13:07 按 Start（6.0.20 Ultimate，**Nudity Yes**＝使用者要求）；遊戲檔檢查與降版完成；13:16 為 Mods 420/3626、錯誤 0 |
+| 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
+| 3 安裝 Nolvus | 安裝中（網路變慢） | | 13:07 開始（6.0.20 Ultimate，Nudity Yes）；16:10 為 Mods 902/3626、錯誤 3／門檻 50；Wi-Fi 下行降到約 0.1–0.7 MB/s |
 | 4 組合清單 | 未開始 | | |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
@@ -66,8 +66,15 @@
 - harvest-mv（試跑與 --apply）：通過 1、注意 1（647 個計畫中 645 完成、來源缺少 2）、資訊 3、失敗 0；`D:\PM` 有 645 個 mod、MO2 與 tools。
 - zh_extract_official（試跑與 --apply）：通過 3、資訊 1、失敗 0；21 個字串表，有內容的全是繁體（工具抽樣到空檔才顯示 unknown）。
 
+## 第 3 階段進行紀錄
+- 16:10 Nolvus：Mods 902/3626（24%），錯誤 3（門檻 50，裝完才列出）。日誌中的下載錯誤：`KS Hairdos SSE`、`Modpocalypse NPCs - Resources`（無法解析 cf-files.nexusmods.com，DNS 暫時失敗）；`Seasonal Tree Mashup - Pine Forest`、`Blubbo Tree Pines For Nolvus`（作業逾時）。
+- 速度：開始時約 38 MB/s；16:10 整體只剩約 0.7 MB/s（Cloudflare 測速 90 KB/s）。Wi-Fi 5 GHz、訊號 82%，但接收速率只有 7.2 Mbps；預設路由走 Wi-Fi，沒有 VPN 出口節點。屬本地網路問題，需使用者處理（改接有線網路、靠近路由器或重新連線）。
+- D 槽 762.6 GB（WJ-Downloads 已刪）。
+- 雲端 e53c04c 的第 3 階段回報要求（New Gentleman／Nude 的 modlist 行、插件與 ESL 旗標、plugins.txt 行號、`BodySlide (Nude)` 大小）：Nolvus 裝完後照做，不自己改清單。
+
 ## 等待雲端或使用者決定的事
 - 雲端：Nudity Yes 是否延伸到 `D:\PM`；`extract_official` 字形判斷抽樣；是否在手冊提醒改語言後啟動器會重建 ini（詳見 `local-report.md`）。
-- 使用者：已同意刪除 `D:\WJ-Downloads`（194.9 GB、7188 個檔，抽查硬連結數皆為 1，不影響 `D:\PM`／`D:\MV`），但本機工具擋下刪除磁碟第一層資料夾，**請使用者自己刪**（Shift+Delete 或 `rmdir /s /q D:\WJ-Downloads`）。Wabbajack 已關閉。
-- 使用者：原版遊戲的 `Skyrim.ini` 維持英文（使用者決定）。
-- 已推送 79cf305（第 2 階段回報），等雲端判讀。
+- [x] `D:\WJ-Downloads` 已由使用者自己刪除（本機工具擋下刪除磁碟第一層資料夾）。
+- [x] 原版遊戲的 `Skyrim.ini` 維持英文（使用者決定；雲端也說先不用管）。
+- [x] 79cf305 已推送，雲端 e53c04c 判讀第 2 階段通過。
+- 使用者：改善網路（有線網路或重新連線 Wi-Fi），否則 Nolvus 剩下約 150 GB 要下載很久。
