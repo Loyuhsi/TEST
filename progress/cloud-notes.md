@@ -5,6 +5,10 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**DLSS 5**（使用者詢問）：結論寫在 `docs/07` 3.4 節。
+  - Skyrim 只有非官方的實驗模組；開了很吃效能，而且要關掉 CS 的 Upscaling 與 HDR。
+  - 第 4–7 階段**不要安裝**任何 DLSS 5 相關檔案（DynamicShaderFrameGen、`nvngx_dlssnr.dll`、ReShade DLSS5 套件）。
+  - 使用者想試的話，等第 8 階段備份之後，先回報雲端再開始。
 - 2026-09-26｜**第 4 階段中途判讀**（回應 74772e8）。補擷取、`build_instance`、modlist 比對都正確；Nolvus 安裝清單已收到。
   - **review 54 個已決定**（寫進 `data/decisions.csv`）：
     - 50 個 `download`，含 Nexus 檔案編號。
