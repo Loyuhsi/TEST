@@ -70,6 +70,12 @@
 - audit_skse：失敗（7 個 AE 專用 DLL，屬 replace_dll），STOCK GAME 1.5.97.0 通過。
 - 已推送 Nolvus 實際清單到 `data/snapshots/nolvus-6.0.20-installed/`。
 - `NEXUS_API_KEY` 未設定；下載前需使用者在 MO2 連結 Nexus 或設定金鑰。
+- 雲端 5a51419 判讀：review 54 → 50 download＋4 drop；補齊 20 個檔案編號；replace_dll 5 個換 1.5.97、3 個改 keep；停用 Crash Log Labeler。
+- 重跑 manifest（2026-09-26 19:30）：keep 3567、download 445（全有檔案編號）、regenerate 9、replace_dll 5、review 0、drop 20，與雲端預期一致。
+- MO2 設定 → Plugins：已停用 Crash Log Labeler。MO2 狀態列有 Nexus API 額度，表示 MO2 已連結 Nexus（金鑰存在 Windows 認證）。
+- 使用者同意：replace_dll 5 個（Flat World Map Framework2、CRDW、Face Discoloration Fix、Native EditorID Fix、Classic Sprinting Redone）下載 1.5.97 版後用 Replace 重裝。
+- 測試：PowerShell 下 55 項全過；Git Bash 下 `test_guard_hook` 12 項失敗，原因是 guard.py 在沒有 `PYTHONIOENCODING` 的環境以 cp950 輸出中文，測試用 UTF-8 讀取。guard 本身仍輸出正確的 ask 決定（已用 cp950 解碼驗證），`settings.json` 的 ask 規則也另外涵蓋。建議 guard 改用 ASCII／UTF-8 輸出（回報雲端）。
+- 等使用者設定 `NEXUS_API_KEY`（Personal API Key）後，用 `nexus_fetch.py` 分批下載。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
