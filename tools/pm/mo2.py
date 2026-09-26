@@ -282,6 +282,14 @@ def find_instance_paths(instance_dir: Path) -> dict[str, Path]:
     return paths
 
 
+def _is_mods_container(path: Path) -> bool:
+    """A Nolvus-style MODS folder (holding mods\\ and profiles\\), not a mods folder itself.
+
+    On NTFS the default guess '<root>\\mods' opens '<root>\\MODS', so it has to be told apart.
+    """
+    return (path / "mods").is_dir() and (path / "profiles").is_dir()
+
+
 def locate_instance(root: Path) -> dict[str, Path]:
     """Find the MO2 folders for a Nolvus, Wabbajack or plain portable install.
 
@@ -295,7 +303,7 @@ def locate_instance(root: Path) -> dict[str, Path]:
             ini_dir = cand
             break
     paths = find_instance_paths(ini_dir)
-    if not paths["mods"].is_dir():
+    if not paths["mods"].is_dir() or _is_mods_container(paths["mods"]):
         for cand in (root / "MODS", root / "mods", ini_dir.parent / "MODS"):
             base = cand if cand.name.upper() == "MODS" else cand.parent
             if (base / "mods").is_dir():

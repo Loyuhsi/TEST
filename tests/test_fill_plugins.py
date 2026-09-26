@@ -32,6 +32,10 @@ class World:
             d.mkdir(parents=True, exist_ok=True)
         (self.pm / "STOCK GAME" / "SkyrimSE.exe").write_bytes(b"MZ")
         (self.mv / "ModOrganizer.ini").write_text("[General]\n")
+        # real Nolvus layout: <Inst>\MO2\ModOrganizer.ini next to <Inst>\MODS\mods. Without the ini,
+        # "<Inst>\mods" would be tried first, and on NTFS that opens the MODS container.
+        (self.nol / "MO2").mkdir(parents=True, exist_ok=True)
+        (self.nol / "MO2" / "ModOrganizer.ini").write_text("[General]\n")
         self.folders: list[str] = []
         self.expected: list[str] = []
         self.manifest: list[dict] = []

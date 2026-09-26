@@ -64,6 +64,25 @@ def test_find_instance_paths(tmp_path):
     assert mo2.qt_bytearray("D:\\PM\\STOCK GAME") == "@ByteArray(D:\\\\PM\\\\STOCK GAME)"
 
 
+def test_locate_instance_skips_a_mods_container_folder(tmp_path):
+    # Nolvus keeps mods/ and profiles/ inside MODS/. On NTFS "root\mods" opens "root\MODS",
+    # so the default "<root>/mods" guess lands on that container; a folder named "mods"
+    # holding mods/ and profiles/ reproduces it on any file system.
+    container = tmp_path / "mods"
+    for sub in ("mods/Some Mod", "profiles/Default", "downloads", "overwrite"):
+        (container / sub).mkdir(parents=True)
+    paths = mo2.locate_instance(tmp_path)
+    assert paths["mods"] == container / "mods"
+    assert paths["profiles"] == container / "profiles"
+
+
+def test_locate_instance_keeps_a_plain_mods_folder(tmp_path):
+    (tmp_path / "ModOrganizer.ini").write_text("[General]\n")
+    (tmp_path / "mods" / "Some Mod").mkdir(parents=True)
+    (tmp_path / "profiles" / "Default").mkdir(parents=True)
+    assert mo2.locate_instance(tmp_path)["mods"] == tmp_path / "mods"
+
+
 # ---------------------------------------------------------------- tes4
 def test_tes4_header(tmp_path):
     p = tmp_path / "Patch.esp"
