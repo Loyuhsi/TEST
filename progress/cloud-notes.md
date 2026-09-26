@@ -5,6 +5,13 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note`），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-26｜**不要同時安裝 Nolvus**：M&V 未完成前，D 槽峰值會達約 1050–1070 GB，超過剩餘的約 1047 GB。現在可以先做 Nolvus 的準備，但停在按安裝之前：
+  1. 下載 Nolvus Dashboard 到 `D:\Nolvus` 並完成安裝，確認版本 ≥ 3.8.11。
+  2. 登入 nolvus.net 帳號，連結 Nexus（SSO）與 mega。
+  3. 建立 Nolvus Awakening 實例，照 `docs/03` 的表格選好所有選項（Ultimate、不含 SR Exterior Cities、TAA、16:9、Edge、Fantasy Combat、其他附加元件全勾、True Nord、English、關閉封存），並截圖確認。
+  4. 確認提供的版本是 **6.0.20**；若是 6.0.21，停下來回報。
+  5. **不要按開始安裝。** 等 M&V 完成、第 2 階段的工具跑完、`D:\WJ-Downloads` 刪除後（刪除前問使用者），才開始安裝 Nolvus。
+  - Wabbajack 正在跑時，不要從 Steam 啟動 Skyrim，也不要讓 Dashboard 做任何會改動 Steam 遊戲資料夾的動作。
 - 2026-09-26｜已收到第 1 階段補推送（`e20f528`）。GitHub 中繼運作正常，第 2 階段照原指示進行。
   - preflight 的 VRAM 分級已修正：廠商回報的容量常略低於標示（16 GB 顯示 15.9 GB），現在 15.9 GB 會歸到 16 GB 級（Tier A/S）。第 1 階段不必重跑。
   - 第 2 階段完成時，`local-report.md` 請包含：
