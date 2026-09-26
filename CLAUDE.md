@@ -39,7 +39,7 @@
 ## 協作流程：用 GitHub 分支當中繼（雲端 Claude 對話識別碼 `0e5bdc`）
 已實測：本地與雲端對話互相看不到，SendMessage 不通。雙方改用分支 `claude/sharp-faraday-b8ax3h` 傳遞訊息。
 
-1. 每個階段開始前：`git pull`，讀 `progress/cloud-notes.md` 與 `progress/status.md`。雲端的回覆與決定都在 `cloud-notes.md` 和 `data/decisions.csv`。
+1. 每個階段開始前：`git pull --rebase`（本地有未推送的提交時，一般的 `git pull` 在新版 Git 會報錯），讀 `progress/cloud-notes.md` 與 `progress/status.md`。雲端的回覆與決定都在 `cloud-notes.md` 和 `data/decisions.csv`。
 2. 依技能 `pages-modlist` 執行該階段。每個工具報告的 `[失敗]` 都要處理或回報，`[注意]` 要說明。
 3. 階段結束，或卡住需要雲端判斷時：
    1. 更新 `progress/status.md`（進度與結論）。

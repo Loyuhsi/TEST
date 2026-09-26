@@ -52,7 +52,7 @@ git clone -b claude/sharp-faraday-b8ax3h https://github.com/Loyuhsi/TEST C:\Page
 3. 貼上以下開場指令：
 
 ```
-請使用 pages-modlist 技能。先 git pull，讀 CLAUDE.md、progress/status.md、progress/cloud-notes.md，
+請使用 pages-modlist 技能。先 git pull --rebase，讀 CLAUDE.md、progress/status.md、progress/cloud-notes.md，
 確認 Python 3.12、Git 與 D 槽空間都正常後，從第 1 階段開始。
 我授權你照 CLAUDE.md 幾乎全自動執行：只有刪除檔案或資料夾、花錢、修改 Windows 安全設定、
 git push 之前要先問我；需要登入、輸入密碼或按 UAC 時叫我。

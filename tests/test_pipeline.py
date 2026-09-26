@@ -235,3 +235,12 @@ def test_vdf_parser():
     assert pe.fixed_file_version(b"xx\xbd\x04\xef\xfe" + (0x00010000).to_bytes(4, "little")
                                  + ((1 << 16) | 5).to_bytes(4, "little") + ((97 << 16) | 0).to_bytes(4, "little")) \
         == "1.5.97.0"
+
+
+def test_preflight_defender_placeholder_not_a_path():
+    assert preflight.parse_exclusions("N/A: Must be an administrator to view exclusions\r\n") is None
+    assert preflight.parse_exclusions("D:\\MV\r\nD:\\Nolvus\r\n") == ["D:\\MV", "D:\\Nolvus"]
+    assert preflight.parse_exclusions("") == []
+    facts = {"windows": True, "install_drive": "D:", "defender_exclusions": None}
+    checks = {c.key: c for c in preflight.evaluate(facts).checks}
+    assert checks["defender"].status == "INFO"

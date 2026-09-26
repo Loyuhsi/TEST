@@ -8,7 +8,7 @@ description: 在這台 Windows 筆電上依階段執行 Pages 混合清單（Nol
 每次被叫用（包括使用者說「繼續」）都照這個循環走，不要跳步。
 
 ## 1. 先同步、再判斷位置
-1. `git pull`（在 `C:\PagesTools`）。
+1. `git pull --rebase`（在 `C:\PagesTools`）。本地有未推送的提交時，一般的 `git pull` 在新版 Git 會報「divergent branches」錯誤。
 2. 讀 `progress/status.md`，找出目前階段與上次停在哪一步。
 3. 讀 `progress/cloud-notes.md` 的「最新指示」。雲端的指示優先於你自己的判斷。
 4. 開啟該階段手冊 `docs/0N-*.md`，從上次停下的那一步接著做。

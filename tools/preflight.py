@@ -180,7 +180,19 @@ def probe_defender_exclusions() -> list[str] | None:
         return None
     if out.returncode != 0 or "denied" in out.stderr.lower():
         return None
-    return [line.strip() for line in out.stdout.splitlines() if line.strip()]
+    return parse_exclusions(out.stdout)
+
+
+def parse_exclusions(text: str) -> list[str] | None:
+    """Exclusion paths, or None when Windows hides them from non-admin users.
+
+    Without admin rights Get-MpPreference prints the placeholder
+    'N/A: Must be an administrator to view exclusions' instead of the paths.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if any(line.upper().startswith("N/A") or "administrator" in line.lower() for line in lines):
+        return None
+    return lines
 
 
 def gather(install_drive: str) -> dict:
@@ -310,7 +322,7 @@ def evaluate(f: dict) -> Report:
               "已安裝" if ok else "未偵測到，請安裝（Wabbajack／Synthesis 需要）")
     ex = f.get("defender_exclusions")
     if ex is None:
-        r.add("defender", "INFO", "Windows Defender 排除", "無法讀取（需系統管理員），請依 docs/01 手動確認")
+        r.add("defender", "INFO", "Windows Defender 排除", "一般權限看不到排除清單；以系統管理員執行 preflight 才能檢查，或依 docs/01 手動確認")
     else:
         need = [p for p in (f"{drive}\\MV", f"{drive}\\Nolvus", f"{drive}\\PM")
                 if not any(e.lower().rstrip("\\") == p.lower() for e in ex)]
