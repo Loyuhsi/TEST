@@ -8,7 +8,7 @@
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 進行中 | | 下載 449/450；install_archives 自動裝約 350 個（含 replace_dll 4 個）；FOMOD 已裝 66／剩 17；10 個下載檔待雲端決定（見 local-report 中途回報 2） |
+| 4 組合清單 | 進行中 | | 下載 449/450；install_archives 約 350 個；FOMOD 83 個全部裝完；新增 `sync-order --restore-states`；**目標有 622 個插件找不到檔案（多為擷取的補丁合集選項不同）**＋10 個下載檔等雲端決定；尚未跑 prune（見 local-report 中途回報 3） |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -76,8 +76,8 @@
 - 使用者同意：replace_dll 5 個（Flat World Map Framework2、CRDW、Face Discoloration Fix、Native EditorID Fix、Classic Sprinting Redone）下載 1.5.97 版後用 Replace 重裝。
 - 測試：PowerShell 下 55 項全過；Git Bash 下 `test_guard_hook` 12 項失敗，原因是 guard.py 在沒有 `PYTHONIOENCODING` 的環境以 cp950 輸出中文，測試用 UTF-8 讀取。guard 本身仍輸出正確的 ask 決定（已用 cp950 解碼驗證），`settings.json` 的 ask 規則也另外涵蓋。建議 guard 改用 ASCII／UTF-8 輸出（回報雲端）。
 - 等使用者設定 `NEXUS_API_KEY`（Personal API Key）後，用 `nexus_fetch.py` 分批下載。
-- 使用者設定金鑰後，19:43 起 `nexus_fetch.py --limit 450 --apply` 背景下載；修了 CDN 網址編碼（空格、#、?、%）、CDN 403 誤判為金鑰無效、`.meta` 換行 `\r\r\n`（4000736、2dc3916、2f607f1）。20:43 已下載 328 個（55 GB）。
-- 使用者選擇「寫批次安裝工具」：`tools/install_archives.py`（d218985、a1859e3），先寫測試（127 項全過），兩輪 code review 的 HIGH 都已修正（佔位資料夾中斷保護、Explorer 檔、復原日誌）。
+- 使用者設定金鑰後，19:43 起 `nexus_fetch.py --limit 450 --apply` 背景下載；修了 CDN 網址編碼（空格、#、?、%）、CDN 403 誤判為金鑰無效、`.meta` 換行 `\r\r\n`（3a635ea、60ba5b7、5a158a4）。20:43 已下載 328 個（55 GB）。
+- 使用者選擇「寫批次安裝工具」：`tools/install_archives.py`（a01fdfe、271074c），先寫測試（127 項全過），兩輪 code review 的 HIGH 都已修正（佔位資料夾中斷保護、Explorer 檔、復原日誌）。
   - 批次安裝兩次（20:36、20:43）：已安裝 250 個（含 GUI 裝的 1 個），FOMOD 58 個待 MO2 手動，人工判斷 19 個，`_replaced`／暫存都沒有殘留。
   - `--accept` 放行（看過壓縮檔）：RMS Lux patch、YXZ PBR（provenance 插件欄有誤）、Dragonborn ReVoiced2（DBReV 資料夾）、Icy Windhelm 補丁、Dova Jump、Elden Rim、FDE Aela（目標沒有的選用插件，MO2 會列為停用）、Pandora（工具型 mod，含 exe）。
   - 版本和目標插件不符、待雲端決定：Dreadful Alduin、RUSTIC SOULGEMS、Thrones Expanded、HFs - Whiterun bridges REDONE；Nature of the Wild Lands - Animations Addon 缺插件檔。
@@ -87,6 +87,12 @@
 - FOMOD 用 MO2 GUI 安裝（File → Install Mod，佔位選 Replace）：已裝 66 個並逐一核對插件（產生的插件都在目標裡；Vanaheimr Landscapes 的 SnowShader.esp 除外，MO2 會列為停用）。選擇紀錄在 local-report 附錄。
   - MO2 注意：Downloads 分頁篩選後右鍵會對錯列；大型壓縮檔解壓中按 Enter 會中斷（Load Screen Compendium 第一次少了 esp，已重裝）。
   - Faster HDT-SMP 重裝為 No MCM（MCM 版會多出目標沒有的 FSMPM esp）；Unslaad 重裝為 Silent Voice（比照 Vigilant）。
+- 2026-09-27 剩下 17 個 FOMOD 全部裝完（選擇見 local-report 附錄最後 18 列）。
+  - 發現 MO2 會把新裝的插件列為停用，235 個目標插件（含 LegacyoftheDragonborn.esm）是停用狀態，會讓 `prune_dependents` 誤刪、也讓 FOMOD 自動偵測變灰。新增 `build_instance.py sync-order --restore-states`（c8fc131；TDD 8 項、code review 無 CRITICAL／HIGH），這輪跑了 5 次，目標插件 3604 個已依目標順序啟用。
+  - Snazzy Misc Locations AIO 的 JK's Palace 目的檔名是 `.esp.esp`，已重裝並改名；Riverwood Falls 的 LFFGM 插件、SDA 立石補丁、Wayshrines 補丁是從壓縮檔單獨取出；FWMF 換成 SE 版 DLL，AE 版 Baka DLL 改名 `.mohidden`，M&V 舊內容在 `D:\PM\_replaced`。
+  - MO2 在 00:08 當機一次（ntdll 0xc0000374，安裝完成後檢查更新時）；重開後 modlist 一致。
+  - `verify`：modlist 一致；目標插件缺 622 個（完整清單 `data/analysis/missing_target_plugins.csv`）：264 個在 D:\MV 或 D:\Nolvus 的另一份合集裡就有，78 個只在已下載的壓縮檔，約 340 個要另外下載合集。等雲端決定前不跑 `prune_dependents`。
+  - 下一步：Edge UI Racemenu 用 DIP 試做；等雲端回覆第 1、3、4、8 點。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
