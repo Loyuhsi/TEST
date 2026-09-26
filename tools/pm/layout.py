@@ -19,7 +19,8 @@ DATA_DIRS = frozenset({
     "fonts", "menus", "shaders", "shadersfx", "materials", "trees", "facegen", "grass", "seq",
     "lodsettings", "distantlod", "dyndolod", "skse", "mcm", "dialogueviews", "calientetools",
     "netscriptframework", "dllplugins", "nemesis_engine", "pandora_engine", "lightplacer",
-    "pbrnifpatcher", "pbrtexturesets", "dragonbornvoiceover", "seasons",
+    "pbrnifpatcher", "pbrtexturesets", "dragonbornvoiceover", "seasons", "headpartwhitelist",
+    "bashtags",
 })
 DATA_EXTS = frozenset({".esp", ".esm", ".esl", ".bsa", ".ba2", ".ini", ".modgroups"})
 PLUGIN_EXTS = frozenset({".esp", ".esm", ".esl"})

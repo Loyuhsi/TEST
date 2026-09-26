@@ -93,7 +93,8 @@ def test_backslashes_are_normalised():
 
 
 def test_modern_skse_data_folders_are_known():
-    for top in ("LightPlacer", "PBRNifPatcher", "Nemesis_Engine", "CalienteTools", "Seasons"):
+    for top in ("LightPlacer", "PBRNifPatcher", "Nemesis_Engine", "CalienteTools", "Seasons",
+                "HeadPartWhitelist", "BashTags"):
         assert layout.classify([f"{top}/x.json"]).kind == "simple", top
 
 
