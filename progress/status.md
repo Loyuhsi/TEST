@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-27
-目前階段：5（cloud-notes d9c97ca 步驟 1–8 完成、主選單已修好；第 9 步 Synthesis 因 Nolvus 的 Synthesis.esp 有 VCLR 停下，等雲端決定）
+目前階段：5（cloud-notes 13db1b8 步驟 1–4 完成，第 5 步做到 TexGen；DynDOLOD 之前停下，等雲端決定版本不符的修補檔）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri（和 Nolvus 逐位元組相同：nif 5,428／5,450、tri 2,735／2,741）；**主選單已修好**：NPC Overhaul v2＋strip_refs 修正 Modpocalypse LOTD，DataLoaded 176 秒；OAR 3.2.1（剩 80 行 RaySense_Ledge）；check_plugins 全過（完整 251、預估 253、輕量 4015）；**Synthesis 停下**：Nolvus 的 Synthesis.esp 有調亮的 VCLR，等雲端決定；PGPatcher、草地、LOD 未做 |
+| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4017）；**DynDOLOD 前停下**：TexGen 有 14 個「being overridden」錯誤（5 個修補檔對應新版 TGTK／Hall of Forgotten），全載入順序另有 59 個插件、683 筆覆寫指向不存在的記錄（室外 195），等雲端決定 |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -173,6 +173,32 @@
     - 結果 5,825 nif＋2,929 tri，和 Nolvus 幾乎逐位元組相同。
   - Synthesis：`esl_check --subrecords LAND` 顯示 Nolvus 那份 7,664 筆 LAND 都有 VCLR（比原版亮 4,962 筆，不是移除），照 docs/05 停下回報。
   - 下一步：推送後等雲端決定 Synthesis，再做第 10、11 步（PGPatcher、草地、LOD、第一次用 CS 啟動）。
+- 2026-09-27 雲端 13db1b8 的步驟 1–5（做到 TexGen；細節與報告全文在 local-report）：
+  - pytest 188 通過、1 略過。
+  - RaySense 1.2.0：manifest reinstall 1 → nexus_fetch → install_archives 重裝（舊版在 `_replaced`）→ `audit_skse --dll` 多版本。
+  - 主選單：DataLoaded 171 秒，skse 215／214，OAR E 4 行（RaySense_Ledge 0）。
+  - Synthesis：
+    - 裝了 .NET 10 SDK（使用者同意），Profile 的 Data Folder 指定 STOCK GAME。
+    - Jampi0n patcher，Settings 保持預設。
+    - LAND 7,675 全有 VCLR、前置 47，已加 ESL 旗標。
+    - MO2 把 Synthesis.esp 加成停用，已手動啟用。
+  - PGPatcher：
+    - `settings.json` 路徑改成 D:\PM。
+    - 執行時要停用 `pgpatcher_output`。
+    - 257 秒、20,432 檔；只產生 PG_1（目標另有 PG_2）。
+  - 草地快取（方案 A）：約 95 分鐘、15,340 個 `.cgid`、沒有 `.fail`，True HUD 已重新啟用。
+  - xLODGen：
+    - 使用者第一次照預設勾選跑，多出的輸出已搬到 `_replaced`。
+    - 第二次只做 Terrain：17 分鐘、48,852 檔、52 個世界空間 → `lodgen2`。
+  - TexGen：
+    - 輸出路徑從 M&V 的 D:\MV 改成 D:\PM。
+    - 14 個「being overridden」錯誤都按 Ignore。
+    - 5 分 54 秒完成，5,292 檔 → `texgenCS`。
+    - 之後 sync-order、check_plugins 全過。
+  - 停在 DynDOLOD 之前：
+    - 那 14 個錯誤來自 5 個 fill_plugins 從最新版壓縮檔取出的修補檔。它們對應 TGTK 2.0、Hall of Forgotten 2.4，D:\PM 是 Nolvus 的 TGTK 1.2、HoF 2.3.9。
+    - 全載入順序掃描：59 個插件、683 筆覆寫指向不存在的記錄（室外 195），表格在 `data/analysis/override_mismatch.csv`。
+  - 下一步：推送後等雲端決定這些修補檔怎麼處理，再做 DynDOLOD（High）→ 第 9、10 節。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
