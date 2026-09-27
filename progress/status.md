@@ -1,14 +1,14 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-27
-目前階段：4（中途回報 5：cloud-notes 8ec7ae0 步驟 1–8 完成；_ResourcePack.esl 與 Frescoes 等雲端決定；未跑 prune）
+目前階段：4（完成回報：cloud-notes 27208e6 步驟 1–11；check_plugins 全部通過；Dibella 1 個插件等雲端決定；等第 5 階段清單）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 進行中 | | 下載、FOMOD、重裝全部完成；目標插件缺檔 622 → **16**（15 個屬雲端接受缺少／捨棄，1 個 Dibella Frescoes 等決定）；audit_skse 通過；check_plugins 失敗：缺前置 65（其中 41 個缺 `_ResourcePack.esl`，含 LOTD 本體）、順序 118（目標順序本身）；尚未跑 prune（見 local-report 中途回報 5） |
+| 4 組合清單 | 完成（待雲端確認） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
 | 5 重建輸出與英文基準 | 未開始 | | |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
@@ -112,6 +112,13 @@
   - sync-order 啟用 35 個 → verify 缺 16 → audit_skse 通過 → check_plugins 失敗（缺前置 65、順序 118）。
   - **prune 前要先處理 `_ResourcePack.esl`**：STOCK GAME 的 Skyrim.ccc 有列、檔案不在；不處理的話 LOTD 本體會被停用。
   - JK Frescoes：D:\PM 的 Frescoes 主檔是 Solitude Only（M&V），已有的 4 個 JK Frescoes 補丁來自 Nolvus 的 Complete 版；Dibella 補丁未裝，等雲端決定。
+- 2026-09-27 雲端 27208e6 的步驟 1–11（第 4 階段完成回報）：
+  - `_ResourcePack.esl／.bsa`：M&V 版硬連結進 `STOCK GAME\Data`（docs/04 的 mklink 在 Git Bash 失敗，改用 Python os.link；大小 78,418／916,509,890）。
+  - create → 開關 MO2 → manifest（Frescoes reinstall、Vanaheimr／Riverwood keep）→ 下載 110913 → install_archives 重裝 Frescoes（Complete NL ESL，舊內容在 `_replaced`）→ manifest 變 keep。
+  - fill_plugins 取出 Grand Solitude 的 Complete ESL NL 補丁。
+  - Dibella：Mara 三種原始檔都對不上 Nolvus 那份（Nolvus 是舊版 1,061 bytes），依指示未放入；FOMOD 對應 Complete NL ESL → `…ESL No Lanterns patch.esp`，等雲端確認。
+  - sync-order 移動 136 個到前置之後 → check_plugins 前置順序 0、缺前置 24 → prune 試跑 27 個（無 ESM、無本體）→ `--disable-folders --apply`（18 個資料夾）→ check_plugins 全部通過 → verify 缺 43。
+  - 下一步：推送後等雲端確認 Dibella 與第 5 階段的 BodySlide 預設、Synthesis 清單。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
