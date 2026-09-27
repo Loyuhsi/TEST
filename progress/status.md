@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-27
-目前階段：5 前半（cloud-notes 4a9f006 步驟 1–8 完成；主選單要停用 LOTD 5 的 NPC 補丁才進得去，等雲端決定；恢復項目與 Synthesis 清單也在等雲端）
+目前階段：5（cloud-notes d9c97ca 步驟 1–8 完成、主選單已修好；第 9 步 Synthesis 因 Nolvus 的 Synthesis.esp 有 VCLR 停下，等雲端決定）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Dibella 放入、check_plugins 全過（完整 251、預估 253）、verify 缺 42；Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif（Preset CBBE Curvy (Outfit)、衝突照 Nolvus，和 Nolvus 都有的 5,450 個中 5,430 個幾何資料相同，另 10 組原因未查明；設定檔被 M&V Settings Hub 蓋掉的問題已用 `Pages - 設定覆寫` 修正）；**主選單卡住**：Nolvus 的 LOTD 5 NPC 補丁 ×2 對上 LOTD V6，等雲端決定 |
+| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri（和 Nolvus 逐位元組相同：nif 5,428／5,450、tri 2,735／2,741）；**主選單已修好**：NPC Overhaul v2＋strip_refs 修正 Modpocalypse LOTD，DataLoaded 176 秒；OAR 3.2.1（剩 80 行 RaySense_Ledge）；check_plugins 全過（完整 251、預估 253、輕量 4015）；**Synthesis 停下**：Nolvus 的 Synthesis.esp 有調亮的 VCLR，等雲端決定；PGPatcher、草地、LOD 未做 |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -156,6 +156,23 @@
       - 最後一次：Preset `CBBE Curvy (Outfit)`，`BodySlide (Nude)` 5,825 個 nif。和 Nolvus 都有的 5,450 個中 5,430 個幾何資料完全相同。其餘 20 個（Twilight Princess、原版黑暗兄弟會路徑）來源檔相同但頂點不同，原因未查明。
       - 沒建 morphs（照 docs）。但 Nolvus 其實有建，等雲端決定。
   - 下一步：推送後停下，等雲端決定 LOTD NPC 補丁、OAR、恢復項目與 Synthesis 清單。
+- 2026-09-27 雲端 d9c97ca 的步驟 1–8（細節與報告全文在 local-report）：
+  - pytest 188 通過、1 略過。
+  - `create --apply` → MO2 開關 → verify：modlist 一致。
+  - 重裝：
+    - OAR 3.2.1 由 install_archives 安裝。
+    - NPC Overhaul v2 用 MO2 FOMOD 安裝（Version 2＝`00 Main`，舊內容在 `_replaced`）。
+    - 重跑 manifest，reinstall 變 0。
+  - `fill_plugins` 補上 AIO 的 USSEP 補丁（硬連結）。
+  - `strip_refs`：Modpocalypse LOTD 刪掉 10 筆 NPC 的 12 個失效引用，同名修正版放在 `Pages - LOTD V6 修正`；其他 3 個插件 0 筆。
+  - sync-order → prune：26 個（`create` 把上輪的修剪恢復了；全在第 4 階段的名單內，只少 GS 的 AIO 補丁）→ check_plugins 全過 → verify 41＝15＋26 → audit_skse 全過。
+  - `audit_skse --dll` 仍把舊的 AE 版 Knockback 判成多版本：兩版字串和版本區塊都相同，已回報。
+  - 主選單：3 個 LOTD 相關插件都啟用，DataLoaded 176 秒並進到主選單。skse 215／214，BEES 無錯誤，OAR 錯誤 104 行（80 行 RaySense_Ledge）。
+  - BodySlide 勾 Build Morphs 重建：
+    - 第一次漏勾，之後把 `BodySlide.xml` 預設為勾選。
+    - 結果 5,825 nif＋2,929 tri，和 Nolvus 幾乎逐位元組相同。
+  - Synthesis：`esl_check --subrecords LAND` 顯示 Nolvus 那份 7,664 筆 LAND 都有 VCLR（比原版亮 4,962 筆，不是移除），照 docs/05 停下回報。
+  - 下一步：推送後等雲端決定 Synthesis，再做第 10、11 步（PGPatcher、草地、LOD、第一次用 CS 啟動）。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
