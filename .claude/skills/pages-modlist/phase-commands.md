@@ -118,6 +118,10 @@ python tools/strip_refs.py --pm "D:/PM" --plugin "Modpocalypse NPCs (v3) Legacy 
 # 看某種記錄帶了哪些子記錄（例如 Synthesis.esp 的 LAND 有沒有 VCLR）
 python tools/esl_check.py --plugin "路徑/Synthesis.esp" --subrecords LAND
 ```
+- `strip_refs --drop-missing`：刪掉「覆寫目標在非官方主插件裡不存在」的整筆記錄（對應新版主插件的補丁）：
+  ```bash
+  python tools/strip_refs.py --pm "D:/PM" --drop-missing --from-csv data/analysis/override_mismatch.csv --out "D:/PM/mods/Pages - 版本不符修正"
+  ```
 - `strip_refs` 的報告目錄參數是 `--report-dir`（`--out` 是輸出的 mod 資料夾）。
 - `build_instance create --apply` 會依目標重寫 modlist／plugins，把之前的修剪全部恢復；之後的 `prune_dependents` 會列出完整名單，不是差額。判斷標準是「名字都在已接受的清單內」。
 - 完整插件名額：目前 252，重建後 `DynDOLOD.esm`、`DynDOLOD.esp` 會用掉最後 2 個（254/254）。其他輸出（Synthesis、FNIS、Occlusion、PG_*）一定要是輕量插件；`check_plugins` 的「輸出重建後的完整插件（預估）」超過 254 就停下來回報。

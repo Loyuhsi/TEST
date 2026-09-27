@@ -5,6 +5,63 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 5 階段回報判讀**（回應 282f8cf）。
+  - RaySense、Synthesis（.NET 10 SDK 的安裝已經使用者同意，接受）、PGPatcher、草地快取、xLODGen、TexGen 都接受。
+  - 在 DynDOLOD 前停下來是對的；覆寫掃描的分析非常好。
+  1. **覆寫不存在的記錄：用 (b) 的通用版，一次處理表格裡的 59 個插件**。
+     - `strip_refs` 新增 `--drop-missing`：刪掉「覆寫目標在非官方主插件裡不存在」的**整筆記錄**。
+       - 刪 CELL／WRLD 時，連同它的子群組一起刪；刪完變空的群組也移除；HEDR 的記錄數跟著更新。
+       - 合法的覆寫都保留。
+       - 同名修正版寫到新 mod **`Pages - 版本不符修正`**（目標 modlist 第 2 行，在 LOTD 修正之上）；原檔不動、不佔名額。
+     - 為什麼要刪：
+       - TGTK 那 14 筆（1.70 主插件、0x800 以下）現在是蓋到 Skyrim.esm 的內建記錄（AVIF／STAT），可能 CTD。
+       - 其他的會變成多出來的新記錄，室外的 REFR 還會被 DynDOLOD 做進 LOD。
+       - 刪掉只是放棄這些補丁對「我們版本裡不存在的物件」的修改。
+     - 不逐一換版本（TGTK 2.0、HoF、Lux 等）：59 個各自追版本成本太高。表格的來源欄留著，第 8 階段有空再改善。
+     - Nolvus／M&V 原本就這樣出貨的 17 個（70 筆）照舊不處理。
+  2. **`PG_2.esp`**：正常。PGPatcher 依記錄數決定要產生幾個 PG 插件，已從目標 plugins.txt 拿掉。
+  3. **TexGen 找不到的貼圖**：接受。`oakleafmushroom01_n.dds` 在 Nexus 上只出現在別人清單的產出包裡，不是來自任何原始 mod。只影響少數樹葉的法線貼圖。
+  4. **手冊與工具缺口**：你列的 8 點都已處理。
+     - `docs/05` 更新了這些內容：
+       - 第 3 節：.NET 10 SDK、Synthesis 的 Data Folder、編譯與執行的方式。
+       - 第 4 節：PGPatcher 的 `settings.json`，以及執行時停用 `pgpatcher_output`。
+       - 第 5.3 節：用 NGIO 記錄判斷草地快取完成（Root Builder 會重導 `PrecacheGrass.txt`）。
+       - 第 6–8 節：`-SSE -D:"D:\PM\STOCK GAME\Data"`、xLODGen 的 `-o:`、只勾 Terrain、TexGen 的輸出路徑。
+       - DynDOLOD 設定檔的 `D:\MV` 改成 `D:\PM`，以及選 High、Occlusion、不做草 LOD。
+     - 工具修改：
+       - `sync-order`：被 MO2 列成停用的輸出插件（Synthesis、PG、DynDOLOD、Occlusion…）會自動改成啟用，報告多一行。
+       - `unshare_links`：`.log` 不論多大都會換成獨立副本。
+     - **刪除 D:\MV 之前**，DynDOLOD／TexGen／PGPatcher 設定檔裡的 `D:\MV` 一定要都改掉。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間工作照 CLAUDE.md）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. **重建設定檔**（目標多了一個資料夾、少了 PG_2）：
+     1. `build_instance create --apply` → 開 MO2 一次再關。
+     2. `sync-order --restore-states --apply` → `prune_dependents` 試跑。名字都要在已接受的名單內；有新名字就先回報。
+     3. `--disable-folders --apply`。
+  3. **版本不符修正**：
+     ```
+     python tools/strip_refs.py --pm "D:/PM" --drop-missing --from-csv data/analysis/override_mismatch.csv --out "D:/PM/mods/Pages - 版本不符修正"
+     ```
+     - 先試跑，確認 59 個都列出刪除筆數（總數應接近 683），再加 `--apply`。
+     - 有「找不到插件」就回報（可能是被修剪了）。
+  4. **檢查**：
+     - `sync-order --apply` → `check_plugins`：應全部通過；完整 251、輕量數不變。
+     - `verify`。
+     - 重跑你的覆寫掃描：表格裡的 59 個應該都變成 0，只剩原本就有的 17 個。
+     - 主選單測試（DataLoaded、到主選單）。
+  5. **DynDOLOD**（`docs/05` 第 8 節）：
+     1. 搜尋 `D:\PM\tools` 裡含 `D:\MV` 的設定檔（`.ini`／`.json`／`.txt`，記錄檔除外），全部改成 `D:\PM`（先備份），並列出改了哪些檔。
+     2. 選 High、勾 Occlusion、不做草 LOD，輸出到 `D:\PM\tools\DynDOLOD\DynDOLOD_Output\`。
+     3. 完成後搬到 `dyndolodCS2` → `sync-order --apply` → `check_plugins`：預期完整 253／254，`Occlusion.esp` 是輕量插件；如果是完整插件，用 `esl_check --flag` 處理。
+     4. `audit_skse`。
+  6. **`docs/05` 第 10 節**：第一次用 CS 啟動（到主選單，確認沒有當機、LOD 有顯示）。
+  7. 回報並推送：
+     - 各報告的每一行。
+     - strip_refs 每個插件的刪除筆數摘要。
+     - 覆寫掃描的新結果。
+     - DynDOLOD 記錄的摘要（錯誤與警告的種類、數量）。
+     - 各輸出資料夾的檔案數。
+  8. 之後是第 11 節的測試路線，**由使用者玩**；通過後做第 12 節的 EN-baseline 備份，再開始第 6 階段中文化。
 - 2026-09-27｜**第 5 階段回報判讀**（回應 34c8a1e）。
   - 主選單修好（176 秒）、strip_refs 的 12 個引用、OAR 3.2.1、BodySlide morphs（和 Nolvus 幾乎逐位元組相同）都接受。
   - 你照手冊在 Synthesis 停下是對的：**是我手冊寫錯了**。

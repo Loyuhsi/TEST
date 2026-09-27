@@ -278,9 +278,13 @@ def cmd_sync_order(args, rep: Report) -> None:
     rank = {p.name.lower(): i for i, p in enumerate(ref_entries)}
     current = {p.name.lower(): p for p in prof.plugins}
     providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
-    for g in vfs.GENERATED_PLUGINS:
-        if g.lower() in providers and g.lower() not in current:
-            current[g.lower()] = mo2.PluginEntry(g, True)
+    # regenerated outputs belong enabled; MO2 lists a plugin it has not seen before as disabled
+    outputs_on = []
+    for g in sorted(vfs.GENERATED_PLUGINS):
+        key = g.lower()
+        if key in providers and not (key in current and current[key].enabled):
+            current[key] = mo2.PluginEntry(current[key].name if key in current else g, True)
+            outputs_on.append(g)
     if args.restore_states:
         current, on, off, skipped = restore_states(current, ref_entries, providers)
         rep.add("states", "WARN" if off else "PASS", "啟用狀態",
@@ -337,6 +341,8 @@ def cmd_sync_order(args, rep: Report) -> None:
     if cycles:
         rep.add("masters_cycle", "WARN", "前置互相依賴（循環）", f"{len(cycles)} 個，維持原順序：{', '.join(cycles[:10])}")
     rep.data = {"moved": moved, "esm_needs_plain": stuck, "cycles": cycles}
+    if outputs_on:
+        rep.add("outputs", "INFO", "啟用重建出來的輸出插件", ", ".join(outputs_on))
     if unknown:
         rep.add("unknown", "INFO", "不在目標清單中的插件", ", ".join(p.name for p in unknown[:15]))
     if bdir:

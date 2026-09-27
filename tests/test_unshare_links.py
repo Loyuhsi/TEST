@@ -44,3 +44,11 @@ def test_apply_gives_settings_their_own_copy(tmp_path):
 
 def test_missing_folder_fails(tmp_path):
     assert run(tmp_path, tmp_path / "nope") == 1
+
+
+def test_big_logs_are_unshared_too(tmp_path, monkeypatch):
+    src, dst = setup(tmp_path)
+    monkeypatch.setattr(unshare_links, "MAX_BYTES", 2)                  # every file is "too big" now
+    assert run(tmp_path, dst, "--apply") == 0
+    assert os.stat(dst / "BodySlide.log").st_nlink == 1
+    assert os.stat(dst / "Config.xml").st_nlink == 2

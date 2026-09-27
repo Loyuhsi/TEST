@@ -6,7 +6,7 @@
 Usage (Windows; close the tool first; dry run unless --apply):
     python tools\\unshare_links.py --path "D:\\PM\\mods\\BodySlide and Outfit Studio\\CalienteTools\\BodySlide"
     python tools\\unshare_links.py --path D:\\PM\\tools --apply
-Only settings-type files are touched (.ini .xml .json .toml .cfg .txt .log, up to 16 MB). Each one
+Only settings-type files are touched (.ini .xml .json .toml .cfg .txt up to 16 MB, .log of any size). Each one
 gets a byte-identical copy in place of the link; the source instance keeps its file unchanged.
 """
 
@@ -38,7 +38,7 @@ def shared_settings(root: Path) -> list[Path]:
                 st = os.stat(p)
             except OSError:
                 continue
-            if st.st_nlink > 1 and st.st_size <= MAX_BYTES:
+            if st.st_nlink > 1 and (st.st_size <= MAX_BYTES or f.lower().endswith(".log")):
                 out.append(Path(p))
     return sorted(out, key=lambda p: str(p).lower())
 

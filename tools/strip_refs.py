@@ -9,6 +9,11 @@ Usage (Windows; close MO2 first; dry run unless --apply):
     python tools\\strip_refs.py --pm D:\\PM --plugin "Modpocalypse NPCs (v3) Legacy of the Dragonborn.esp" ^
         --master LegacyoftheDragonborn.esm --out "D:\\PM\\mods\\Pages - LOTD V6 修正"
 --plugin and --master take a plugin name (resolved through the profile's enabled mods) or a file path.
+    python tools\\strip_refs.py --pm D:\\PM --drop-missing --from-csv data\\analysis\\override_mismatch.csv ^
+        --out "D:\\PM\\mods\\Pages - 版本不符修正"
+--drop-missing removes whole override records whose target does not exist in the (non-official) master the
+plugin names, e.g. patches made for a newer master: such records would otherwise turn into stray new
+records, and on a 1.70-header master an object ID below 0x800 even lands on a Skyrim.esm hardcoded form.
 The output folder must be a separate mod placed above the original in MO2. Writes reports\\strip_refs.*.
 """
 
@@ -23,9 +28,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pm import fsutil, tes4, vfs  # noqa: E402
-from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
+from pm.report import DEFAULT_REPORT_DIR, Report, read_csv, write_csv  # noqa: E402
 
 FIELDS = ["plugin", "record", "subrecord", "target"]
+OFFICIAL = {"skyrim.esm", "update.esm", "dawnguard.esm", "hearthfires.esm", "dragonborn.esm", "_resourcepack.esl"}
+
+
+def is_official(name: str) -> bool:
+    n = name.lower()
+    return n in OFFICIAL or (n.startswith("cc") and n.endswith((".esm", ".esl")))
 
 
 def existing_ids(path: Path) -> set[int]:
@@ -94,6 +105,63 @@ def strip(data: bytes, name: str, master: str, existing: set[int],
     return tes4.serialize_plugin(head, items), rows
 
 
+def drop_missing(data: bytes, name: str, ids_of) -> tuple[bytes | None, list[dict], int]:
+    """Remove override records whose target is not defined by its master.
+
+    ids_of(master name) returns the master's own object IDs, or None to skip that master.
+    Returns (new bytes or None, one row per removed record, records+groups removed).
+    """
+    h = tes4.parse_header_bytes(data, name)
+    masters = h.masters
+    rows: list[dict] = []
+
+    def missing(fid: int) -> bool:
+        idx = fid >> 24
+        if idx >= len(masters) or is_official(masters[idx]):
+            return False
+        ids = ids_of(masters[idx])
+        return ids is not None and (fid & 0xFFFFFF) not in ids
+
+    def prune(items: list) -> tuple[list, int]:
+        out, gone, i = [], 0, 0
+        while i < len(items):
+            item = items[i]
+            if isinstance(item, tes4.Group):
+                kept, g = prune(item.items)
+                gone += g
+                if kept or not g:
+                    item.items = kept
+                    out.append(item)
+                else:
+                    gone += 1                       # a group we emptied
+                i += 1
+                continue
+            if not missing(item.form_id):
+                out.append(item)
+                i += 1
+                continue
+            owner, oid = tes4.resolve(item.form_id, masters, name)
+            gone += 1
+            nxt = items[i + 1] if i + 1 < len(items) else None
+            children = 0
+            if item.type in ("CELL", "WRLD") and isinstance(nxt, tes4.Group) \
+                    and nxt.label == struct.pack("<I", item.form_id):
+                children = tes4.count_items(nxt.items)
+                gone += 1 + children
+                i += 1                              # its children group goes with it
+            rows.append({"plugin": name, "record": f"{item.type} {owner}:{oid:06X}", "subrecord": "",
+                         "target": f"含子記錄 {children} 筆" if children else ""})
+            i += 1
+        return out, gone
+
+    head, items = tes4.parse_plugin(data, name)
+    items, gone = prune(items)
+    if not rows:
+        return None, [], 0
+    total = tes4.count_items(items)
+    return tes4.serialize_plugin(tes4.set_record_count(head, total), items), rows, gone
+
+
 def locate(value: str, providers: dict[str, Path] | None) -> Path | None:
     p = Path(value)
     if p.is_file():
@@ -101,68 +169,102 @@ def locate(value: str, providers: dict[str, Path] | None) -> Path | None:
     return providers.get(value.lower()) if providers is not None else None
 
 
+def write_fixed(rep: Report, key: str, name: str, detail: str, new: bytes, dest: Path, apply: bool) -> None:
+    if not apply:
+        rep.add(key, "WARN", name, detail + f"；會寫到 {dest.parent.name}")
+        return
+    if dest.exists() and os.stat(fsutil.long_path(dest)).st_nlink > 1:
+        rep.add(key, "FAIL", name, detail + f"；{dest} 是硬連結，不能覆寫")
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".strip-tmp")
+    tmp.write_bytes(new)
+    os.replace(tmp, dest)
+    rep.add(key, "PASS", name, detail + f"；已寫到 {dest.parent.name}")
+
+
 def main(argv=None) -> int:
     fsutil.enable_utf8_console()
     ap = argparse.ArgumentParser(description="移除插件中指向前置已不存在記錄的引用（預設試跑；請先關閉 MO2）")
     ap.add_argument("--pm", type=Path, default=Path("D:/PM"))
     ap.add_argument("--profile", default="Pages-ZH")
-    ap.add_argument("--plugin", action="append", required=True, help="插件名稱或檔案路徑（可重複）")
-    ap.add_argument("--master", required=True, help="新版前置的名稱或檔案路徑，例如 LegacyoftheDragonborn.esm")
+    ap.add_argument("--plugin", action="append", default=[], help="插件名稱或檔案路徑（可重複）")
+    ap.add_argument("--from-csv", type=Path, help="從 CSV 的 plugin 欄讀插件清單")
+    ap.add_argument("--master", help="--types 模式：新版前置的名稱或檔案路徑，例如 LegacyoftheDragonborn.esm")
+    ap.add_argument("--drop-missing", action="store_true",
+                    help="刪掉覆寫目標在（非官方）前置裡不存在的整筆記錄")
     ap.add_argument("--out", type=Path, required=True, help="寫出修正版的 mod 資料夾（要放在原 mod 之上）")
     ap.add_argument("--types", default="NPC_", help="要處理的記錄類型，逗號分隔（預設 NPC_）")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
     rep = Report("strip_refs")
-    rep.add("mode", "INFO", "模式", "實際執行" if args.apply else "試跑（加 --apply 才會寫入）")
+    rep.add("mode", "INFO", "模式", ("刪除覆寫不存在記錄的整筆記錄；" if args.drop_missing else "")
+            + ("實際執行" if args.apply else "試跑（加 --apply 才會寫入）"))
+    plugins = list(args.plugin)
+    if args.from_csv:
+        plugins += [r["plugin"] for r in read_csv(args.from_csv) if (r.get("plugin") or "").strip()]
+    if not plugins:
+        ap.error("請指定 --plugin 或 --from-csv")
+    if not args.drop_missing and not args.master:
+        ap.error("請指定 --master，或改用 --drop-missing")
+    values = plugins + ([args.master] if args.master else [])
     providers = None
-    if not all(Path(v).is_file() for v in [*args.plugin, args.master]):
+    if args.drop_missing or not all(Path(v).is_file() for v in values):
         prof = vfs.open_profile(args.pm, args.profile)
         providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
-    master_path = locate(args.master, providers)
-    if master_path is None:
-        rep.add("master", "FAIL", "找不到前置", args.master)
-        return finish(rep, [], args.report_dir)
-    master_name = master_path.name
-    existing = existing_ids(master_path)
-    rep.add("master", "INFO", "前置", f"{master_name}：自己新增的記錄 {len(existing)} 筆")
-    types = {t.strip() for t in args.types.split(",") if t.strip()}
     out_dir = args.out
     all_rows: list[dict] = []
-    for value in args.plugin:
+    if args.drop_missing:
+        cache: dict[str, set[int] | None] = {}
+
+        def ids_of(master: str) -> set[int] | None:
+            key = master.lower()
+            if key not in cache:
+                path = locate(master, providers)
+                cache[key] = existing_ids(path) if path is not None else None
+            return cache[key]
+    else:
+        master_path = locate(args.master, providers)
+        if master_path is None:
+            rep.add("master", "FAIL", "找不到前置", args.master)
+            return finish(rep, [], args.report_dir)
+        master_name = master_path.name
+        existing = existing_ids(master_path)
+        rep.add("master", "INFO", "前置", f"{master_name}：自己新增的記錄 {len(existing)} 筆")
+        types = {t.strip() for t in args.types.split(",") if t.strip()}
+    for value in plugins:
         src = locate(value, providers)
         name = src.name if src else value
+        key = f"src:{name}"
         if src is None:
-            rep.add(f"src:{name}", "FAIL", name, "找不到插件（mod 未啟用或名稱錯誤）")
+            rep.add(key, "FAIL", name, "找不到插件（mod 未啟用或名稱錯誤）")
             continue
         if src.parent.resolve() == out_dir.resolve():
-            rep.add(f"src:{name}", "PASS", name, f"已修正：生效的是 {out_dir.name} 裡的版本")
+            rep.add(key, "PASS", name, f"已修正：生效的是 {out_dir.name} 裡的版本")
             continue
         try:
-            new, rows = strip(src.read_bytes(), src.name, master_name, existing, types)
+            data = src.read_bytes()
+            if args.drop_missing:
+                new, rows, gone = drop_missing(data, src.name, ids_of)
+            else:
+                new, rows = strip(data, src.name, master_name, existing, types)
         except (tes4.PluginError, OSError, ValueError) as e:
-            rep.add(f"src:{name}", "FAIL", name, f"無法處理：{e}")
+            rep.add(key, "FAIL", name, f"無法處理：{e}")
             continue
         if new is None:
-            rep.add(f"src:{name}", "PASS", name, f"沒有指向 {master_name} 已不存在記錄的引用（來源：{src.parent.name}）")
+            what = "前置裡都找得到覆寫目標" if args.drop_missing else f"沒有指向 {master_name} 已不存在記錄的引用"
+            rep.add(key, "PASS", name, f"{what}（來源：{src.parent.name}）")
             continue
         all_rows += rows
-        recs = len({r["record"] for r in rows})
-        kinds = {k: sum(1 for r in rows if r["subrecord"] == k) for k in ("PKID", "CNTO", "COED")}
-        detail = (f"{recs} 筆記錄有失效引用：PKID {kinds['PKID']}、CNTO {kinds['CNTO']}（COED {kinds['COED']}）；"
-                  f"來源：{src.parent.name}")
-        dest = out_dir / src.name
-        if not args.apply:
-            rep.add(f"src:{name}", "WARN", name, detail + f"；會寫到 {out_dir.name}")
-            continue
-        if dest.exists() and os.stat(fsutil.long_path(dest)).st_nlink > 1:
-            rep.add(f"src:{name}", "FAIL", name, detail + f"；{dest} 是硬連結，不能覆寫")
-            continue
-        out_dir.mkdir(parents=True, exist_ok=True)
-        tmp = dest.with_name(dest.name + ".strip-tmp")
-        tmp.write_bytes(new)
-        os.replace(tmp, dest)
-        rep.add(f"src:{name}", "PASS", name, detail + f"；已寫到 {out_dir.name}")
+        if args.drop_missing:
+            detail = f"刪除 {len(rows)} 筆覆寫不存在記錄的記錄（連同子記錄與空群組共 {gone} 項）；來源：{src.parent.name}"
+        else:
+            recs = len({r["record"] for r in rows})
+            kinds = {k: sum(1 for r in rows if r["subrecord"] == k) for k in ("PKID", "CNTO", "COED")}
+            detail = (f"{recs} 筆記錄有失效引用：PKID {kinds['PKID']}、CNTO {kinds['CNTO']}（COED {kinds['COED']}）；"
+                      f"來源：{src.parent.name}")
+        write_fixed(rep, key, name, detail, new, out_dir / src.name, args.apply)
     return finish(rep, all_rows, args.report_dir)
 
 

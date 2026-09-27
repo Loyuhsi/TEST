@@ -4221,7 +4221,6 @@
 *FNIS.esp
 *Synthesis.esp
 *PG_1.esp
-*PG_2.esp
 *DynDOLOD.esp
 *Occlusion.esp
 *FWMF for Fantasy Paper Maps.esp

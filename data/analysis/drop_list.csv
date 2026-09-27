@@ -1,20 +1,20 @@
 kind,name,line,category,reason
-folder,CS shaders,5,custom,probably a Community Shaders shader cache or local tweak
-folder,CustomFixes1,8,custom,author's private fixes (likely holds the [FIX]*.esp plugins)
-folder,CommunityShaders_AIO-2026-05-28T17-09Z,32,non_nexus,Jiaye CS fork build (Wabbajack authored file); replaced by official Community Shaders
-folder,Vanilla CS rain TEXTURES,104,custom,probably a local texture tweak for CS rain
-folder,SC_HorseReplacer_SSE,441,non_nexus,ShinglesCat Patreon
-folder,SC_HorseReplacer,442,non_nexus,ShinglesCat Patreon
-folder,Grapple a1.7,565,non_nexus,Smooth Patreon (paid tier)
-folder,anchor animation v2 Part,566,non_nexus,Anchor Patreon
-folder,For Honor in Skyrim Black Prior,1103,non_nexus,Smooth Patreon/Discord
-folder,Curious Adventurer,1837,non_nexus,Aokili Patreon (free tier)
-folder,[full_inu] Armor Pack 01 SSE,1912,non_nexus,blog/Patreon
-folder,[SSE] H2135 Fantasy Series8,1923,non_nexus,Patreon/Discord
-folder,[Kirax] BDOR 2024 Female Collection,1926,non_nexus,ModBooru/LoversLab
-folder,[TalesOfStar] Air Balloons,3380,non_nexus,Patreon/site
-folder,[Dint999] BDOR Hairs SSE 0.23,3904,non_nexus,Patreon/Discord
-folder,Lamas Tiny Hud - Edge version (SUKI),3930,non_nexus,SUKI Patreon
+folder,CS shaders,6,custom,probably a Community Shaders shader cache or local tweak
+folder,CustomFixes1,9,custom,author's private fixes (likely holds the [FIX]*.esp plugins)
+folder,CommunityShaders_AIO-2026-05-28T17-09Z,33,non_nexus,Jiaye CS fork build (Wabbajack authored file); replaced by official Community Shaders
+folder,Vanilla CS rain TEXTURES,105,custom,probably a local texture tweak for CS rain
+folder,SC_HorseReplacer_SSE,442,non_nexus,ShinglesCat Patreon
+folder,SC_HorseReplacer,443,non_nexus,ShinglesCat Patreon
+folder,Grapple a1.7,566,non_nexus,Smooth Patreon (paid tier)
+folder,anchor animation v2 Part,567,non_nexus,Anchor Patreon
+folder,For Honor in Skyrim Black Prior,1104,non_nexus,Smooth Patreon/Discord
+folder,Curious Adventurer,1838,non_nexus,Aokili Patreon (free tier)
+folder,[full_inu] Armor Pack 01 SSE,1913,non_nexus,blog/Patreon
+folder,[SSE] H2135 Fantasy Series8,1924,non_nexus,Patreon/Discord
+folder,[Kirax] BDOR 2024 Female Collection,1927,non_nexus,ModBooru/LoversLab
+folder,[TalesOfStar] Air Balloons,3381,non_nexus,Patreon/site
+folder,[Dint999] BDOR Hairs SSE 0.23,3905,non_nexus,Patreon/Discord
+folder,Lamas Tiny Hud - Edge version (SUKI),3931,non_nexus,SUKI Patreon
 plugin,[FIX]Falkreath02.esp,,custom,author-made [FIX] plugin (not downloadable)
 plugin,[FIX]Morthal01.esp,,custom,author-made [FIX] plugin (not downloadable)
 plugin,[FIX]Riverwood02.esp,,custom,author-made [FIX] plugin (not downloadable)
@@ -23,7 +23,7 @@ plugin,[FIX]Rorikstead01.esp,,custom,author-made [FIX] plugin (not downloadable)
 plugin,[FIX]Solitude01.esp,,custom,author-made [FIX] plugin (not downloadable)
 plugin,[FIX]Spaghetti's Grand Solitude Patch.esp,,custom,author-made [FIX] plugin (not downloadable)
 plugin,[FIX]Volcanictundra01.esp,,custom,author-made [FIX] plugin (not downloadable)
-plugin,Curious Adventurer.esp,1837,non_nexus,plugin of dropped folder Curious Adventurer
-plugin,[full_inu] Armor Pack 01.esp,1912,non_nexus,plugin of dropped folder [full_inu] Armor Pack 01 SSE
-plugin,[Kirax] BDOR 2024 Female Collection.esp,1926,non_nexus,plugin of dropped folder [Kirax] BDOR 2024 Female Collection
-plugin,AirBalloons.esp,3380,non_nexus,plugin of dropped folder [TalesOfStar] Air Balloons
+plugin,Curious Adventurer.esp,1838,non_nexus,plugin of dropped folder Curious Adventurer
+plugin,[full_inu] Armor Pack 01.esp,1913,non_nexus,plugin of dropped folder [full_inu] Armor Pack 01 SSE
+plugin,[Kirax] BDOR 2024 Female Collection.esp,1927,non_nexus,plugin of dropped folder [Kirax] BDOR 2024 Female Collection
+plugin,AirBalloons.esp,3381,non_nexus,plugin of dropped folder [TalesOfStar] Air Balloons

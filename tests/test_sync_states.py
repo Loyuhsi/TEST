@@ -148,3 +148,16 @@ def test_verify_counts_disabled_target_plugins_and_lists_extra_folders(pm, tmp_p
     # target enables Master, A, B, E, Gone; only C is enabled now (B is listed but off)
     assert "缺少或未啟用 5 個" in text
     assert "清單外的資料夾：1 個：E" in text
+
+
+def test_sync_order_enables_regenerated_outputs_mo2_listed_as_disabled(pm, tmp_path):
+    write_plugin(pm / "mods" / "SYNTHESSIS" / "Synthesis.esp", ["Skyrim.esm"], tes4.FLAG_LIGHT)
+    pdir = pm / "profiles" / "Pages-ZH"
+    raw = (pdir / "modlist.txt").read_text()
+    (pdir / "modlist.txt").write_text("+SYNTHESSIS\r\n" + raw)
+    mo2.write_plugins(pdir / "plugins.txt", [*mo2.read_plugins(pdir / "plugins.txt"),
+                                             mo2.PluginEntry("Synthesis.esp", False)])
+    assert run(pm, tmp_path, "--apply") == 0
+    assert states(pm)["Synthesis.esp"] is True
+    text = (tmp_path / "reports" / "build_instance-sync-order.txt").read_text(encoding="utf-8")
+    assert "啟用重建出來的輸出插件：Synthesis.esp" in text

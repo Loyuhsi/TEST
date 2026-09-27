@@ -123,3 +123,4 @@ CS - Grass Optimizations,download,官方版（docs/04 第 7 節）,188628,809750
 Pages - 設定覆寫,keep,本地建立：放被其他 mod 蓋掉或要修改的設定檔副本（例如 BodySlide 的 Config.xml）,,,
 Pages - LOTD V6 修正,keep,本地由 tools/strip_refs.py 產生：LOTD 5 補丁移除失效引用後的同名修正版,,,
 Open Animation Replacer - RaySense3,reinstall,1.2.0 新增 RaySense_Ledge 條件（1.1 會有 80 行 not found）；需要 OAR 3.0.2 以上；插件同名 RaySense.esp,175498,796343,1.2.0
+Pages - 版本不符修正,keep,本地由 tools/strip_refs.py --drop-missing 產生：對應新版主插件的補丁，刪掉覆寫不存在記錄的那幾筆後的同名修正版（清單見 data/analysis/override_mismatch.csv）,,,

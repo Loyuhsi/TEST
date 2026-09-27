@@ -146,3 +146,79 @@ def test_big_subrecords_use_xxxx():
     big = b"\x01" * 70000
     out = tes4.build_subrecords([("EDID", b"x\x00"), ("DATA", big)])
     assert list(tes4.iter_subrecords(out)) == [("EDID", b"x\x00"), ("DATA", big)]
+
+
+# ---------------------------------------------------------------- --drop-missing
+def cell_children(cell_id: int, body: bytes) -> bytes:
+    return b"GRUP" + struct.pack("<I", 24 + len(body)) + fid(cell_id) + struct.pack("<IHHHH", 6, 0, 0, 0, 0) + body
+
+
+def mismatch_world(tmp_path):
+    pm = tmp_path / "PM"
+    mods = pm / "mods"
+    # old master (1.70 header): defines 0x800 and 0x950 only
+    write(mods / "TGTK" / "TGTK.esp", ["Skyrim.esm"],
+          grup(b"STAT", rec(b"STAT", 0x01000800, b"") + rec(b"STAT", 0x01000950, b"")))
+    body = (grup(b"CELL",
+                 rec(b"CELL", 0x000139D1, sub(b"EDID", b"KarthwastenHall\x00"))          # Skyrim cell: official
+                 + cell_children(0x000139D1,
+                                 rec(b"REFR", 0x01000800, b"")                             # exists: kept
+                                 + rec(b"REFR", 0x01000429, b"")                           # below 0x800: gone
+                                 + rec(b"REFR", 0x01000900, b""))                          # not in master: gone
+                 + rec(b"CELL", 0x01000A00, b"")                                           # cell not in master
+                 + cell_children(0x01000A00, rec(b"REFR", 0x02000800, b"")))               # goes with its cell
+            + grup(b"NPC_", rec(b"NPC_", 0x0100009C, b""))                                 # whole group emptied
+            + grup(b"STAT", rec(b"STAT", 0x00000123, b"")))                                # Skyrim.esm: not checked
+    p = mods / "Snazzy" / "Patch.esp"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    head = tes4.build_header(p.name, masters=["Skyrim.esm", "TGTK.esp"], flags=tes4.FLAG_LIGHT, hedr_version=1.71,
+                             num_records=tes4.count_items(tes4.parse_items(body, 0, len(body))))
+    p.write_bytes(head + body)
+    (pm / "STOCK GAME" / "Data").mkdir(parents=True)
+    pdir = pm / "profiles" / "Pages-ZH"
+    pdir.mkdir(parents=True)
+    mo2.write_modlist(pdir / "modlist.txt", [mo2.ModEntry(n, "+") for n in ("Fix2", "Snazzy", "TGTK")])
+    mo2.write_plugins(pdir / "plugins.txt", [mo2.PluginEntry(n, True) for n in ("TGTK.esp", "Patch.esp")])
+    return pm
+
+
+def run_drop(tmp_path, pm, *extra) -> int:
+    return strip_refs.main(["--pm", str(pm), "--drop-missing", "--out", str(pm / "mods" / "Fix2"),
+                            "--report-dir", str(tmp_path / "reports"), *extra])
+
+
+def test_drop_missing_removes_overrides_of_records_the_master_lacks(tmp_path):
+    pm = mismatch_world(tmp_path)
+    assert run_drop(tmp_path, pm, "--plugin", "Patch.esp", "--apply") == 0
+    out = pm / "mods" / "Fix2" / "Patch.esp"
+    data = out.read_bytes()
+    kept = [(t, i) for t, _f, i in tes4.iter_records(data)]
+    assert kept == [("CELL", 0x000139D1), ("REFR", 0x01000800), ("STAT", 0x00000123)]
+    rows = read_csv(tmp_path / "reports" / "strip_refs.csv")
+    assert {r["record"] for r in rows} == {"REFR TGTK.esp:000429", "REFR TGTK.esp:000900",
+                                           "CELL TGTK.esp:000A00", "NPC_ TGTK.esp:00009C"}
+    assert next(r for r in rows if r["record"].startswith("CELL"))["target"] == "含子記錄 1 筆"
+    h = tes4.read_header(out)
+    assert h.num_records == tes4.count_items(tes4.parse_plugin(data)[1]) and h.is_light
+    assert h.masters == ["Skyrim.esm", "TGTK.esp"]
+
+
+def test_drop_missing_reads_the_plugin_list_from_csv(tmp_path):
+    pm = mismatch_world(tmp_path)
+    csv_path = tmp_path / "mismatch.csv"
+    csv_path.write_text("plugin,master\nPatch.esp,TGTK.esp\n", encoding="utf-8")
+    assert run_drop(tmp_path, pm, "--from-csv", str(csv_path)) == 0      # dry run
+    assert not (pm / "mods" / "Fix2" / "Patch.esp").exists()
+    text = (tmp_path / "reports" / "strip_refs.txt").read_text(encoding="utf-8")
+    assert "刪除 4 筆覆寫不存在記錄的記錄" in text
+
+
+def test_drop_missing_leaves_consistent_plugins_alone(tmp_path):
+    pm = mismatch_world(tmp_path)
+    ok = pm / "mods" / "Snazzy" / "Fine.esp"
+    ok.write_bytes(tes4.build_header(ok.name, masters=["Skyrim.esm", "TGTK.esp"])
+                   + grup(b"STAT", rec(b"STAT", 0x01000950, b"")))
+    mo2.write_plugins(pm / "profiles" / "Pages-ZH" / "plugins.txt",
+                      [mo2.PluginEntry(n, True) for n in ("TGTK.esp", "Patch.esp", "Fine.esp")])
+    assert run_drop(tmp_path, pm, "--plugin", "Fine.esp", "--apply") == 0
+    assert not (pm / "mods" / "Fix2" / "Fine.esp").exists()

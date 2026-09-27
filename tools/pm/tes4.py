@@ -359,3 +359,18 @@ def resolve(form_id: int, masters: list[str], self_name: str) -> tuple[str, int]
     """(plugin that defines the form, object id) for a form ID written in a plugin."""
     idx = form_id >> 24
     return (masters[idx] if idx < len(masters) else self_name), form_id & 0xFFFFFF
+
+
+def set_record_count(tes4_record: Record, count: int) -> Record:
+    """TES4 header record with the HEDR record count (records + groups) replaced."""
+    subs = []
+    for typ, data in iter_subrecords(tes4_record.payload()):
+        if typ == "HEDR" and len(data) >= 12:
+            data = data[:4] + struct.pack("<i", max(count, 0)) + data[8:]
+        subs.append((typ, data))
+    return tes4_record.replace_payload(build_subrecords(subs))
+
+
+def count_items(items: list) -> int:
+    """Records plus groups in a subtree (what HEDR counts)."""
+    return sum(1 + count_items(i.items) if isinstance(i, Group) else 1 for i in items)

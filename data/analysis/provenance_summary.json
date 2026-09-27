@@ -1,9 +1,9 @@
 {
- "enabled_mods": 4053,
+ "enabled_mods": 4054,
  "separators": 95,
- "plugins": 4246,
+ "plugins": 4245,
  "plugins_by_ext": {
-  ".esp": 4142,
+  ".esp": 4141,
   ".esl": 76,
   ".esm": 28
  },
@@ -16,7 +16,7 @@
   "nolvus": 2585,
   "nolvus_old": 55,
   "non_nexus": 13,
-  "unknown": 32
+  "unknown": 33
  },
  "by_action": {
   "download_nexus": 386,
@@ -24,7 +24,7 @@
   "harvest_mv": 648,
   "harvest_nolvus": 2933,
   "regenerate": 9,
-  "review": 61
+  "review": 62
  },
  "generated_plugins": [
   "PGPatcher.esp",
@@ -32,7 +32,6 @@
   "FNIS.esp",
   "Synthesis.esp",
   "PG_1.esp",
-  "PG_2.esp",
   "DynDOLOD.esp",
   "Occlusion.esp"
  ],
