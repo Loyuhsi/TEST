@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-28
-目前階段：5（cloud-notes f92218b 步驟 1–3 完成；第 4 步 DynDOLOD 在 Solstheim 被 Lux Orbis - LotD patch 的 Unresolved FormID 擋下；全載入順序有 10 個 LOTD 5.6 補丁引用 V6 沒有的記錄，等雲端決定換新版）
+目前階段：5（cloud-notes 78aa2e5 步驟 1–8 完成：LOTD 5.6 補丁換成 V6 版、兩個掃描歸零；DynDOLOD 前停下：Synthesis.esp 是用舊版 Lux Orbis LotD 產生的，等雲端決定要不要重跑 Synthesis／PGPatcher）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；**DynDOLOD 第 2 次停下**：Tamriel 通過，Solstheim 被 Lux Orbis - LotD patch 的 XESP 擋下；全載入順序還有 10 個 Nolvus 的 LOTD 5.6 補丁、36 筆引用指向 V6 沒有的記錄（室外 23），新版都已驗證可用，等雲端決定 |
+| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；LOTD 5.6 補丁換成 V6 版（官方 6.10.9 ×5、Lux 7.2、Lux Orbis 4.7、BS Synergy 1.13.2），室內 2 筆用 `--drop-unresolved-base`；未解析引用 0、覆寫掃描只剩接受的 16 個；**DynDOLOD 前停下**：Synthesis.esp 還有 4 筆 LAND 覆寫舊版 Lux Orbis LotD 的記錄，PG_1 也以 3 個換過的補丁為前置，等雲端決定要不要重跑 |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -235,6 +235,22 @@
     - LOTD 官方補丁 6.10.9、BS Synergy 1.13.2、Lux Patch Hub 7.2 都沒有未解析的引用。
     - Lux Orbis Patch Hub 4.7 只剩 4 筆覆寫，`--drop-missing` 可處理。
   - 下一步：推送後等雲端決定換新版的方式（還有 FOMOD 選項、舊修正版要移走），再重做版本不符修正與 DynDOLOD。
+- 2026-09-28 雲端 78aa2e5 的步驟 1–8（細節與報告全文在 local-report）：
+  - pytest 198 全過。
+  - BS Synergy 1.13.2：
+    - `install_archives` 把備註裡的「沒有 FOMOD」當成 FOMOD，判為要人工。
+    - 改用包裝程式跑工具本身的流程，只對這個資料夾略過備註關鍵字；重裝完成，舊內容在 `_replaced`。
+  - 舊的 LOTD 5.6 補丁 10 個檔、2 個 Lux 原檔、3 個舊修正版，搬到 `_replaced\lotd56-patches-20260928-014302`。
+  - `fill_plugins`（不加 `--mv`／`--nolvus`）：
+    - 第一次試跑多了 1 列 Horsepower：已修剪、資料夾停用的插件。
+    - 把它的壓縮檔暫時移開後，剛好 6 列，`--apply` 放入 10 個檔，再把壓縮檔搬回。
+    - Lux Orbis LotD 4.7 手動放入（前置 10 個都在）。
+  - 版本不符修正：
+    - Lux Orbis LotD `--drop-missing` 刪 4 筆。
+    - LOTD_HUB（原地）、Lucien 用 `--drop-unresolved-base` 各刪 1 筆。
+  - 掃描：未解析引用 0；覆寫掃描剩接受的 16 個（BS Synergy 已不在），加上 Synthesis.esp → Lux Orbis LotD 4 筆 LAND。
+  - check_plugins 全過（完整 251、輕量 4012、BEES 918），主選單 166 秒。
+  - 下一步：推送後等雲端決定要不要先重跑 Synthesis（可能還有 PGPatcher），再做 DynDOLOD（Ultra）。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。

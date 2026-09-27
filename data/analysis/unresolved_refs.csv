@@ -1,37 +1,3 @@
 ﻿plugin,provider,record,record_master,field,target_file,target_id,where
 LOTD_HUB.esp,Pages - 版本不符修正,REFR:060F9BF7,lotd_hub.esp,NAME,legacyofthedragonborn.esm,143345,interior
-DBM_TheGrayCowlofNocturnal_Patch.esp,Pages - 版本不符修正,REFR:07000887,dbm_thegraycowlofnocturnal_patch.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 06200000
-DBM_TheGrayCowlofNocturnal_Patch.esp,Pages - 版本不符修正,REFR:07000886,dbm_thegraycowlofnocturnal_patch.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 06200000
-DBM_TheGrayCowlofNocturnal_Patch.esp,Pages - 版本不符修正,REFR:07000812,dbm_thegraycowlofnocturnal_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 06200000
-DBM_Wyrmstooth_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000890,dbm_wyrmstooth_patch.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 06000D62
-DBM_Wyrmstooth_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:0700088E,dbm_wyrmstooth_patch.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 06000D62
-DBM_Wyrmstooth_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:070008B5,dbm_wyrmstooth_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 06000D62
-DBM_Wyrmstooth_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:0700089B,dbm_wyrmstooth_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 06000D62
-DBM_Clockwork_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:0700080A,dbm_clockwork_patch.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 060509B2
-DBM_Clockwork_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:0700080C,dbm_clockwork_patch.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 060509B2
-DBM_Clockwork_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000824,dbm_clockwork_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 060509B2
-DBM_ForgottenCity_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000859,dbm_forgottencity_patch.esp,NAME,legacyofthedragonborn.esm,381251,interior
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000896,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 06A1CF42
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000873,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 06A1CF42
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000871,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 06A1CF42
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:07000894,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 06A1CF42
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:0700088A,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 06A1CF42
-DBM_Falskaar_Patch.esp,Legacy of the Dragonborn Patches (Official)2,REFR:070008C8,dbm_falskaar_patch.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 06A1CF42
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000B92,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 070A764B
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000B95,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 070A764B
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000BB5,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,02B9F2,WRLD 070A764B
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000BB8,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,02B9FD,WRLD 070A764B
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000BA8,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 070A764B
-DBM_BSHeartlandPatch - Main.esp,Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,REFR:08000BCE,dbm_bsheartlandpatch - main.esp,NAME,legacyofthedragonborn.esm,381251,WRLD 070A764B
 DBM_Lucien_Patch.esp,Legacy of the Dragonborn - Follower Room Patches,REFR:05166C8F,legacyofthedragonborn.esm,NAME,legacyofthedragonborn.esm,143345,interior
-Lux Orbis - LotD patch.esp,Pages - 版本不符修正,REFR:04007306,legacyofthedragonborn.esm,XESP,legacyofthedragonborn.esm,0072E8,WRLD 03000800
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:062AE485,legacyofthedragonborn.esm,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EC1,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EBF,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:062AE48E,legacyofthedragonborn.esm,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EBE,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000915,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EC0,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EC2,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:08000EC3,lux - legacy of the dragonborn patch.esp,XESP,legacyofthedragonborn.esm,5A95BA,interior
-Lux - Legacy of the Dragonborn patch.esp,Pages - 版本不符修正,REFR:062AE483,legacyofthedragonborn.esm,XESP,legacyofthedragonborn.esm,5A95BA,interior
