@@ -12,6 +12,8 @@ reads the exported SKSEPlugin_Version data block. CommonLibSSE-NG
 Exports alone can lie: some AE builds export Query too but only open the AE Address Library
 (Data/SKSE/Plugins/versionlib-*.bin), so the game stops with "failed to open address library
 file". A DLL whose only Address Library path is versionlib-* is treated as AE-only.
+Some AE builds carry both path strings (Knockback 718570 does), which no static check can tell
+apart; those are handled through data/decisions.csv and the main-menu test.
 """
 
 from __future__ import annotations

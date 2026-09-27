@@ -5,6 +5,51 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 5 階段回報判讀**（回應 34c8a1e）。
+  - 主選單修好（176 秒）、strip_refs 的 12 個引用、OAR 3.2.1、BodySlide morphs（和 Nolvus 幾乎逐位元組相同）都接受。
+  - 你照手冊在 Synthesis 停下是對的：**是我手冊寫錯了**。
+  1. **Synthesis**：
+     - Nolvus 手冊的截圖顯示，Nolvus 用的是 Jampi0n 的 `Skyrim-RemoveLandscapeVertexColor`。
+     - 讀它的原始碼：預設 `removeAllVertexVertexColors=false`，不移除頂點顏色，而是用公式調亮（一般地形 `Pow(x/255,0.5)*255`，雪地 `Pow(x/255,0.1)*255`）。
+     - 驗算：原版 115 → 171、平均 239 → 247，和你量到的 Nolvus 值（最暗 182–217、平均 248.6）吻合。
+     - 所以照 Nolvus：只用這一個 patcher，**Settings 保持預設**。`docs/05` 第 3 節已改寫，也寫了產生後的檢查（LAND 每筆都要有 VCLR）。
+  2. **RaySense**：升到 1.2.0（175498／796343）。說明寫明新增 RaySense_Ledge，需要 OAR 3.0.2 以上；沒有 FOMOD，插件同名。`decisions.csv` 設為 reinstall。
+     - 其餘 24 行個別動畫設定檔的解析錯誤不用處理。
+  3. **Knockback 的 AE 判斷**：接受限制。兩版的路徑字串相同，靜態檢查分不出來，這種個案靠 `decisions.csv` 與主選單測試處理（`pe.py` 已註明）。
+  4. **手冊修正**：
+     - BodySlide 第 5 步改成「勾選狀態不要動，直接 Build」，並加「TRI = True」的檢查與 `BodySlide.xml` 的做法。
+     - phase-commands 註明：`create --apply` 會把修剪全部恢復，prune 的判斷標準是「名字都在已接受的清單內」。
+  5. **中文化**：還沒開始，照設計在 EN-baseline（第 5 階段第 12 節）之後。現在只有第 2 階段抽出的官方繁中字串。
+     - 使用者可以先從夸克下載蘇禾漢化包（`docs/06` 5.1 表中的 5 項；連結由使用者自己取得，不要寫進任何檔案）。
+     - 下載好之後，你可以在長時間工具執行的空檔做下面「可平行進行」的唯讀準備。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間工作照 CLAUDE.md）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. **RaySense**：
+     1. `manifest`：預期 reinstall 1 個。
+     2. `nexus_fetch`。
+     3. `install_archives --only "Open Animation Replacer - RaySense3"` 試跑，再 `--apply`。
+     4. `audit_skse --dll` 測新的 `OpenAnimationReplacer-RaySense.dll`。
+  3. **主選單測試**：
+     - 確認 `skse64.log` 有載入 RaySense，`OpenAnimationReplacer.log` 沒有「RaySense_Ledge not found」。
+     - 沒載入的話，把 `_replaced` 裡的 1.1 搬回原資料夾（搬移，不要刪除）並回報。
+  4. **Synthesis**：照新的 `docs/05` 第 3 節。產生後跑 `esl_check --subrecords LAND --flag`（試跑）→ `--flag --apply` → sync-order → `check_plugins`。
+  5. **`docs/05` 第 4–10 節**：
+     - PGPatcher → 草地快取（方案 A）→ xLODGen → TexGen → DynDOLOD（High）→ sync-order／check_plugins／audit_skse → 第一次用 CS 啟動。
+     - 停止條件同上一輪：
+       - 工具的輸出資料夾要是空的。
+       - 每個工具跑完都跑 `check_plugins`。
+       - 除了 DynDOLOD.esm／.esp，新的完整插件輸出要加 ESL 旗標；加不上就停下回報。
+  6. 回報並推送：
+     - 各報告的每一行。
+     - 各輸出資料夾的檔案數。
+     - Synthesis 的 LAND 筆數與前置數量。
+     - DynDOLOD 的記錄檔摘要（有錯誤時）。
+     - 第 11 節的測試路線由使用者玩；第 12 節的 EN-baseline 在測試通過後做。
+- 2026-09-27｜**可平行進行的中文化準備**（只在使用者已下載蘇禾包時做；**不在 D:\PM 安裝任何中文 mod**）：
+  1. 照 `docs/06` 5.3 第 1 步，把兩個 Other 包和本體＋CC 包解壓到 `D:\zh-packs`。兩個 DSD 包先不動。
+  2. 照 5.3 第 2 步列出本體＋CC 包的檔案清單（`reports\zh_pack_basegame_list.txt`）。
+  3. 照 5.5 第 1–2 步，對兩個 Other 包跑 `diff_pack.py` 試跑（唯讀），報告改名為 `zh_diff_pack-nolvus.*`、`zh_diff_pack-mv.*`。
+  4. 在 local-report 附上這些報告的摘要（每行結果與數量，不貼網盤連結或整份清單），雲端在第 6 階段開始前判讀。
 - 2026-09-27｜**第 5 階段前半回報判讀**（回應 08bcfd8）。
   - 找出卡住原因的方法（取樣執行緒、追到 LOTD NPC 的 PKID）非常好。
   - Knockback 換 SE 版、補裝 Community Shaders、Pandora 的處理（Steam 裡誤寫的檔由使用者同意後刪除）、BodySlide 的設定覆寫，都接受。
