@@ -5,6 +5,86 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 5 階段前半回報判讀**（回應 08bcfd8）。
+  - 找出卡住原因的方法（取樣執行緒、追到 LOTD NPC 的 PKID）非常好。
+  - Knockback 換 SE 版、補裝 Community Shaders、Pandora 的處理（Steam 裡誤寫的檔由使用者同意後刪除）、BodySlide 的設定覆寫，都接受。
+  1. **LOTD 的 NPC 補丁**：
+     - **NPC Overhaul** 升到 v2（38178／514540，「Updated for Legacy v6」），`decisions.csv` 設為 reinstall。
+       - 壓縮檔有 FOMOD，要用 MO2 安裝：舊內容先搬到 `_replaced`，選項和舊版相同。
+       - 看舊插件的大小判斷選項：68061 bytes＝`00 Main`，68070＝`01 Option/AltAuryen`。
+     - **Modpocalypse LOTD** 沒有 V6 版。新工具 `tools/strip_refs.py` 做了 Pages 自製 ErrorFixes 的事：
+       - 在新 mod `Pages - LOTD V6 修正` 寫出**同名修正版**，只刪掉指向 V6 已不存在記錄的 PKID、CNTO（連同後面的 COED），並更新 COCT。
+       - FormID、外觀、FaceGen 都不變，也不佔插件名額；原檔不動。
+       - NPC Overhaul v2 如果也還有這種引用，一樣處理。
+     - 修好後 Nolvus Awakening NPC Patch 可以保留。
+     - 仍然卡住就退回 (a)（見順序第 7 步）。
+  2. **OAR**：升到 3.2.1（92109／798222，官方說明支援 1.5.97，沒有 FOMOD）。`decisions.csv` 設為 reinstall，由 `install_archives` 安裝。RaySense 的外掛與 M&V 的 IED Conditions／Detection Plugin 都搭配 OAR 3 使用。
+  3. **恢復項目**：
+     - 加回 `AI Overhaul - USSEP Patch.esp`（輕量）。已加進目標 plugins.txt，`plugin_sources.csv` 對應 M&V 的 `AI Overhaul SSE` → `AI Overhaul`；GS 的 AIO 補丁會跟著恢復。
+     - Embershard **不恢復**：SnozzResources 是完整插件，而且要壓縮 FormID，名額只剩 1 個餘裕。
+  4. **Synthesis**：Nolvus v6 那份只覆寫 LAND／CELL／WRLD、沒有 WATR，所以 v6 已不用 Water Does Damage。
+     - 只加 **Remove Landscape Vertex Color**，前提是 `esl_check --subrecords LAND` 顯示 Nolvus 那份的 LAND 沒有 VCLR（`docs/05` 第 3 節）。
+  5. **BodySlide**：
+     - 照 Nolvus 的選擇、7 組保留預設都接受。
+     - 10 組頂點差異不追查（只影響兩套服裝的外觀）。
+     - **Build Morphs 我先前寫錯了**：Nolvus 有建 morphs，改成勾選後再建一次（選擇已在 `BuildSelection.xml`，約 1 分鐘）。
+     - `docs/05` 第 2 節已照你的做法改寫：設定覆寫、確認 `Log_BS.txt`。
+     - 做成工具不需要：`BuildSelection.xml` 與 `data/analysis/bodyslide_choices.csv` 已經記錄了選擇。第 8 階段要把 `BuildSelection.xml` 一起備份。
+  6. **主選單偏下被切掉**：留到第 7 階段。
+  7. **工具與手冊缺口**：
+     - `audit_skse`：
+       - DLL 只找 `versionlib-*.bin`（AE 版 Address Library）時，判為 AE 專用，就算它匯出 Query 也一樣。
+       - 新增 `--dll PATH`，可以只判斷一個檔。
+       - 新增「Community Shaders」一行（找不到 `CommunityShaders.dll` → `[失敗]`）。
+       - ENB 那一行不再寫「可正常運作」。
+       - DLLPlugins 暫不處理（只有 1 個，你已確認）。
+     - `verify`：目標有啟用、但目前沒啟用的插件也算缺少，不再隨 MO2 開關變動；另列清單外的資料夾。
+     - `build_instance` 的已知工具加了 `Pandora Behaviour Engine.exe`。
+     - 文件：
+       - `docs/05` 第 1 節改寫：Settings.json、工作目錄、確認 Steam 沒被寫入。
+       - `docs/05` 共通原則補充：被其他 mod 蓋掉的設定檔放 `Pages - 設定覆寫`。
+       - `docs/04` 第 7 節加 audit_skse 的確認。
+     - **目標 modlist 已加上**：`Pages - 設定覆寫`、`Pages - LOTD V6 修正`（最上方），以及 CS 4 個（放在 `CommunityShaders_AIO…` 前面，也就是 `dyndolodCS2` 上方）。
+       - 名稱用 docs 的建議：`Community Shaders`、`CS - Skylighting`、`CS - Upscaling`、`CS - Grass Optimizations`。
+       - 你的資料夾名稱不同的話，改 `data/target/modlist.txt` 與 `data/decisions.csv` 的這幾列，並在回報寫明。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間的工作照 CLAUDE.md「長時間工作」）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. `build_instance create --apply`（目標改了）→ 開 MO2 一次再關。`verify` 應該沒有「MO2 移除了」。
+  3. **重裝**：
+     1. `manifest`：預期 reinstall 2 個（NPC Overhaul、OAR），download 0 個。
+     2. `nexus_fetch`。
+     3. `install_archives --only "Open Animation Replacer4"` 先試跑，再 `--apply`。
+     4. NPC Overhaul 照第 1 點用 MO2 安裝。
+     5. 重跑 `manifest`：reinstall 應為 0。
+  4. `fill_plugins` 試跑 → `--apply`：預期取出 `AI Overhaul - USSEP Patch.esp`。
+  5. **strip_refs**：
+     1. 試跑：
+        ```
+        python tools/strip_refs.py --pm "D:/PM" --master LegacyoftheDragonborn.esm --out "D:/PM/mods/Pages - LOTD V6 修正" --plugin "Modpocalypse NPCs (v3) Legacy of the Dragonborn.esp" --plugin "LegacyoftheDragonborn - NPC Overhaul.esp" --plugin "Nolvus Awakening NPC Patch.esp" --plugin "[xPatch] Modpocalypse NPCs (v3) SSE - LegacyoftheDragonborn.esp"
+        ```
+        預期：Modpocalypse 約 10 筆記錄，NPC Overhaul v2 可能是 0，後兩個是 0。
+     2. 同一行加 `--apply`。
+     3. 確認 `Pages - LOTD V6 修正` 在 modlist 裡是啟用的，而且在最上方附近。
+  6. **狀態與檢查**：
+     1. `sync-order --restore-states --apply`。
+     2. `prune_dependents` 試跑。預期是上一輪那 9 個，扣掉 `Grand Solitude - AI Overhaul patch.esp`；有新的名字就先回報。
+     3. `--disable-folders --apply`。
+     4. `check_plugins`、`verify`、`audit_skse`。
+     5. `audit_skse --dll` 測 `_replaced` 裡舊的 `KnockbackPlugin.dll`（應判為 AE 專用），也測新的那個。
+     6. 列出這次被判成 AE 專用的其他 DLL：上一輪它們在 `skse64.log` 都有載入的話就是誤判，回報但不要換。
+  7. **主選單測試**：300 秒內出現 DataLoaded，而且到得了主選單。
+     - 還是卡住就退回 (a)：停用 Modpocalypse LOTD、NPC Overhaul、Nolvus Awakening NPC Patch 這 3 個插件，並停用 `Modpocalypse NPCs - Legacy of the Dragonborn`、`Pages - LOTD V6 修正` 兩個資料夾（避免 FaceGen 對不上）。再測一次並回報。
+  8. **BodySlide**：勾選 Build Morphs 重建（`docs/05` 第 2 節），確認 `Log_BS.txt` 並回報 nif／tri 數量。
+  9. **Synthesis**：照 `docs/05` 第 3 節（先用 `--subrecords LAND` 確認 VCLR；加 ESL 旗標；sync-order；check_plugins）。
+  10. **`docs/05` 第 4–9 節**：PGPatcher → 草地快取（方案 A）→ xLODGen → TexGen → DynDOLOD（High）→ sync-order／check_plugins／audit_skse。
+      - 每個工具執行前：它的輸出資料夾（`pgpatcher_output`、`grass CS`、`lodgen2`、`texgenCS`、`dyndolodCS2`，以及 DynDOLOD 資料夾裡的 `TexGen_Output`、`DynDOLOD_Output`）要不存在或是空的。有內容就停下回報，不要刪。
+      - 每個工具跑完、搬好輸出後：跑 `sync-order --apply` 與 `check_plugins`。
+        - 除了 `DynDOLOD.esm`、`DynDOLOD.esp`，新的輸出插件如果是完整插件，用 `esl_check --flag` 加旗標。
+        - 加不上旗標，或完整插件超過 254，就停下回報。
+  11. `docs/05` 第 10 節（第一次用 CS 啟動）→ 回報並推送。
+      - 回報內容：各報告的每一行、strip_refs 的刪除清單摘要、主選單結果、各輸出資料夾的檔案數。
+      - 第 11 節的測試路線要由使用者玩；第 12 節的 EN-baseline 備份在測試通過後做。
+      - DynDOLOD 之前就卡住的話，先回報。
 - 2026-09-27｜**第 4 階段完成回報判讀**（回應 1b2d951）。
   - 第 4 階段接受為完成（Dibella 補上後）。`check_plugins` 全過、sync-order 移動 136 個、prune 停用 27 個都沒問題。
   - `mklink` 在 Git Bash 失敗的回報是對的：`docs/04` 7.1 與 phase-commands 已改成 Python `os.link`。

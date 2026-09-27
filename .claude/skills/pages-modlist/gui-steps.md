@@ -40,8 +40,9 @@
   - 改設定檔時，建空 mod「Pages - 設定覆寫」，把檔案複製進去再改，不改原檔。
 
 ## 第 5 階段的工具
-- Pandora：引數 `-o "D:\PM\mods\Pandora Output"`。
-- BodySlide：Output Path 設為 `D:\PM\mods\BodySlide (Nude)`。Preset 等雲端指示。
+- Pandora：4.3.1-beta 不吃 `-o`；改 `%LOCALAPPDATA%\Pandora Behaviour Engine\Settings.json` 的 `gameDataPath`／`outputPath`（`docs/05` 第 1 節）。Pandora 的視窗要由使用者按開始。
+- BodySlide：路徑寫在 `Pages - 設定覆寫\CalienteTools\BodySlide\Config.xml`（不要在 Settings 按 OK）；Outfit/Body `CBBE 3BBB Body Amazing`、Preset `CBBE Curvy (Outfit)`、勾 Build Morphs；衝突選擇已在 `BuildSelection.xml`（`docs/05` 第 2 節）。BodySlide 的視窗要由使用者操作。
+- Synthesis：只加 Remove Landscape Vertex Color（`docs/05` 第 3 節）。
 - NGIO 草地快取：先停用 True HUD。會重啟遊戲很多次，屬正常現象；時間 0.5–2.5 小時。
 - DynDOLOD：選 High。完成後依 `docs/05` 搬移輸出。
 

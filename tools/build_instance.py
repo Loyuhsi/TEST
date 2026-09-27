@@ -35,7 +35,8 @@ KNOWN_TOOLS = {  # exe name (lower) -> MO2 title
     "sseeditquickautoclean.exe": "SSEEdit QuickAutoClean",
     "dyndolodx64.exe": "DynDOLOD", "texgenx64.exe": "TexGen", "xlodgenx64.exe": "xLODGen",
     "pgpatcher.exe": "PGPatcher", "bodyslide x64.exe": "BodySlide",
-    "pandora behaviour engine+.exe": "Pandora", "synthesis.exe": "Synthesis", "bethini.exe": "BethINI Pie",
+    "pandora behaviour engine+.exe": "Pandora", "pandora behaviour engine.exe": "Pandora",
+    "synthesis.exe": "Synthesis", "bethini.exe": "BethINI Pie",
 }
 GENERATED_TAIL = ["FNIS.esp", "Synthesis.esp", "PG_1.esp", "PG_2.esp", "DynDOLOD.esp", "Occlusion.esp"]
 OPENSSL_DLLS = ("libssl-3-x64.dll", "libcrypto-3-x64.dll")
@@ -183,19 +184,25 @@ def cmd_verify(args, rep: Report) -> None:
         rep.add("exp", "FAIL", "找不到 _expected", "請先執行 create --apply")
         return
     want = [e.name for e in mo2.read_modlist(exp / "modlist.txt")]
-    have = {mo2.fold(e.name) for e in mo2.read_modlist(pdir / "modlist.txt")}
+    current = mo2.read_modlist(pdir / "modlist.txt")
+    have = {mo2.fold(e.name) for e in current}
     lost = [n for n in want if mo2.fold(n) not in have]
     rep.add("modlist", "PASS" if not lost else "FAIL", "modlist.txt 與預期比對",
             "一致" if not lost else f"MO2 移除了 {len(lost)} 行，例如：{', '.join(lost[:5])}")
-    wantp = [p.name for p in mo2.read_plugins(exp / "plugins.txt")]
-    havep = {p.name.lower() for p in mo2.read_plugins(pdir / "plugins.txt")}
+    wanted = {mo2.fold(n) for n in want}
+    extra = [e.name for e in current if not e.is_separator and mo2.fold(e.name) not in wanted]
+    if extra:
+        rep.add("extra", "INFO", "清單外的資料夾", f"{len(extra)} 個：{', '.join(extra[:10])}")
+    # a target plugin counts as missing when it is not enabled, whether or not MO2 kept its line
+    wantp = [p.name for p in mo2.read_plugins(exp / "plugins.txt") if p.enabled]
+    havep = {p.name.lower() for p in mo2.read_plugins(pdir / "plugins.txt") if p.enabled}
     lostp = [n for n in wantp if n.lower() not in havep]
     pending = [n for n in lostp if n in vfs.GENERATED_PLUGINS]
     other = [n for n in lostp if n not in vfs.GENERATED_PLUGINS]
     rep.add("plugins", "PASS" if not other else "WARN", "plugins.txt 與預期比對",
-            f"缺少 {len(other)} 個（mod 尚未安裝或已被修剪）；待重建輸出 {len(pending)} 個"
+            f"缺少或未啟用 {len(other)} 個（mod 尚未安裝或已被修剪）；待重建輸出 {len(pending)} 個"
             + (f"；例如：{', '.join(other[:5])}" if other else ""))
-    rep.data = {"lost_mods": lost, "lost_plugins": other, "pending_generated": pending}
+    rep.data = {"lost_mods": lost, "lost_plugins": other, "pending_generated": pending, "extra_mods": extra}
 
 
 def restore_states(current: dict[str, mo2.PluginEntry], expected: list[mo2.PluginEntry],

@@ -113,3 +113,12 @@ SMP Wind,keep,它的 hdtSMP64.dll 是 AE 版，會蓋掉 Faster HDT-SMP：改名
 Skyrim Souls RE - Updated,replace_dll,這個資料夾是原作（27859，舊名 Skyrim Souls RE - Updated），提供 ini、swf、腳本；裝好後把它的 SkyrimSoulsRE.dll 改名 .mohidden（上方的 1.5 移植版提供 DLL）,27859,754726,3.1.2
 Terrain Helper,harvest_mv,M&V 有（支援 1.5.97 與 1.6.1170；ESL 旗標；需要 po3 Tweaks）,,,
 Solitude and Temple Frescoes 2019,reinstall,改用 Complete (No Lanterns) ESL（和 Nolvus 同一版）：目標的 5 個 JK Frescoes 補丁只對應 Complete；舊的 Solitude Only 內容由 install_archives 移到 D:\PM\_replaced；Grand Solitude 補丁改用 Complete ESL No Lanterns 版,29695,110913,1.3
+Legacy of the Dragonborn - NPC Overhaul2,reinstall,v2 為 LOTD V6 更新（v1.2.2 引用 V6 已刪除的記錄，遊戲卡在載入）；壓縮檔有 FOMOD：舊內容先搬到 D:\PM\_replaced，再用 MO2 安裝，選項和舊版相同（舊插件 68061 bytes＝Main、68070＝AltAuryen）,38178,514540,2
+Open Animation Replacer4,reinstall,RaySense 的 OAR 外掛需要 OAR 3（2.3.6 會有 533 行錯誤）；3.2.1 支援 1.5.97,92109,798222,3.2.1
+Knockback SKSE (For BFCO and MCO Users),replace_dll,718570 的 DLL 只找 AE 版 Address Library；改用 SE 版 718571,171277,718571,1.1.1b
+Community Shaders,download,官方版（docs/04 第 7 節）,86492,810029,1.9.1
+CS - Skylighting,download,官方版（docs/04 第 7 節）,139352,809752,1.5.2
+CS - Upscaling,download,官方版（docs/04 第 7 節）,156952,758189,1.4.0
+CS - Grass Optimizations,download,官方版（docs/04 第 7 節）,188628,809750,1.0.0
+Pages - 設定覆寫,keep,本地建立：放被其他 mod 蓋掉或要修改的設定檔副本（例如 BodySlide 的 Config.xml）,,,
+Pages - LOTD V6 修正,keep,本地由 tools/strip_refs.py 產生：LOTD 5 補丁移除失效引用後的同名修正版,,,

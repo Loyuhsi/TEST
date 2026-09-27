@@ -7,6 +7,7 @@ Usage (Windows):
     python tools\\esl_check.py --plugin "D:\\...\\Synthesis.esp"             (summary, read-only)
     python tools\\esl_check.py --scan --pm D:\\PM [--profile Pages-ZH]      (every enabled full plugin, read-only)
     python tools\\esl_check.py --plugin "D:\\PM\\mods\\SYNTHESSIS\\Synthesis.esp" --flag --apply
+    python tools\\esl_check.py --plugin "...\\Synthesis.esp" --subrecords LAND   (which fields a record type carries)
 --flag only touches a file with a single hardlink (a generated output, never a harvested
 original) whose new records already fit the light range. Writes reports\\esl_check.txt/.json/.csv.
 """
@@ -39,6 +40,19 @@ def row_for(path: Path, provider: str = "") -> dict:
             "hedr": f"{s.header.hedr_version:.2f}", "masters": len(s.header.masters), "records": s.records,
             "new": s.new, "overrides": s.overrides, "new_cells": s.new_cells, "esl_ready": "yes" if ok else "",
             "reason": why, "override_types": top(s.overrides_by_type), "new_types": top(s.new_by_type)}
+
+
+def subrecord_counts(path: Path, rtype: str) -> tuple[int, dict[str, int]]:
+    """(records of rtype, how many of them carry each subrecord type)."""
+    _head, items = tes4.parse_plugin(path.read_bytes(), path.name)
+    n, counts = 0, {}
+    for rec in tes4.walk_records(items):
+        if rec.type != rtype:
+            continue
+        n += 1
+        for sub in {t for t, _ in tes4.iter_subrecords(rec.payload())}:
+            counts[sub] = counts.get(sub, 0) + 1
+    return n, counts
 
 
 def set_light_flag(path: Path) -> str:
@@ -82,6 +96,7 @@ def main(argv=None) -> int:
     ap.add_argument("--pm", type=Path, default=Path("D:/PM"))
     ap.add_argument("--profile", default="Pages-ZH")
     ap.add_argument("--flag", action="store_true", help="替 --plugin 指定的檔案加上 ESL 旗標")
+    ap.add_argument("--subrecords", metavar="TYPE", help="統計 --plugin 中這種記錄帶有哪些子記錄，例如 LAND")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
@@ -102,6 +117,14 @@ def main(argv=None) -> int:
                   + (f"；新增 CELL {r['new_cells']} 個" if r["new_cells"] else "")
                   + f"；ESL：{r['reason']}")
         rep.add(f"sum:{path.name}", "INFO", path.name, detail)
+        if args.subrecords:
+            try:
+                n, counts = subrecord_counts(path, args.subrecords)
+            except (tes4.PluginError, OSError, ValueError) as e:
+                rep.add(f"subs:{path.name}", "FAIL", f"{args.subrecords} 子記錄", f"無法讀取：{e}")
+            else:
+                rep.add(f"subs:{path.name}", "INFO", f"{args.subrecords} 子記錄",
+                        f"{args.subrecords} 記錄 {n} 筆；各子記錄出現在幾筆記錄：{top(counts, 20) or '無'}")
         if args.flag:
             if not args.apply:
                 rep.add(f"flag:{path.name}", "INFO", "加 ESL 旗標（試跑）",

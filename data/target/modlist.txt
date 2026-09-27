@@ -1,3 +1,5 @@
++Pages - 設定覆寫
++Pages - LOTD V6 修正
 -NEWMODS_separator
 +Skyshards - CS Light Addon
 +CS shaders
@@ -23,6 +25,10 @@
 +Dayspring Canyon Paper Map
 +Flat World Map Framework2
 -MV FPWM_separator
++Community Shaders
++CS - Skylighting
++CS - Upscaling
++CS - Grass Optimizations
 +CommunityShaders_AIO-2026-05-28T17-09Z
 +dyndolodCS2
 +texgenCS

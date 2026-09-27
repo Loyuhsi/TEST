@@ -110,6 +110,15 @@ python tools/esl_check.py --plugin "D:/PM/mods/SYNTHESSIS/Synthesis.esp" --flag 
 python tools/esl_check.py --plugin "路徑\某插件.esp"
 python tools/esl_check.py --scan --pm "D:/PM"
 ```
+```bash
+# DLL 單檔判斷（例如確認換下來的舊 DLL 是 AE 版）
+python tools/audit_skse.py --dll "路徑/某.dll"
+# 舊版前置補丁的失效引用：先試跑，再加 --apply；輸出寫到另一個 mod（放在原 mod 之上）
+python tools/strip_refs.py --pm "D:/PM" --plugin "Modpocalypse NPCs (v3) Legacy of the Dragonborn.esp" --master LegacyoftheDragonborn.esm --out "D:/PM/mods/Pages - LOTD V6 修正"
+# 看某種記錄帶了哪些子記錄（例如 Synthesis.esp 的 LAND 有沒有 VCLR）
+python tools/esl_check.py --plugin "路徑/Synthesis.esp" --subrecords LAND
+```
+- `strip_refs` 的報告目錄參數是 `--report-dir`（`--out` 是輸出的 mod 資料夾）。
 - 完整插件名額：目前 252，重建後 `DynDOLOD.esm`、`DynDOLOD.esp` 會用掉最後 2 個（254/254）。其他輸出（Synthesis、FNIS、Occlusion、PG_*）一定要是輕量插件；`check_plugins` 的「輸出重建後的完整插件（預估）」超過 254 就停下來回報。
 - `esl_check --flag` 只會改單一連結的檔案（重建出來的輸出），硬連結的原檔會被拒絕。
 - Synthesis 的 patcher 清單：等雲端在 `progress/cloud-notes.md` 給出後才做。BodySlide 照 `docs/05` 第 2 節。

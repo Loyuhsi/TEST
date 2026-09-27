@@ -17,6 +17,7 @@ Backported Extended ESL Support (BEES) on runtimes before 1.6.1130.
 from __future__ import annotations
 
 import struct
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -219,3 +220,142 @@ def esl_ready(s: RecordSummary) -> tuple[bool, str]:
     if bad:
         return False, f"{len(bad)} 筆新增記錄的編號超出 0x{low:03X}–0x{ESL_MAX_ID:03X}（需要壓縮 FormID）"
     return True, "可以直接加 ESL 旗標"
+
+
+# ---------------------------------------------------------------- editable record tree
+FLAG_COMPRESSED = 0x00040000
+
+
+@dataclass
+class Record:
+    header: bytes                   # 24 bytes as read (size field refreshed on output)
+    data: bytes                     # stored payload (compressed when the flag is set)
+
+    @property
+    def type(self) -> str:
+        return self.header[:4].decode("ascii", "replace")
+
+    @property
+    def flags(self) -> int:
+        return struct.unpack_from("<I", self.header, 8)[0]
+
+    @property
+    def form_id(self) -> int:
+        return struct.unpack_from("<I", self.header, 12)[0]
+
+    def payload(self) -> bytes:
+        return record_payload(self.flags, self.data)
+
+    def replace_payload(self, payload: bytes) -> "Record":
+        """Same record with new (uncompressed) payload."""
+        head = bytearray(self.header)
+        struct.pack_into("<II", head, 4, len(payload), self.flags & ~FLAG_COMPRESSED)
+        return Record(bytes(head), payload)
+
+    def to_bytes(self) -> bytes:
+        head = bytearray(self.header)
+        struct.pack_into("<I", head, 4, len(self.data))
+        return bytes(head) + self.data
+
+
+@dataclass
+class Group:
+    header: bytes                   # 24 bytes; the size is recomputed on output
+    items: list = field(default_factory=list)
+
+    @property
+    def label(self) -> bytes:
+        return self.header[8:12]
+
+    def to_bytes(self) -> bytes:
+        body = b"".join(i.to_bytes() for i in self.items)
+        head = bytearray(self.header)
+        struct.pack_into("<I", head, 4, 24 + len(body))
+        return bytes(head) + body
+
+
+def record_payload(flags: int, data: bytes) -> bytes:
+    if not flags & FLAG_COMPRESSED:
+        return data
+    if len(data) < 4:
+        raise PluginError("compressed record without size")
+    (size,) = struct.unpack_from("<I", data, 0)
+    out = zlib.decompress(data[4:])
+    if len(out) != size:
+        raise PluginError(f"decompressed {len(out)} bytes, header says {size}")
+    return out
+
+
+def parse_items(data: bytes, pos: int, end: int, name: str = "") -> list:
+    items = []
+    while pos < end:
+        if pos + 24 > end:
+            raise PluginError(f"{name}: truncated header at {pos}")
+        head = bytes(data[pos:pos + 24])
+        (size,) = struct.unpack_from("<I", head, 4)
+        if head[:4] == b"GRUP":
+            if size < 24 or pos + size > end:
+                raise PluginError(f"{name}: bad group size at {pos}")
+            items.append(Group(head, parse_items(data, pos + 24, pos + size, name)))
+            pos += size
+        else:
+            if pos + 24 + size > end:
+                raise PluginError(f"{name}: truncated record at {pos}")
+            items.append(Record(head, bytes(data[pos + 24:pos + 24 + size])))
+            pos += 24 + size
+    return items
+
+
+def parse_plugin(data: bytes, name: str = "") -> tuple[Record, list]:
+    """(TES4 header record, top-level items) of a whole plugin."""
+    if len(data) < 24 or data[:4] != b"TES4":
+        raise PluginError(f"{name}: not a TES4 plugin")
+    (size,) = struct.unpack_from("<I", data, 4)
+    tes4 = Record(bytes(data[:24]), bytes(data[24:24 + size]))
+    return tes4, parse_items(data, 24 + size, len(data), name)
+
+
+def serialize_plugin(tes4: Record, items: list) -> bytes:
+    return tes4.to_bytes() + b"".join(i.to_bytes() for i in items)
+
+
+def walk_records(items: list):
+    for i in items:
+        if isinstance(i, Group):
+            yield from walk_records(i.items)
+        else:
+            yield i
+
+
+def iter_subrecords(payload: bytes):
+    """Yield (type, data) subrecords, folding XXXX size extensions."""
+    pos, big = 0, None
+    while pos + 6 <= len(payload):
+        typ = payload[pos:pos + 4]
+        (size,) = struct.unpack_from("<H", payload, pos + 4)
+        pos += 6
+        if big is not None:
+            size, big = big, None
+        data = payload[pos:pos + size]
+        pos += size
+        if typ == b"XXXX":
+            (big,) = struct.unpack("<I", data[:4])
+            continue
+        yield typ.decode("ascii", "replace"), data
+
+
+def build_subrecords(subs: list[tuple[str, bytes]]) -> bytes:
+    out = bytearray()
+    for typ, data in subs:
+        t = typ.encode("ascii")
+        if len(data) > 0xFFFF:
+            out += b"XXXX" + struct.pack("<HI", 4, len(data)) + t + struct.pack("<H", 0) + data
+        else:
+            out += t + struct.pack("<H", len(data)) + data
+    return bytes(out)
+
+
+def resolve(form_id: int, masters: list[str], self_name: str) -> tuple[str, int]:
+    """(plugin that defines the form, object id) for a form ID written in a plugin."""
+    idx = form_id >> 24
+    return (masters[idx] if idx < len(masters) else self_name), form_id & 0xFFFFFF

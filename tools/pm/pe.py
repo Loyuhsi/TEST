@@ -9,6 +9,9 @@ reads the exported SKSEPlugin_Version data block. CommonLibSSE-NG
     Version only        -> AE-only build (will NOT load on 1.5.97)
     Query + Version     -> multi-runtime / NG (loads on both)
     neither + no Load   -> not an SKSE plugin (helper DLL)
+Exports alone can lie: some AE builds export Query too but only open the AE Address Library
+(Data/SKSE/Plugins/versionlib-*.bin), so the game stops with "failed to open address library
+file". A DLL whose only Address Library path is versionlib-* is treated as AE-only.
 """
 
 from __future__ import annotations
@@ -28,6 +31,7 @@ class DllInfo:
     path: str
     machine: int = 0
     exports: set[str] = field(default_factory=set)
+    addrlib: str = ""           # "ae", "se", "both" or "" (no Address Library path found)
 
     @property
     def is_skse_plugin(self) -> bool:
@@ -39,6 +43,8 @@ class DllInfo:
         v = "SKSEPlugin_Version" in self.exports
         if not self.is_skse_plugin and not (q or v):
             return "not_skse"
+        if self.addrlib == "ae":
+            return "ae_only"
         if q and v:
             return "multi"
         if q:
@@ -64,9 +70,24 @@ def _cstring(data: bytes, off: int) -> str:
     return data[off:end if end >= 0 else len(data)].decode("ascii", errors="replace")
 
 
+_ADDRLIB = re.compile(rb"plugins[/\\\\]version(lib)?-", re.I)
+
+
+def address_library(data: bytes) -> str:
+    """Which Address Library file names a DLL opens: "ae", "se", "both" or ""."""
+    found = {m.group(1) is not None for m in _ADDRLIB.finditer(data.replace(b"\x00", b""))}
+    if found == {True}:
+        return "ae"
+    if found == {False}:
+        return "se"
+    return "both" if found else ""
+
+
 def read_dll(path: Path) -> DllInfo:
     data = Path(path).read_bytes()
-    return parse_dll(data, str(path))
+    info = parse_dll(data, str(path))
+    info.addrlib = address_library(data)
+    return info
 
 
 def parse_dll(data: bytes, name: str = "") -> DllInfo:

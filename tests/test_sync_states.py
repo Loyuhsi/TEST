@@ -137,3 +137,14 @@ def test_sync_order_puts_patches_after_masters_the_target_lists_later(pm, tmp_pa
     text = (tmp_path / "reports" / "build_instance-sync-order.txt").read_text(encoding="utf-8")
     assert "移動 1 個插件到它的前置之後，例如：A.esp" in text
     assert "[注意] ESM 插件以一般插件為前置" in text and "Master.esm" in text
+
+
+# ---------------------------------------------------------------- verify
+def test_verify_counts_disabled_target_plugins_and_lists_extra_folders(pm, tmp_path):
+    pdir = pm / "profiles" / "Pages-ZH"
+    mo2.write_modlist(pdir / "_expected" / "modlist.txt", [mo2.ModEntry(n, "+") for n in ("A", "B", "C", "D", "M")])
+    assert build_instance.main(["verify", "--pm", str(pm), "--out", str(tmp_path / "reports")]) == 0
+    text = (tmp_path / "reports" / "build_instance-verify.txt").read_text(encoding="utf-8")
+    # target enables Master, A, B, E, Gone; only C is enabled now (B is listed but off)
+    assert "缺少或未啟用 5 個" in text
+    assert "清單外的資料夾：1 個：E" in text

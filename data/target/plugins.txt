@@ -2049,6 +2049,7 @@
 *COINMerchantExchange.esp
 *COIN - Smelting add-on.esp
 *AI Overhaul.esp
+*AI Overhaul - USSEP Patch.esp
 *AI Overhaul - Cutting Room Floor Patch.esp
 *[xPatch] Modpocalypse NPCs (v3) SSE - AI Overhaul.esp
 *[xPatch] Modpocalypse NPCs (v3) SSE - AI Overhaul - Cutting Room Floor.esp

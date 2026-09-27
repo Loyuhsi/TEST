@@ -1,9 +1,9 @@
 {
- "enabled_mods": 4047,
+ "enabled_mods": 4053,
  "separators": 95,
- "plugins": 4245,
+ "plugins": 4246,
  "plugins_by_ext": {
-  ".esp": 4141,
+  ".esp": 4142,
   ".esl": 76,
   ".esm": 28
  },
@@ -16,7 +16,7 @@
   "nolvus": 2585,
   "nolvus_old": 55,
   "non_nexus": 13,
-  "unknown": 26
+  "unknown": 32
  },
  "by_action": {
   "download_nexus": 386,
@@ -24,7 +24,7 @@
   "harvest_mv": 648,
   "harvest_nolvus": 2933,
   "regenerate": 9,
-  "review": 55
+  "review": 61
  },
  "generated_plugins": [
   "PGPatcher.esp",

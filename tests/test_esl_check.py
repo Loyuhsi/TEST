@@ -133,3 +133,14 @@ def test_scan_lists_enabled_full_plugins(tmp_path):
     assert rows["Fits.esp"]["esl_ready"] == "yes" and rows["TooBig.esp"]["esl_ready"] == ""
     text = (tmp_path / "reports" / "esl_check.txt").read_text(encoding="utf-8")
     assert "可以直接加 ESL 旗標：2 個，其中沒有新增 CELL 的 1 個，例如：Fits.esp" in text
+
+
+def test_subrecord_counts_show_which_fields_records_carry(tmp_path):
+    def sub(t, d):
+        return t + struct.pack("<H", len(d)) + d
+    land_a = sub(b"DATA", b"\x00" * 4) + sub(b"VHGT", b"\x00" * 8) + sub(b"VCLR", b"\x00" * 6)
+    land_b = sub(b"DATA", b"\x00" * 4) + sub(b"VHGT", b"\x00" * 8)
+    p = plugin(tmp_path / "Synthesis.esp", [rec(b"LAND", 0x100, land_a), rec(b"LAND", 0x200, land_b)])
+    assert run(tmp_path, "--plugin", str(p), "--subrecords", "LAND") == 0
+    text = (tmp_path / "reports" / "esl_check.txt").read_text(encoding="utf-8")
+    assert "LAND 記錄 2 筆；各子記錄出現在幾筆記錄：DATA 2, VHGT 2, VCLR 1" in text
