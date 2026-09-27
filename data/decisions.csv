@@ -124,3 +124,4 @@ Pages - 設定覆寫,keep,本地建立：放被其他 mod 蓋掉或要修改的�
 Pages - LOTD V6 修正,keep,本地由 tools/strip_refs.py 產生：LOTD 5 補丁移除失效引用後的同名修正版,,,
 Open Animation Replacer - RaySense3,reinstall,1.2.0 新增 RaySense_Ledge 條件（1.1 會有 80 行 not found）；需要 OAR 3.0.2 以上；插件同名 RaySense.esp,175498,796343,1.2.0
 Pages - 版本不符修正,keep,本地由 tools/strip_refs.py --drop-missing 產生：對應新版主插件的補丁，刪掉覆寫不存在記錄的那幾筆後的同名修正版（清單見 data/analysis/override_mismatch.csv）,,,
+Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,reinstall,1.13.2 對應 LOTD V6（Nolvus 的舊版 DBM_BSHeartlandPatch - Main.esp 有 6 個放置記錄的基底物件在 V6 已刪除，DynDOLOD 會停下）；壓縮檔根目錄就是插件、沒有 FOMOD：舊內容由 install_archives 移到 D:\PM\_replaced,36074,667108,1.13.2

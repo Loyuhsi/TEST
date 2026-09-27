@@ -14,7 +14,14 @@ Usage (Windows; close MO2 first; dry run unless --apply):
 --drop-missing removes whole override records whose target does not exist in the (non-official) master the
 plugin names, e.g. patches made for a newer master: such records would otherwise turn into stray new
 records, and on a 1.70-header master an object ID below 0x800 even lands on a Skyrim.esm hardcoded form.
-The output folder must be a separate mod placed above the original in MO2. Writes reports\\strip_refs.*.
+    python tools\\strip_refs.py --pm D:\\PM --drop-unresolved-base --from-csv data\\analysis\\unresolved_refs.csv ^
+        --out "D:\\PM\\mods\\Pages - 版本不符修正"
+--drop-unresolved-base removes whole placed references (REFR, ACHR, ...) whose base object (NAME) does not exist in
+the (non-official) master it names; the game cannot show them anyway. An override removed this way falls back to
+the master's own record. Both modes can be combined.
+The output folder must be a separate mod placed above the original in MO2. A plugin whose winning copy is already
+in the output folder is checked again and updated in place (single-link files only), so modes can be stacked.
+Writes reports\\strip_refs.*.
 """
 
 from __future__ import annotations
@@ -32,6 +39,7 @@ from pm.report import DEFAULT_REPORT_DIR, Report, read_csv, write_csv  # noqa: E
 
 FIELDS = ["plugin", "record", "subrecord", "target"]
 OFFICIAL = {"skyrim.esm", "update.esm", "dawnguard.esm", "hearthfires.esm", "dragonborn.esm", "_resourcepack.esl"}
+PLACED = {"REFR", "ACHR", "PGRE", "PHZD", "PMIS", "PARW", "PBAR", "PBEA", "PCON", "PFLA"}
 
 
 def is_official(name: str) -> bool:
@@ -105,8 +113,18 @@ def strip(data: bytes, name: str, master: str, existing: set[int],
     return tes4.serialize_plugin(head, items), rows
 
 
-def drop_missing(data: bytes, name: str, ids_of) -> tuple[bytes | None, list[dict], int]:
-    """Remove override records whose target is not defined by its master.
+def base_of(rec: tes4.Record) -> int | None:
+    """FormID in a placed reference's NAME (its base object), or None."""
+    for typ, sub in tes4.iter_subrecords(rec.payload()):
+        if typ == "NAME" and len(sub) >= 4:
+            return struct.unpack_from("<I", sub, 0)[0]
+    return None
+
+
+def drop_missing(data: bytes, name: str, ids_of, overrides: bool = True,
+                 bases: bool = False) -> tuple[bytes | None, list[dict], int]:
+    """Remove override records whose target is not defined by its master (overrides=True) and
+    placed references whose base object is not defined by its master (bases=True).
 
     ids_of(master name) returns the master's own object IDs, or None to skip that master.
     Returns (new bytes or None, one row per removed record, records+groups removed).
@@ -122,6 +140,17 @@ def drop_missing(data: bytes, name: str, ids_of) -> tuple[bytes | None, list[dic
         ids = ids_of(masters[idx])
         return ids is not None and (fid & 0xFFFFFF) not in ids
 
+    def why(item: tes4.Record) -> tuple[str, str] | None:
+        """(subrecord, target) for the report when the record must go, else None."""
+        if overrides and missing(item.form_id):
+            return "", ""
+        if bases and item.type in PLACED:
+            base = base_of(item)
+            if base is not None and missing(base):
+                owner, oid = tes4.resolve(base, masters, name)
+                return "NAME", f"{owner}:{oid:06X}"
+        return None
+
     def prune(items: list) -> tuple[list, int]:
         out, gone, i = [], 0, 0
         while i < len(items):
@@ -136,7 +165,8 @@ def drop_missing(data: bytes, name: str, ids_of) -> tuple[bytes | None, list[dic
                     gone += 1                       # a group we emptied
                 i += 1
                 continue
-            if not missing(item.form_id):
+            reason = why(item)
+            if reason is None:
                 out.append(item)
                 i += 1
                 continue
@@ -149,8 +179,8 @@ def drop_missing(data: bytes, name: str, ids_of) -> tuple[bytes | None, list[dic
                 children = tes4.count_items(nxt.items)
                 gone += 1 + children
                 i += 1                              # its children group goes with it
-            rows.append({"plugin": name, "record": f"{item.type} {owner}:{oid:06X}", "subrecord": "",
-                         "target": f"含子記錄 {children} 筆" if children else ""})
+            rows.append({"plugin": name, "record": f"{item.type} {owner}:{oid:06X}", "subrecord": reason[0],
+                         "target": reason[1] or (f"含子記錄 {children} 筆" if children else "")})
             i += 1
         return out, gone
 
@@ -193,29 +223,34 @@ def main(argv=None) -> int:
     ap.add_argument("--master", help="--types 模式：新版前置的名稱或檔案路徑，例如 LegacyoftheDragonborn.esm")
     ap.add_argument("--drop-missing", action="store_true",
                     help="刪掉覆寫目標在（非官方）前置裡不存在的整筆記錄")
+    ap.add_argument("--drop-unresolved-base", action="store_true",
+                    help="刪掉基底物件（NAME）在（非官方）前置裡不存在的放置記錄（REFR、ACHR…）")
     ap.add_argument("--out", type=Path, required=True, help="寫出修正版的 mod 資料夾（要放在原 mod 之上）")
     ap.add_argument("--types", default="NPC_", help="要處理的記錄類型，逗號分隔（預設 NPC_）")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
+    dropping = args.drop_missing or args.drop_unresolved_base
     rep = Report("strip_refs")
     rep.add("mode", "INFO", "模式", ("刪除覆寫不存在記錄的整筆記錄；" if args.drop_missing else "")
+            + ("刪除基底物件不存在的放置記錄；" if args.drop_unresolved_base else "")
             + ("實際執行" if args.apply else "試跑（加 --apply 才會寫入）"))
     plugins = list(args.plugin)
     if args.from_csv:
-        plugins += [r["plugin"] for r in read_csv(args.from_csv) if (r.get("plugin") or "").strip()]
+        plugins += [r["plugin"].strip() for r in read_csv(args.from_csv) if (r.get("plugin") or "").strip()]
+    plugins = list(dict.fromkeys(plugins))                  # a scan table lists a plugin once per record
     if not plugins:
         ap.error("請指定 --plugin 或 --from-csv")
-    if not args.drop_missing and not args.master:
-        ap.error("請指定 --master，或改用 --drop-missing")
+    if not dropping and not args.master:
+        ap.error("請指定 --master，或改用 --drop-missing／--drop-unresolved-base")
     values = plugins + ([args.master] if args.master else [])
     providers = None
-    if args.drop_missing or not all(Path(v).is_file() for v in values):
+    if dropping or not all(Path(v).is_file() for v in values):
         prof = vfs.open_profile(args.pm, args.profile)
         providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
     out_dir = args.out
     all_rows: list[dict] = []
-    if args.drop_missing:
+    if dropping:
         cache: dict[str, set[int] | None] = {}
 
         def ids_of(master: str) -> set[int] | None:
@@ -240,30 +275,40 @@ def main(argv=None) -> int:
         if src is None:
             rep.add(key, "FAIL", name, "找不到插件（mod 未啟用或名稱錯誤）")
             continue
-        if src.parent.resolve() == out_dir.resolve():
-            rep.add(key, "PASS", name, f"已修正：生效的是 {out_dir.name} 裡的版本")
-            continue
+        in_out = src.parent.resolve() == out_dir.resolve()
         try:
             data = src.read_bytes()
-            if args.drop_missing:
-                new, rows, gone = drop_missing(data, src.name, ids_of)
+            if dropping:
+                new, rows, gone = drop_missing(data, src.name, ids_of, overrides=args.drop_missing,
+                                               bases=args.drop_unresolved_base)
             else:
                 new, rows = strip(data, src.name, master_name, existing, types)
         except (tes4.PluginError, OSError, ValueError) as e:
             rep.add(key, "FAIL", name, f"無法處理：{e}")
             continue
         if new is None:
-            what = "前置裡都找得到覆寫目標" if args.drop_missing else f"沒有指向 {master_name} 已不存在記錄的引用"
-            rep.add(key, "PASS", name, f"{what}（來源：{src.parent.name}）")
+            if dropping:
+                what = "；".join(t for t, on in (("前置裡都找得到覆寫目標", args.drop_missing),
+                                                 ("放置記錄的基底物件都找得到", args.drop_unresolved_base)) if on)
+            else:
+                what = f"沒有指向 {master_name} 已不存在記錄的引用"
+            if in_out:
+                rep.add(key, "PASS", name, f"已修正：生效的是 {out_dir.name} 裡的版本，{what}")
+            else:
+                rep.add(key, "PASS", name, f"{what}（來源：{src.parent.name}）")
             continue
         all_rows += rows
-        if args.drop_missing:
-            detail = f"刪除 {len(rows)} 筆覆寫不存在記錄的記錄（連同子記錄與空群組共 {gone} 項）；來源：{src.parent.name}"
+        where = f"來源：{src.parent.name}" + ("（原地更新修正版）" if in_out else "")
+        if dropping:
+            n_base = sum(1 for r in rows if r["subrecord"] == "NAME")
+            parts = ([f"{len(rows) - n_base} 筆覆寫不存在記錄的記錄"] if args.drop_missing else []) \
+                + ([f"{n_base} 筆基底物件不存在的放置記錄"] if args.drop_unresolved_base else [])
+            detail = f"刪除 {'、'.join(parts)}（連同子記錄與空群組共 {gone} 項）；{where}"
         else:
             recs = len({r["record"] for r in rows})
             kinds = {k: sum(1 for r in rows if r["subrecord"] == k) for k in ("PKID", "CNTO", "COED")}
             detail = (f"{recs} 筆記錄有失效引用：PKID {kinds['PKID']}、CNTO {kinds['CNTO']}（COED {kinds['COED']}）；"
-                      f"來源：{src.parent.name}")
+                      f"{where}")
         write_fixed(rep, key, name, detail, new, out_dir / src.name, args.apply)
     return finish(rep, all_rows, args.report_dir)
 

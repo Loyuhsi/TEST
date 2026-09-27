@@ -122,10 +122,16 @@ python tools/esl_check.py --plugin "路徑/Synthesis.esp" --subrecords LAND
   ```bash
   python tools/strip_refs.py --pm "D:/PM" --drop-missing --from-csv data/analysis/override_mismatch.csv --out "D:/PM/mods/Pages - 版本不符修正"
   ```
+- `strip_refs --drop-unresolved-base`：刪掉「基底物件（NAME）在非官方主插件裡不存在」的放置記錄（REFR、ACHR…）。只用在未解析引用掃描表格列出的插件；可以和 `--drop-missing` 一起用：
+  ```bash
+  python tools/strip_refs.py --pm "D:/PM" --drop-unresolved-base --from-csv data/analysis/unresolved_refs.csv --out "D:/PM/mods/Pages - 版本不符修正"
+  ```
+- 生效的插件已經是 `--out` 裡的修正版時，`strip_refs` 會重新檢查並原地更新（只限單一連結的檔）；沒有要改的就回報「已修正」。
 - `strip_refs` 的報告目錄參數是 `--report-dir`（`--out` 是輸出的 mod 資料夾）。
+- 換補丁版本時用 `fill_plugins` **不加 `--mv`、`--nolvus`**：這樣只從 `downloads` 的壓縮檔取；加了會先從 Nolvus／M&V 的安裝連回舊版。同名的舊 BSA 要一起先搬走（`fill_plugins` 不覆寫已存在的檔）。
 - 在 MO2 手動停用又重新啟用 mod 之後：`sync-order --restore-states --apply` → `prune_dependents` 試跑 → `--disable-folders --apply`（一組一起做）。
 - `build_instance create --apply` 會依目標重寫 modlist／plugins，把之前的修剪全部恢復；之後的 `prune_dependents` 會列出完整名單，不是差額。判斷標準是「名字都在已接受的清單內」。
-- 完整插件名額：目前 252，重建後 `DynDOLOD.esm`、`DynDOLOD.esp` 會用掉最後 2 個（254/254）。其他輸出（Synthesis、FNIS、Occlusion、PG_*）一定要是輕量插件；`check_plugins` 的「輸出重建後的完整插件（預估）」超過 254 就停下來回報。
+- 完整插件名額：目前 251，重建後 `DynDOLOD.esm`、`DynDOLOD.esp` 會再用掉 2 個（253/254）。其他輸出（Synthesis、FNIS、Occlusion、PG_*）一定要是輕量插件；`check_plugins` 的「輸出重建後的完整插件（預估）」超過 254 就停下來回報。
 - `esl_check --flag` 只會改單一連結的檔案（重建出來的輸出），硬連結的原檔會被拒絕。
 - Synthesis 的 patcher 清單：等雲端在 `progress/cloud-notes.md` 給出後才做。BodySlide 照 `docs/05` 第 2 節。
 

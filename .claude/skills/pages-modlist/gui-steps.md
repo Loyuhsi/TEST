@@ -44,7 +44,7 @@
 - BodySlide：路徑寫在 `Pages - 設定覆寫\CalienteTools\BodySlide\Config.xml`（不要在 Settings 按 OK）；Outfit/Body `CBBE 3BBB Body Amazing`、Preset `CBBE Curvy (Outfit)`、勾 Build Morphs；衝突選擇已在 `BuildSelection.xml`（`docs/05` 第 2 節）。BodySlide 的視窗要由使用者操作。
 - Synthesis：只加 Jampi0n 的 Skyrim-RemoveLandscapeVertexColor，Settings 保持預設（預設是調亮，不是移除；`docs/05` 第 3 節）。
 - NGIO 草地快取：先停用 True HUD。會重啟遊戲很多次，屬正常現象；時間 0.5–2.5 小時。
-- DynDOLOD：選 High。完成後依 `docs/05` 搬移輸出。
+- DynDOLOD：開始前先確認覆寫掃描、未解析引用掃描都是 0（`docs/05` 第 8 節開頭）。先按 Advanced，再按 High；Tree LOD 勾 **Ultra**；勾 Occlusion。完成後依 `docs/05` 搬移輸出。
 
 ## 遊戲測試（第 5–7 階段）
 - 從 MO2 選 SKSE 執行，開新遊戲，走 `docs/測試路線.md`。

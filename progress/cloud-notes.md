@@ -5,6 +5,94 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-28｜**第 5 階段回報判讀**（回應 cef4e36）。
+  - 未解析引用的完整掃描做得很好：36 筆全部追到 LOTD V5，而且新版都先驗證過。
+  - 在 Solstheim 停下、搬走不完整的輸出（沒有刪除），處理都正確。
+  1. **Nolvus 的 LOTD 5.6 補丁換成對應 V6 的新版**：照你的建議。
+     - **LOTD 官方補丁 6.10.9**：Falskaar、Wyrmstooth、Clockwork、Gray Cowl、Forgotten City 共 5 個。
+       - 用 `fill_plugins` 從 downloads 的壓縮檔取（選項資料夾例如 `04 FKP/`，連同 BSA）。
+       - 目的資料夾是 `Legacy of the Dragonborn Patches (Official)2`（`data/extra_archives.csv` 第 39 行）。
+     - **Lux Patch Hub 7.2**：`Lux - Legacy of the Dragonborn patch.esp`，同樣用 `fill_plugins`（第 44 行 → `Lux - Patch Hub3`）。
+     - **Lux Orbis Patch Hub 4.7**：`Lux Orbis - LotD patch.esp` 有兩份大小不同的同名檔，`fill_plugins` 會判為不明確。
+       - 取 `Lux Orbis (patch hub)/00 Data/` 根目錄那份（通用版）；另一份在 `Lux Orbis - Solitude LotD meshes/` 子資料夾，是給另外裝那個模型選項用的。
+       - 手動放進原檔所在的資料夾（預期是 `Lux Orbis - Patch Hub2`）。
+       - 它還有 4 筆覆寫指向 V6 沒有的記錄，之後用 `--drop-missing` 處理。
+     - **BS Synergy 1.13.2**：`data/decisions.csv` 新增 reinstall（36074／667108）。
+       - 壓縮檔根目錄就是插件，沒有 FOMOD，由 `install_archives` 整包換，舊內容移到 `_replaced`。
+     - **重要：`fill_plugins` 這次不要加 `--mv`、`--nolvus`**。
+       - 它會先從 Nolvus／M&V 的安裝找插件，加了就會把 5.6 版從 `D:\Nolvus` 連回來。
+       - 不加就只從 downloads 的壓縮檔取。
+       - 它也不覆寫已存在的檔，所以同名的舊 BSA 要先一起搬走。
+       - 已寫進 `docs/04` 8.1 和 phase-commands。
+  2. **剩下室內的 2 筆（`LOTD_HUB.esp`、`DBM_Lucien_Patch.esp`）：用 `strip_refs` 刪掉那 2 筆放置記錄**，不換版本。
+     - 新選項 **`--drop-unresolved-base`**：刪掉基底物件（NAME）在非官方前置裡不存在的放置記錄（REFR、ACHR、PGRE、PHZD、PMIS、PARW、PBAR、PBEA、PCON、PFLA）。
+       - 基底物件不存在，遊戲本來就不會顯示。
+       - Lucien 那筆是覆寫 LOTD 自己的 REFR，刪掉後回到 V6 原本的那筆。
+     - Follower Room Patches 4.0.16 沒驗證過，也是整套為 V6 重做的，只換 1 個插件風險比較大。HoF 維持第 8 階段再評估。
+     - 另一個改變：**生效的插件已經是 `--out` 裡的修正版時，`strip_refs` 會重新檢查並原地更新**（只限單一連結的檔），沒有要改的就回報「已修正」。
+       - 以前是直接略過。
+       - `LOTD_HUB.esp` 的修正版已在 `Pages - 版本不符修正`，這次會在同一個檔上再刪那 1 筆。
+  3. **Tamriel 的樹 LOD billboard 超過上限：勾 Ultra**。
+     - 一般 tree LOD 一張貼圖集最多 256 種 billboard，我們的 TexGen 有 1,259 種。
+     - Ultra 把樹改用 object LOD 產生，沒有這個上限，也不用改 ini。
+     - 會比較吃效能和時間；RTX 5080 16 GB 撐得住，第 7 階段再調。
+     - `docs/05` 第 8 節已更新。
+  4. `akd_MorthalOldGateMill.esp` 那 1 個非致命的：照你的建議不處理。
+  5. **手冊**：`docs/05` 第 8 節開頭新增「開始前先把關」。
+     - DynDOLOD 前要先重跑覆寫掃描和未解析引用掃描。
+     - 兩個都是 0（已接受的除外）才開始。
+- 2026-09-28｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間工作照 CLAUDE.md；搬移用 `_replaced\lotd56-patches-<日期時間>\<原資料夾>\`，不要刪除）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. **BS Synergy**：
+     1. `manifest`：預期 reinstall 1 個（`Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2`）。
+     2. `nexus_fetch`（manifest）：預期下載 667108。
+     3. `install_archives --only "Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2"` 試跑，再 `--apply`。
+  3. **把舊檔搬到 `_replaced`**（搬移，不要刪除；搬之前先列出來確認）：
+     - `Legacy of the Dragonborn Patches (Official)2` 裡的 5 個插件和同名的 `.bsa`：
+       - `DBM_Falskaar_Patch`、`DBM_Wyrmstooth_Patch`、`DBM_Clockwork_Patch`、`DBM_TheGrayCowlofNocturnal_Patch`、`DBM_ForgottenCity_Patch`。
+       - 同名 BSA 例如 `DBM_Falskaar_Patch.bsa`；有 `- Textures.bsa` 的也一起。
+     - `Lux Orbis - LotD patch.esp`、`Lux - Legacy of the Dragonborn patch.esp` 的原檔（Nolvus 擷取來的資料夾）。
+     - `Pages - 版本不符修正` 裡這 3 個舊修正版：
+       - `DBM_TheGrayCowlofNocturnal_Patch.esp`、`Lux Orbis - LotD patch.esp`、`Lux - Legacy of the Dragonborn patch.esp`。
+       - 它們優先權比較高，不搬會蓋掉新版。
+     - `LOTD_HUB.esp` 的修正版**留著**（第 7 步原地更新）。
+  4. **放入新版**：
+     1. `fill_plugins --pm "D:/PM"`（**不加 `--mv`、`--nolvus`**）試跑。
+        - 預期 `archive` 6 個：5 個 DBM 補丁，目的 `(Official)2`，連同選項資料夾的 BSA；還有 Lux LotD，目的 `Lux - Patch Hub3`。
+        - 預期 `ambiguous` 有 Lux Orbis LotD。
+        - 其餘只會是之前就知道的缺少項目。
+        - 有別的 `archive` 列就先停下回報，不要 `--apply`。
+     2. `--apply`。
+     3. Lux Orbis LotD 手動放：
+        - 用 7-Zip 從 4.7 壓縮檔把 `Lux Orbis (patch hub)/00 Data/Lux Orbis - LotD patch.esp` 解到 scratchpad。
+        - 再複製到原檔所在的資料夾（預期 `Lux Orbis - Patch Hub2`）。
+        - 放之前用 `esl_check --plugin` 看它的前置；前置都在載入順序裡才放。
+  5. `sync-order --apply` → `check_plugins`：全部通過，完整插件不會增加（251 以下）。
+  6. **覆寫掃描**（唯讀）：
+     1. 重跑掃描，更新 `data/analysis/override_mismatch.csv`。
+     2. 預期新出現的只有 `Lux Orbis - LotD patch.esp` 4 筆；原本就接受的 17 個（70 筆）不動。
+     3. `strip_refs --drop-missing --plugin "Lux Orbis - LotD patch.esp" --out "D:/PM/mods/Pages - 版本不符修正"` 試跑，再 `--apply`。
+  7. **未解析引用掃描**（唯讀）：
+     1. 重跑掃描，更新 `data/analysis/unresolved_refs.csv`。預期只剩 `LOTD_HUB.esp`、`DBM_Lucien_Patch.esp` 各 1 筆（NAME）。有其他插件或其他欄位（XESP 等）就先停下回報。
+     2. `strip_refs --drop-unresolved-base --from-csv data/analysis/unresolved_refs.csv --out "D:/PM/mods/Pages - 版本不符修正"` 試跑，再 `--apply`：
+        - `LOTD_HUB.esp`：原地更新，預期「刪除 1 筆基底物件不存在的放置記錄…（原地更新修正版）」。
+        - `DBM_Lucien_Patch.esp`：新的修正版寫到 `Pages - 版本不符修正`。
+     3. 兩個掃描都再跑一次：都要是 0（覆寫掃描只剩原本就接受的 17 個）。這也確認沒有其他記錄引用被刪的那 2 筆。
+  8. `sync-order --apply` → `check_plugins` → 主選單測試（DataLoaded 時間、BEES、crash log，同上一輪）。
+  9. **DynDOLOD**（`docs/05` 第 8 節）：
+     1. Advanced → High，勾 Object／Tree LOD（**Ultra**）／Dynamic LOD、Occlusion data＋Plugin；不做草 LOD；輸出到 `D:\PM\tools\DynDOLOD\DynDOLOD_Output\`。
+     2. 完成後搬到 `dyndolodCS2` → `sync-order --apply` → `check_plugins`：預期完整 253／254，`Occlusion.esp` 是輕量插件；如果是完整插件，用 `esl_check --flag` 處理。
+     3. `audit_skse`。
+     4. 如果又出現「Unresolved FormID」，照樣停下回報：補丁名稱、主插件、FormID 與筆數。
+  10. **第一次用 CS 啟動**（`docs/05` 第 10 節）：到主選單，確認沒有當機。
+  11. **xEdit 的引用檢查**（唯讀，範圍同上一輪，加上這次換進來的 7 個插件）。
+  12. 回報並推送：
+      - 各報告的每一行。
+      - 兩個掃描的結果。
+      - DynDOLOD 記錄的摘要（錯誤與警告的種類、數量；tree billboard 上限的警告應該消失）。
+      - `dyndolodCS2` 的檔案數。
+      - xEdit 檢查的摘要。
+  13. 之後是第 11 節的測試路線（**由使用者玩**）、第 12 節的 EN-baseline 備份，然後開始第 6 階段中文化。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 c0badc4）。
   - 版本不符修正（59 個、683 筆，重新掃描是 0）與主選單測試都接受。
   - DynDOLOD 的分析非常清楚，比對 HoF 兩個版本的結果很有用。
