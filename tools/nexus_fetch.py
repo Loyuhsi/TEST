@@ -30,6 +30,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pm import fsutil  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, read_csv, write_csv  # noqa: E402
+from install_archives import read_download_meta  # noqa: E402
+
+FETCH_ACTIONS = ("download", "replace_dll", "reinstall")
 
 API = "https://api.nexusmods.com/v1/games/skyrimspecialedition"
 HEADERS = {"Application-Name": "pages-modlist-tools", "Application-Version": "0.1",
@@ -109,6 +112,24 @@ def write_meta(path: Path, mod_id: str, file_id: str, info: dict, url: str) -> N
     path.write_text(meta_text(mod_id, file_id, info, url), encoding="utf-8", newline="")
 
 
+def downloaded(dl_dir: Path) -> dict[tuple[str, str], str]:
+    """(mod id, file id) -> archive name, for downloads whose .meta and archive are both there.
+
+    Nexus does not always report size_in_bytes, so the .meta is the reliable record.
+    """
+    out: dict[tuple[str, str], str] = {}
+    if not dl_dir.is_dir():
+        return out
+    for meta in sorted(dl_dir.glob("*.meta"), key=lambda p: p.name.lower()):
+        archive = meta.with_suffix("")
+        if archive.is_file():
+            m = read_download_meta(meta)
+            key = ((m.get("modid") or "").strip(), (m.get("fileid") or "").strip())
+            if all(key):
+                out.setdefault(key, archive.name)
+    return out
+
+
 def main(argv=None) -> int:
     fsutil.enable_utf8_console()
     ap = argparse.ArgumentParser(description="限速下載 Nexus 檔案（需要 Premium 與 NEXUS_API_KEY）")
@@ -123,13 +144,23 @@ def main(argv=None) -> int:
     rep = Report("nexus_fetch")
     key = os.environ.get("NEXUS_API_KEY", "").strip()
     todo = [r for r in read_csv(args.manifest)
-            if r["action"] in ("download", "replace_dll") and r.get("nexus_mod_id") and r.get("nexus_file_id")]
+            if r["action"] in FETCH_ACTIONS and r.get("nexus_mod_id") and r.get("nexus_file_id")]
     dl_dir = args.pm / "downloads"
+    have = downloaded(dl_dir)
     rows = []
     if not args.apply:
-        for r in todo[: args.limit]:
-            rows.append({"folder": r["folder"], "mod": r["nexus_mod_id"], "file": r["nexus_file_id"], "status": "planned"})
-        rep.add("mode", "INFO", "試跑", f"待下載 {len(todo)} 個（含檔案 ID），本次上限 {args.limit}")
+        planned = 0
+        for r in todo:
+            key = (r["nexus_mod_id"], r["nexus_file_id"])
+            row = {"folder": r["folder"], "mod": key[0], "file": key[1]}
+            if key in have:
+                rows.append(row | {"status": "already_downloaded", "archive": have[key]})
+            elif planned < args.limit:
+                rows.append(row | {"status": "planned"})
+                planned += 1
+        already = sum(1 for x in rows if x["status"] == "already_downloaded")
+        rep.add("mode", "INFO", "試跑", f"待下載 {len(todo) - already} 個（含檔案 ID），"
+                f"已下載 {already} 個，本次上限 {args.limit}")
     elif not key:
         rep.add("key", "FAIL", "未設定 NEXUS_API_KEY", "在命令列先執行：set NEXUS_API_KEY=你的金鑰")
     else:
@@ -140,6 +171,9 @@ def main(argv=None) -> int:
                 break
             mid, fid = r["nexus_mod_id"], r["nexus_file_id"]
             row = {"folder": r["folder"], "mod": mid, "file": fid}
+            if (mid, fid) in have:                      # no API call, does not count toward --limit
+                rows.append(row | {"status": "already_downloaded", "archive": have[(mid, fid)]})
+                continue
             try:
                 info, _ = api_get(f"{API}/mods/{mid}/files/{fid}.json", key)
                 fname = info.get("file_name") or f"{mid}-{fid}.7z"
@@ -155,6 +189,7 @@ def main(argv=None) -> int:
                 tmp.replace(dest)
                 page = f"https://www.nexusmods.com/skyrimspecialedition/mods/{mid}"
                 write_meta(dl_dir / (fname + ".meta"), mid, fid, info, page)
+                have[(mid, fid)] = fname
                 row["status"] = "downloaded"
                 row["archive"] = fname
                 done += 1

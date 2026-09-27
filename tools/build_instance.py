@@ -5,7 +5,8 @@
 Subcommands (all dry-run unless --apply; close MO2 first):
     python tools\\build_instance.py create --pm D:\\PM --ini-from "D:\\Nolvus\\Instances\\Nolvus Awakening\\MODS\\profiles\\Nolvus Awakening"
     python tools\\build_instance.py verify --pm D:\\PM          (after the first MO2 start: did MO2 drop lines?)
-    python tools\\build_instance.py sync-order --pm D:\\PM      (after generating outputs: restore target plugin order)
+    python tools\\build_instance.py sync-order --pm D:\\PM      (after generating outputs: restore target plugin order;
+                                                             patches whose masters sit below them move down)
 
 Why placeholders: MO2 silently deletes modlist.txt lines whose folder does not exist,
 so every target folder gets an (empty) folder before MO2 first opens the profile.
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import heapq
 import shutil
 import sys
 from pathlib import Path
@@ -224,6 +226,40 @@ def restore_states(current: dict[str, mo2.PluginEntry], expected: list[mo2.Plugi
     return out, on, off, skipped
 
 
+def order_after_masters(names: list[str], masters: dict[str, list[str]]) -> tuple[list[str], list[str], list[str]]:
+    """Reorder so every plugin loads after the masters that are in the same list.
+
+    A plugin keeps its place unless one of its masters sits below it; then it (and anything
+    that needs it) moves down to just after its last master. Everything else keeps its
+    relative order. masters maps lower-case names to master lists. Returns (new order,
+    plugins that moved, plugins left in a master cycle).
+    """
+    idx = {n.lower(): i for i, n in enumerate(names)}
+    waiting = {k: {m.lower() for m in masters.get(k, ()) if m.lower() in idx and m.lower() != k} for k in idx}
+    children: dict[str, list[str]] = {}
+    for k, ms in waiting.items():
+        for m in ms:
+            children.setdefault(m, []).append(k)
+    ready = [idx[k] for k, ms in waiting.items() if not ms]
+    heapq.heapify(ready)
+    out: list[str] = []
+    moved: list[str] = []
+    top = -1
+    while ready:
+        i = heapq.heappop(ready)
+        if i < top:
+            moved.append(names[i])
+        top = max(top, i)
+        out.append(names[i])
+        for c in children.get(names[i].lower(), ()):
+            waiting[c].discard(names[i].lower())
+            if not waiting[c]:
+                heapq.heappush(ready, idx[c])
+    done = {n.lower() for n in out}
+    cycle = [n for n in names if n.lower() not in done]
+    return out + cycle, moved, cycle
+
+
 def cmd_sync_order(args, rep: Report) -> None:
     prof = vfs.open_profile(args.pm, args.profile)
     expected = prof.profile_dir / "_expected" / "plugins.txt"
@@ -249,14 +285,36 @@ def cmd_sync_order(args, rep: Report) -> None:
     unknown = [p for k, p in current.items() if k not in rank]
     tail_idx = next((i for i, p in enumerate(known) if p.name in GENERATED_TAIL), len(known))
     ordered = known[:tail_idx] + unknown + known[tail_idx:]
-    # masters (ESM/ESL-flagged) must come first, as MO2/the game enforce
+    headers: dict[str, tes4.PluginHeader | None] = {}
+
+    def header(p):
+        key = p.name.lower()
+        if key not in headers:
+            path = providers.get(key)
+            try:
+                headers[key] = tes4.read_header(path) if path else None
+            except (tes4.PluginError, OSError):
+                headers[key] = None
+        return headers[key]
+
+    # masters (ESM-flagged, .esm/.esl) must come first, as MO2/the game enforce
     def is_master(p):
-        path = providers.get(p.name.lower())
-        try:
-            return tes4.read_header(path).is_master if path else p.name.lower().endswith((".esm", ".esl"))
-        except (tes4.PluginError, OSError):
-            return p.name.lower().endswith((".esm", ".esl"))
-    ordered = [p for p in ordered if is_master(p)] + [p for p in ordered if not is_master(p)]
+        h = header(p)
+        return h.is_master if h else p.name.lower().endswith((".esm", ".esl"))
+    groups = [[p for p in ordered if is_master(p)], [p for p in ordered if not is_master(p)]]
+    # newer patch versions can need masters the target lists below them: move those patches down
+    masters = {p.name.lower(): (header(p).masters if header(p) else []) for p in ordered}
+    by_name = {p.name.lower(): p for p in ordered}
+    moved: list[str] = []
+    cycles: list[str] = []
+    for i, group in enumerate(groups):
+        names, mv, cyc = order_after_masters([p.name for p in group], masters)
+        groups[i] = [by_name[n.lower()] for n in names]
+        moved += mv
+        cycles += cyc
+    plain = {p.name.lower() for p in groups[1]}
+    stuck = [p.name for p in groups[0] if any(m.lower() in plain for m in masters[p.name.lower()])]
+    ordered = groups[0] + groups[1]
     files = [prof.profile_dir / "plugins.txt", prof.profile_dir / "loadorder.txt"]
     bdir = backup(files, prof.profile_dir, args.apply)
     if args.apply:
@@ -264,6 +322,14 @@ def cmd_sync_order(args, rep: Report) -> None:
         if (prof.profile_dir / "loadorder.txt").exists():
             (prof.profile_dir / "loadorder.txt").unlink()
     rep.add("order", "PASS", "插件順序", f"{len(ordered)} 個：依目標順序 {len(known)}，新增的 {len(unknown)} 個放在輸出插件之前")
+    rep.add("masters", "PASS", "前置順序",
+            f"移動 {len(moved)} 個插件到它的前置之後" + (f"，例如：{', '.join(moved[:10])}" if moved else ""))
+    if stuck:
+        rep.add("masters_esm", "WARN", "ESM 插件以一般插件為前置",
+                f"{len(stuck)} 個（遊戲一定先載入 ESM，排序修不了）：{', '.join(stuck[:10])}")
+    if cycles:
+        rep.add("masters_cycle", "WARN", "前置互相依賴（循環）", f"{len(cycles)} 個，維持原順序：{', '.join(cycles[:10])}")
+    rep.data = {"moved": moved, "esm_needs_plain": stuck, "cycles": cycles}
     if unknown:
         rep.add("unknown", "INFO", "不在目標清單中的插件", ", ".join(p.name for p in unknown[:15]))
     if bdir:

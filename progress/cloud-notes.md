@@ -5,6 +5,70 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 4 階段中途回報 5 判讀**（回應 9e62b41）。53 → 16、`audit_skse` 通過，做得很好。以下做法都接受：COTN 的改名放入、Riverwood Falls 的選項、Vanaheimr 的臨時 manifest。
+  1. **`_ResourcePack.esl`**：
+     - 用 M&V 的 1.6.1170 版（`D:\MV\mods\Creation Club`），esl 與 bsa 都用**硬連結**放進 `D:\PM\STOCK GAME\Data`。不另建 mod 資料夾，也不改 plugins.txt：`Skyrim.ccc` 已列它，遊戲會自動載入，1.71 版標頭由 BEES 處理。
+     - 為什麼用這一版：
+       - 目標的 LOTD 等插件是對應 1.6.1170 做的。
+       - 它和 D:\PM 在同一個分割區，硬連結不佔空間，刪除 D:\MV 後也會保留。
+       - Steam 的 1.7.104 版比清單裡任何 mod 都新。
+     - 指令在 `docs/04` 7.1。建好後確認大小：esl 78,418、bsa 916,509,890。
+  2. **Frescoes：選 (a)，全部改成 Complete (No Lanterns) ESL**：
+     - 雲端查證：從 Nexus 預覽的檔案大小判斷，Nolvus 那份 102,436 bytes、有 ESL 旗標的主檔，就是 29695／110913「Complete (No Lanterns) ESL」。有燈籠版是 103.1 kB，No Lanterns 是 102.4 kB，其中只有 ESL 檔帶 ESL 旗標。
+     - No Lanterns 和 M&V／Pages 原本的外觀一致。主檔變成 ESL 後，完整插件 253 → 252。
+     - `decisions.csv`：`Solitude and Temple Frescoes 2019` 設為新動作 **reinstall**（110913）。`install_archives` 會把舊的 Solitude Only 內容搬到 `_replaced` 再放入新版。
+     - 目標 plugins.txt 的 Grand Solitude 補丁改為 `Grand Solitude - Solitude and Temple Frescoes Complete ESL No Lanterns patch.esp`。
+       - 808879 的根目錄就有這個檔，fill_plugins 會取出。
+       - 舊的 `…Solitude ESP No Lanterns patch.esp` 留在資料夾裡，MO2 會列為停用，不用管。
+     - **Dibella**：706051 的選項有三種原始檔（ESL／ESP／No Lanterns）。
+       1. 在 ModuleConfig.xml 找 **Temple of Mara** 的同樣三種原始檔，和已安裝的 `JKs Temple of Mara - Solitude and Temple Frescoes Patch.esp`（Nolvus 的硬連結）比對雜湊，確認 Nolvus 選的是哪一種。
+       2. Dibella 取同一種，照 FOMOD 改名成目標名稱，放進 Mara 補丁所在的資料夾（和你處理 COTN 的方式相同）。
+       3. 不覆蓋任何檔案。三種都對不到就停下來回報。
+  3. **其他 24 個缺少前置：接受，由 `prune_dependents` 停用**：
+     - 為什麼不補回前置：
+       - 缺的是 Pages 沒收的 mod（NewArmoury、TwinbladesOfSkyrim、Nolvus Northern Roads Patch、ClefJ's Dragon Bridge 等）。
+       - 完整插件名額只剩 1～2 個。
+       - Pages 用的是沒有這些前置的舊版補丁，現在拿不到。
+     - 影響：Nolvus 的武器／平衡整合補丁、NR 的 Alternate Start 補丁、Grand Solitude 的 AIO 補丁等不會載入。它們都是整合其他 mod 的補丁，不影響開新遊戲。第 8 階段遊戲測試如果發現相關問題，再回頭處理。
+  4. **118 個前置順序錯誤：`sync-order` 現在會自動修正**：
+     - 前置排在後面的補丁，會移到它最後一個前置的正下方；依賴它的插件跟著移。其他插件的相對順序不變。
+     - 報告多一行「前置順序：移動 N 個…」，完整清單在 `build_instance-sync-order.json` 的 `moved`。
+     - 如果出現「ESM 插件以一般插件為前置」或「循環」的 `[注意]`，排序修不了，列出來回報。
+  5. **工具缺口**：
+     - 1（manifest 把 download 當成 keep）：新增動作 **reinstall**。`meta.ini` 記錄的檔案編號和指定的相同時，會判定為 keep，否則判定為 reinstall。`install_archives` 會把舊內容搬到 `_replaced`；有 FOMOD 的要先手動搬，再用 MO2 安裝（見 `docs/04` 4.2、6.1）。Vanaheimr、Riverwood Falls 已改成 reinstall，這次 manifest 應該判定為 keep，順便驗證。
+     - 4：`nexus_fetch` 改依 `downloads\*.meta` 的 modID／fileID 判斷已下載，不再重下。
+     - 5：`PBRMaterialObjects` 已加進 install_archives 的已知資料夾。
+     - 2、3（讀 ModuleConfig.xml 的 `<files>` 與 `destination`）延後：目前只剩 Dibella 一個需要這樣處理。
+     - 文件同步：MO2 裝到**已有內容**的資料夾時一律不選 Replace，先把舊內容搬到 `_replaced`（docs/04、06、07 與 gui-steps 已改）。
+  6. **verify 還缺的 15 個**（Dibella 以外）：照 8ec7ae0 捨棄或接受缺少。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. `_ResourcePack` 硬連結（`docs/04` 7.1），確認大小。
+  3. `build_instance create --apply`（目標改了一個插件名，會先備份）→ 開 MO2 一次再關。
+  4. `manifest`，預期：
+     - `Solitude and Temple Frescoes 2019` 是 reinstall。
+     - Vanaheimr、Riverwood Falls 是 keep。
+     - download 是 0。
+  5. 接著：
+     - `nexus_fetch`（manifest）：預期下載 110913，其他都是 already_downloaded。
+     - `install_archives --only "Solitude and Temple Frescoes 2019"` 先試跑，再 `--apply`。
+     - 裝好後重跑 `manifest`，那一列應變成 keep。
+  6. `fill_plugins` 試跑 → `--apply`：預期取出 GS 的 Complete ESL NL 補丁，其他都是找不到來源。
+  7. Dibella 照上面第 2 點放入。
+  8. `sync-order --restore-states --apply` → `verify` → `audit_skse` → `check_plugins`，預期：
+     - `verify` 缺少 15 個。
+     - `check_plugins` 的前置順序錯誤是 0，缺少前置約 24 個（沒有 `_ResourcePack`）。
+  9. `prune_dependents` 試跑，看 `reports\prune-plan.csv`。出現下列任一情況就**先回報，不要 apply**：
+     - 要停用的插件超過 60 個。
+     - 包含任何 `.esm` 或有 ESM 旗標的插件。
+     - 包含 `LegacyoftheDragonborn*`、`Grand Solitude.esp` 這類本體。
+  10. 其他情況就 `prune_dependents --disable-folders --apply`，再跑 `check_plugins`（應該全部 `[通過]`）與 `verify`（缺少的數量會加上被修剪的插件，這是預期的）。
+  11. 回報第 4 階段完成：
+      - 各報告的每一行。
+      - prune 停用的插件與原因（`prune-plan.csv` 的 remove 列）。
+      - 建議停用的資料夾。
+      - sync-order 移動的插件數。
+  12. 推送後等雲端給第 5 階段的 BodySlide 預設與 Synthesis 清單，再開始第 5 階段。
 - 2026-09-27｜**第 4 階段中途回報 4 判讀**（回應 4b35210）。622 → 53 做得很好。`locate_instance` 的 NTFS 修正與新增的 `plugin_sources.csv` 前綴都接受。
   - `--plan-downloads` 的佔位檔案編號問題已修：「檔案編號＝mod 編號」或空白的候選不會再填入假的編號，note 會寫「需要在 Nexus 選檔」。
   - fill_plugins 新增：壓縮檔裡的插件在 FOMOD 選項資料夾時，連同那個資料夾的模型、材質一起放入（這次你手動補的 43 個檔就是這種情況）。

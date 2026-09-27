@@ -164,6 +164,18 @@ def test_apply_replace_moves_old_folder_aside(world):
     assert w.rows()["NewDll-5-55.zip"]["status"] == "replaced"
 
 
+def test_apply_reinstall_moves_wrong_version_aside(world):
+    w = world
+    w.folder("Wrong Version", 6, 66, action="reinstall")
+    (w.mods / "Wrong Version" / "Old.esp").write_bytes(b"old")
+    w.download("Right-6-66.zip", 6, 66, ["Wrap/Mod.esp", "Wrap/textures/a.dds"])
+    assert install_archives.main(w.args("--apply")) == 0
+    assert (w.mods / "Wrong Version" / "Mod.esp").exists()
+    assert not (w.mods / "Wrong Version" / "Old.esp").exists()
+    assert (w.pm / "_replaced" / "Wrong Version" / "Old.esp").read_bytes() == b"old"
+    assert w.rows()["Right-6-66.zip"]["status"] == "replaced"
+
+
 def test_apply_refused_while_mo2_runs(world, monkeypatch):
     w = world
     monkeypatch.setattr(install_archives, "mo2_running", lambda: True)

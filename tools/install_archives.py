@@ -7,7 +7,7 @@ Usage (Windows; close MO2 first; dry run unless --apply):
 Each archive is matched to reports\\manifest.csv through the Nexus mod/file IDs in its .meta.
 Left for MO2 and listed in reports\\install_archives.csv: FOMOD installers, archives whose data
 root is unclear or whose plugins differ from the target, folders whose decisions.csv note asks
-for FOMOD choices, merging or DIP, and folders that already have files. A replace_dll folder is
+for FOMOD choices, merging or DIP, and folders that already have files. A replace_dll or reinstall folder is
 moved to <pm>\\_replaced\\ (kept, not deleted) before the new files go in.
 Archives are unpacked in <pm>\\_install_staging\\ and the data root is renamed into place, so a
 mod folder is either the untouched placeholder or the complete install (see pm/swap.py for the
@@ -92,7 +92,7 @@ def load_inputs(args: argparse.Namespace) -> Inputs:
     targets: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in read_csv(args.manifest):
         fid = (r.get("nexus_file_id") or "").strip()
-        if r.get("action") in ("download", "replace_dll") and fid:
+        if r.get("action") in ("download", "replace_dll", "reinstall") and fid:
             targets[((r.get("nexus_mod_id") or "").strip(), fid)].append(r)
     notes = {r["folder"]: r.get("note") or "" for r in _rows(args.decisions)}
     expected = {r["folder"]: [p for p in (r.get("plugins") or "").split(";") if p.strip()]
@@ -166,7 +166,7 @@ def plan_one(meta_path: Path, inp: Inputs, mods_dir: Path, only: set[str]) -> di
         if busy:
             return row | {"status": "already", "reason": "MO2 已標記這個下載為已安裝"}
         return row | {"status": "manual", "reason": "下載標記為已安裝，但資料夾是空的"}
-    if busy and row["action"] != "replace_dll":
+    if busy and row["action"] not in ("replace_dll", "reinstall"):
         return row | {"status": "skip", "reason": "資料夾已有檔案（可能已安裝）"}
     return _classify(row, archive, folder, busy, inp)
 

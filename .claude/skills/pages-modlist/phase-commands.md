@@ -55,6 +55,12 @@ python tools/build_instance.py verify --pm "D:/PM"
 # 下載（需要環境變數 NEXUS_API_KEY；也可以在 downloads.html 逐一按 Mod Manager Download）
 python tools/nexus_fetch.py --pm "D:/PM" --limit 20
 python tools/nexus_fetch.py --pm "D:/PM" --limit 20 --apply
+# 沒有 FOMOD 的下載（含 replace_dll／reinstall：舊內容會搬到 D:/PM/_replaced）：
+python tools/install_archives.py --pm "D:/PM"
+python tools/install_archives.py --pm "D:/PM" --apply
+# _ResourcePack（docs/04 7.1）：STOCK GAME\Data 沒有才建
+cmd //c mklink /H "D:\PM\STOCK GAME\Data\_ResourcePack.esl" "D:\MV\mods\Creation Club\_ResourcePack.esl"
+cmd //c mklink /H "D:\PM\STOCK GAME\Data\_ResourcePack.bsa" "D:\MV\mods\Creation Club\_ResourcePack.bsa"
 # 補齊缺少的插件（docs/04 8.1；先試跑，再 --apply；剩下的回報雲端）：
 python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening"
 python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening" --apply
@@ -76,13 +82,16 @@ python tools/audit_skse.py --pm "D:/PM"
 - 報告：`manifest.txt` + `manifest.csv` + `downloads.html`、`build_instance-*.txt`、`nexus_fetch.txt/.csv`、`prune_dependents.txt` + `prune-plan.csv`、`check_plugins.txt/.csv`、`audit_skse.txt/.csv`。
 - `manifest.csv` 的 `action`：
   - `keep`：已就位
-  - `download`：下載並用 MO2 安裝，名稱照 `folder` 欄，遇到同名選 Replace
+  - `download`：下載並用 MO2 安裝，名稱照 `folder` 欄，遇到同名的空佔位資料夾選 Replace
   - `regenerate`：第 5 階段重建
   - `replace_dll`：改裝 1.5.97／NG 版
+  - `reinstall`：版本不對，整包換成 decisions 指定的檔案（舊內容搬到 `_replaced`，不要在 MO2 選 Replace）；`meta.ini` 記錄到指定的檔案編號後會變成 `keep`
   - `review`：回報雲端，由雲端寫入 `data/decisions.csv`
   - `harvest_mv`／`harvest_nolvus`：還沒擷取，先跑上面的補擷取再重跑 manifest
   - `drop`：捨棄
 - `audit_skse` 不加 `--mv-1597-map`（2.40.1 對照表不做）。
+- `sync-order` 會把「前置排在後面」的補丁移到它最後一個前置的正下方（報告的「前置順序」）；「ESM 插件以一般插件為前置」的 `[注意]` 要回報雲端。
+- `nexus_fetch` 依 `downloads\*.meta` 的 modID／fileID 判斷已下載，這些不呼叫 API、不算進 `--limit`。
 
 ## 第 5 階段：重建輸出（照 docs/05 的順序；工具從 MO2 執行）
 ```bash

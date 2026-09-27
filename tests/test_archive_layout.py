@@ -93,9 +93,17 @@ def test_backslashes_are_normalised():
 
 
 def test_modern_skse_data_folders_are_known():
-    for top in ("LightPlacer", "PBRNifPatcher", "Nemesis_Engine", "CalienteTools", "Seasons",
-                "HeadPartWhitelist", "BashTags"):
+    for top in ("LightPlacer", "PBRNifPatcher", "PBRMaterialObjects", "Nemesis_Engine", "CalienteTools",
+                "Seasons", "HeadPartWhitelist", "BashTags"):
         assert layout.classify([f"{top}/x.json"]).kind == "simple", top
+
+
+def test_pbr_wrapper_with_material_objects_is_simple():
+    # Vanaheimr PBR 2k: the outer folder is the data root
+    lay = layout.classify(["Vanaheimr - PBR - 2k/Vanaheimr - Mines and Caves - PBR.esp",
+                           "Vanaheimr - PBR - 2k/PBRMaterialObjects/x.json",
+                           "Vanaheimr - PBR - 2k/textures/pbr/a.dds"])
+    assert (lay.kind, lay.root) == ("simple", "Vanaheimr - PBR - 2k")
 
 
 def test_fomod_anywhere_goes_to_mo2():

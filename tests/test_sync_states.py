@@ -99,3 +99,41 @@ def test_restore_states_needs_the_expected_list(pm, tmp_path):
     before = (pdir / "plugins.txt").read_bytes()
     assert run(pm, tmp_path, "--restore-states", "--apply") == 1
     assert (pdir / "plugins.txt").read_bytes() == before
+
+
+# ---------------------------------------------------------------- master order
+def test_order_after_masters_moves_patch_below_its_master():
+    order, moved, cycle = build_instance.order_after_masters(["A.esp", "B.esp", "C.esp"], {"a.esp": ["C.esp"]})
+    assert order == ["B.esp", "C.esp", "A.esp"]
+    assert moved == ["A.esp"] and cycle == []
+
+
+def test_order_after_masters_carries_dependents_along():
+    names = ["P1.esp", "P2.esp", "X.esp", "M.esp", "Y.esp"]
+    order, moved, _ = build_instance.order_after_masters(names, {"p1.esp": ["M.esp"], "p2.esp": ["P1.esp"]})
+    assert order == ["X.esp", "M.esp", "P1.esp", "P2.esp", "Y.esp"]
+    assert moved == ["P1.esp", "P2.esp"]
+
+
+def test_order_after_masters_leaves_a_good_order_alone():
+    names = ["M.esp", "A.esp", "B.esp"]
+    masters = {"a.esp": ["Skyrim.esm", "M.esp"], "b.esp": ["Gone.esp"]}   # outside masters are ignored
+    assert build_instance.order_after_masters(names, masters) == (names, [], [])
+
+
+def test_order_after_masters_keeps_a_cycle_in_list_order():
+    order, _, cycle = build_instance.order_after_masters(["A.esp", "B.esp", "C.esp"],
+                                                         {"a.esp": ["B.esp"], "b.esp": ["A.esp"]})
+    assert order == ["C.esp", "A.esp", "B.esp"] and cycle == ["A.esp", "B.esp"]
+
+
+def test_sync_order_puts_patches_after_masters_the_target_lists_later(pm, tmp_path):
+    mods = pm / "mods"
+    write_plugin(mods / "A" / "A.esp", ["Skyrim.esm", "C.esp"])            # patch listed above its master
+    write_plugin(mods / "M" / "Master.esm", ["Skyrim.esm", "B.esp"], tes4.FLAG_MASTER)   # ESM needs a plain plugin
+    assert run(pm, tmp_path, "--restore-states", "--apply") == 0
+    order = [p.name for p in mo2.read_plugins(pm / "profiles" / "Pages-ZH" / "plugins.txt")]
+    assert order == ["Master.esm", "B.esp", "C.esp", "A.esp", "D.esp"]
+    text = (tmp_path / "reports" / "build_instance-sync-order.txt").read_text(encoding="utf-8")
+    assert "移動 1 個插件到它的前置之後，例如：A.esp" in text
+    assert "[注意] ESM 插件以一般插件為前置" in text and "Master.esm" in text

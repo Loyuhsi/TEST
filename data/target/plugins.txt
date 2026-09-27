@@ -3385,7 +3385,7 @@
 *JKs Haelgas Bunkhouse - SDA Patch.esp
 *SolitudeDoorReplacerHiroBOS.esp
 *Stones of Solitude.esp
-*Grand Solitude - Solitude and Temple Frescoes Solitude ESP No Lanterns patch.esp
+*Grand Solitude - Solitude and Temple Frescoes Complete ESL No Lanterns patch.esp
 *JKs Haelgas Bunkhouse - Solitude and Temple Frescoes patch.esp
 *ImmersiveFlyingBooks - JK's The Hag's Cure Patch.esp
 *JKs Hags Cure - AI Overhaul Patch.esp

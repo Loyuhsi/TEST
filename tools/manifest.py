@@ -8,13 +8,15 @@ Inputs: data/target/modlist.txt, data/analysis/provenance.csv, data/analysis/nex
 data/analysis/mv_folder_map.csv, reports/inventory-*.csv, data/decisions.csv (manual overrides)
 and what is already inside D:\\PM\\mods.
 data/decisions.csv columns: folder,action,note[,nexus_mod_id,nexus_file_id,nexus_version]; IDs given
-there win over every other ID source.
+there win over every other ID source. Action "reinstall" swaps a present folder for the chosen file
+and turns into "keep" once the folder's meta.ini records that file id.
 Outputs: reports/manifest.csv, reports/downloads.html, reports/manifest.txt/.json
 """
 
 from __future__ import annotations
 
 import argparse
+import configparser
 import html
 import sys
 from collections import Counter
@@ -53,8 +55,26 @@ def ae_only_dlls(folder: Path) -> list[str]:
     return out
 
 
-def decide(r: dict, present: bool, ids: dict, decision: dict | None, dlls: list[str]) -> tuple[str, str]:
+def installed_file_ids(folder: Path) -> set[str]:
+    """Nexus file ids MO2 (or install_archives) recorded in the folder's meta.ini."""
+    ini = folder / "meta.ini"
+    if not ini.is_file():
+        return set()
+    try:
+        raw = mo2.read_meta_ini(ini).raw or {}
+    except (OSError, configparser.Error):
+        return set()
+    return {str(v).strip().strip('"') for k, v in raw.get("installedFiles", {}).items() if k.lower().endswith("fileid")}
+
+
+def decide(r: dict, present: bool, ids: dict, decision: dict | None, dlls: list[str],
+           installed: set[str] = frozenset()) -> tuple[str, str]:
     cat = r.get("category", "")
+    if decision and decision["action"] == "reinstall":
+        # the folder has the wrong version: done once its meta.ini names the chosen file
+        if present and ids.get("file_id") and ids["file_id"] in installed:
+            return "keep", "已重裝成指定的檔案"
+        return ("reinstall" if present else "download"), decision.get("note") or "manual decision"
     if decision:
         act = decision["action"]
         fetch = act in ("download", "replace_dll") or act.startswith("harvest_")
@@ -117,7 +137,8 @@ def run(args) -> Report:
                        "version": nx.get("suggested_file_version", ""),
                        "source": f"nexus_search:{nx.get('confidence')}"}
         dlls = ae_only_dlls(folder) if present else []
-        action, note = decide(p, present, ids, dec, dlls)
+        installed = installed_file_ids(folder) if present else set()
+        action, note = decide(p, present, ids, dec, dlls, installed)
         mid = ids.get("mod_id", "")
         fid = ids.get("file_id", "")
         rows.append({
@@ -135,17 +156,18 @@ def run(args) -> Report:
     rep.data = {"by_action": dict(counts), "pm": str(args.pm)}
     rep.add("total", "INFO", "目標資料夾", f"{len(rows)} 個")
     for action, title in (("keep", "已就位"), ("download", "需從 Nexus 下載"), ("regenerate", "第五階段重建"),
-                          ("replace_dll", "需換成 1.5.97 版 DLL"), ("review", "尚無來源，需人工確認"),
+                          ("replace_dll", "需換成 1.5.97 版 DLL"), ("reinstall", "需整包重裝（舊內容移到 _replaced）"),
+                          ("review", "尚無來源，需人工確認"),
                           ("drop", "捨棄")):
         n = counts.get(action, 0)
-        status = "WARN" if action in ("review", "replace_dll") and n else "INFO"
+        status = "WARN" if action in ("review", "replace_dll", "reinstall") and n else "INFO"
         rep.add(action, status, title, f"{n} 個")
     rep.add("files", "INFO", "輸出", "reports\\manifest.csv、reports\\downloads.html")
     return rep
 
 
 def write_downloads_html(path: Path, rows: list[dict]) -> None:
-    todo = [r for r in rows if r["action"] in ("download", "replace_dll", "review")]
+    todo = [r for r in rows if r["action"] in ("download", "replace_dll", "reinstall", "review")]
     parts = ["<!doctype html><meta charset='utf-8'><title>Pages 下載清單</title>",
              "<style>body{font-family:system-ui,'Microsoft JhengHei';margin:16px}table{border-collapse:collapse}"
              "td,th{border:1px solid #ccc;padding:4px 8px}tr.done{opacity:.35}code{user-select:all}</style>",
