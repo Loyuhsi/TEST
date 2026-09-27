@@ -5,6 +5,46 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-28｜**第 5 階段回報判讀**（回應 c0badc4）。
+  - 版本不符修正（59 個、683 筆，重新掃描是 0）與主選單測試都接受。
+  - DynDOLOD 的分析非常清楚，比對 HoF 兩個版本的結果很有用。
+  1. **HoF 的 3 個補丁：照你的建議 (B)**。
+     - 停用 `DBM_HUB_TwilightPrincess_Patch.esp`、`DBM_HUB_SoulHunterArmor_Patch.esp`、`DBM_HUB_Unslaad_Patch.esp`，以及以它們為前置的 `LOTD_TCC_Twilight Princess Armor.esp`、`LOTD_TCC_Soul Hunter Armor.esp`、`LOTD_TCC_Unslaad.esp`。
+     - 做法：目標 `data/target/plugins.txt` 把這 6 行改成停用（行首沒有 `*`）。
+       - `create --apply` 會照目標寫入停用，`restore-states` 會維持停用。
+       - fill_plugins 只補啟用的目標插件，不會再補回來。
+     - 結果和 Nolvus 原本的設定相同：HoF 不展示這 3 套盔甲。
+     - 整包升級 HoF 2.4.26＋TCC 4.9 (A) 牽涉 39 個插件，還要重跑 PGPatcher、重做修正版，留到第 8 階段再評估。
+     - `data/extra_archives.csv` 第 57、58 行已註明。
+  2. **Ice Blade of the Monarch、Oblivion Artifacts 缺 script**：不處理。這兩個 mod 屬於 Nolvus 那邊，DynDOLOD 只記為錯誤。測試路線時如果碰到相關物件沒反應，再回報。
+  3. **xEdit 的引用檢查**：要做，但放在 DynDOLOD 與第一次 CS 啟動之後，避免擋住 LOD。
+     - 範圍：只檢查從壓縮檔補進來的插件，也就是 `fill_plugins` 取出的、`Pages - 版本不符修正` 以外的單一連結插件。
+     - 在 SSEEdit 選這些插件載入（它們的前置會自動載入），用「Check for Errors」。**不要存檔**。
+     - 回報每個插件的錯誤種類與數量（特別是 Unresolved／NULL reference）。雲端再決定要不要處理。
+  4. **手冊缺口**：
+     - `docs/05` 共通原則新增：在 MO2 手動停用又重新啟用 mod 之後，跑 restore-states＋prune 這一組（TrueHUD.esl 的問題）；第 4、5.3 節也寫上了。
+     - 第 8 節註明：先按 Advanced 再按 High；「Unresolved FormID」要停下回報。
+- 2026-09-28｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間工作照 CLAUDE.md）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. **重建設定檔**（目標有 6 個改成停用）：
+     1. `create --apply` → 開 MO2 一次再關。
+     2. `sync-order --restore-states --apply`：這 6 個會是停用。
+     3. `prune_dependents` 試跑。名字要都在上一輪的 26 個裡，或者原因是「前置是這 6 個之一」（例如 `LOTD_TCC_Unslaad_Display.esp`）；有其他新名字就先回報。
+     4. `--disable-folders --apply`。
+  3. **檢查**：`check_plugins`（全部通過，完整 251）→ `verify` → 主選單測試。
+  4. **DynDOLOD**（`docs/05` 第 8 節，選項同上一輪）：
+     1. Advanced → High，勾 Object／Tree／Dynamic LOD、Occlusion data＋Plugin，不做草 LOD，輸出到 `D:\PM\tools\DynDOLOD\DynDOLOD_Output\`。
+     2. 完成後搬到 `dyndolodCS2` → `sync-order --apply` → `check_plugins`：預期完整 253／254，`Occlusion.esp` 是輕量插件；如果是完整插件，用 `esl_check --flag` 處理。
+     3. `audit_skse`。
+     4. 如果又出現其他插件的「Unresolved FormID」，照樣停下回報：補丁名稱、主插件、FormID 與筆數。
+  5. **第一次用 CS 啟動**（`docs/05` 第 10 節）：到主選單，確認沒有當機。
+  6. **xEdit 的引用檢查**（見上面第 3 點，唯讀）。
+  7. 回報並推送：
+     - 各報告的每一行。
+     - DynDOLOD 記錄的摘要（錯誤與警告的種類、數量）。
+     - `dyndolodCS2` 的檔案數。
+     - xEdit 檢查的摘要。
+  8. 之後是第 11 節的測試路線（**由使用者玩**）、第 12 節的 EN-baseline 備份，然後開始第 6 階段中文化。
 - 2026-09-27｜**第 5 階段回報判讀**（回應 282f8cf）。
   - RaySense、Synthesis（.NET 10 SDK 的安裝已經使用者同意，接受）、PGPatcher、草地快取、xLODGen、TexGen 都接受。
   - 在 DynDOLOD 前停下來是對的；覆寫掃描的分析非常好。

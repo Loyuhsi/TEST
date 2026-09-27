@@ -962,8 +962,8 @@
 *mihailtoxindoctoroutfit.esp
 *Twilight Princess Armor.esp
 *Twilight Princess Armor - Alt Textures and Cloth Addon.esp
-*DBM_HUB_TwilightPrincess_Patch.esp
-*LOTD_TCC_Twilight Princess Armor.esp
+DBM_HUB_TwilightPrincess_Patch.esp
+LOTD_TCC_Twilight Princess Armor.esp
 *TrissArmorRetextured.esp
 *SPOAsilverknight.esp
 *Blackened Steel Armor and weapon set.esp
@@ -1153,8 +1153,8 @@
 *evgSouthboundScoutsRumple.esp
 *SkyblivionNecromancerRobes.esp
 *Soul Hunter Armor.esp
-*DBM_HUB_SoulHunterArmor_Patch.esp
-*LOTD_TCC_Soul Hunter Armor.esp
+DBM_HUB_SoulHunterArmor_Patch.esp
+LOTD_TCC_Soul Hunter Armor.esp
 *ssNordMage.esp
 *[Ashtoreth] Black Hellebore.esp
 *[Ashtoreth] Duskrogue Armor.esp
@@ -2243,9 +2243,9 @@
 *YOT - Triumvirate.esp
 *YOT - Tundra Homestead.esp
 *YOT - Umbra.esp
-*DBM_HUB_Unslaad_Patch.esp
+DBM_HUB_Unslaad_Patch.esp
 *DBM_Unslaad_Display_Patch.esp
-*LOTD_TCC_Unslaad.esp
+LOTD_TCC_Unslaad.esp
 *LOTD_TCC_Unslaad_Display.esp
 *YOT - Unslaad.esp
 *YOT - Vigil Enforcer Armor Set.esp
