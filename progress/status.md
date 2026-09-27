@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
-最後更新：2026-09-27
-目前階段：5（cloud-notes 13db1b8 步驟 1–4 完成，第 5 步做到 TexGen；DynDOLOD 之前停下，等雲端決定版本不符的修補檔）
+最後更新：2026-09-28
+目前階段：5（cloud-notes f2b7958 步驟 1–4 完成；第 5 步 DynDOLOD 被 3 個 HoF 2.4.26 補丁的 Unresolved FormID 擋下，等雲端決定）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4017）；**DynDOLOD 前停下**：TexGen 有 14 個「being overridden」錯誤（5 個修補檔對應新版 TGTK／Hall of Forgotten），全載入順序另有 59 個插件、683 筆覆寫指向不存在的記錄（室外 195），等雲端決定 |
+| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4018）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆，覆寫掃描歸零；主選單 166 秒；**DynDOLOD 停下**：3 個從 HoF 2.4.26 取出的 DBM_HUB 補丁引用 LOTD_HUB 2.3.9 沒有的記錄（Unresolved FormID 63 個），等雲端選 (A) 升級 HoF 或 (B) 停用 6 個插件 |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -199,6 +199,24 @@
     - 那 14 個錯誤來自 5 個 fill_plugins 從最新版壓縮檔取出的修補檔。它們對應 TGTK 2.0、Hall of Forgotten 2.4，D:\PM 是 Nolvus 的 TGTK 1.2、HoF 2.3.9。
     - 全載入順序掃描：59 個插件、683 筆覆寫指向不存在的記錄（室外 195），表格在 `data/analysis/override_mismatch.csv`。
   - 下一步：推送後等雲端決定這些修補檔怎麼處理，再做 DynDOLOD（High）→ 第 9、10 節。
+- 2026-09-28 雲端 f2b7958 的步驟 1–5（細節與報告全文在 local-report）：
+  - pytest 193 全過。
+  - 重建設定檔：
+    - `create --apply` 產生佔位資料夾 `Pages - 版本不符修正`（modlist 第 2 個）→ MO2 開關。
+    - `sync-order --restore-states` → prune 26 個（和上一輪名字相同）→ `--disable-folders --apply`。
+  - `strip_refs --drop-missing`：59 個插件、683 筆、800 項，寫到 `Pages - 版本不符修正`；每個插件的筆數在 `data/analysis/strip_refs_drop_missing.csv`。
+  - 檢查：
+    - sync-order、check_plugins 全過（輕量 4018：`TrueHUD.esl` 在草地快取後一直是停用，這次恢復了）。
+    - verify 缺 41、待重建 3。
+    - 覆寫掃描：59 個歸零，只剩原本就有的 17 個（70 筆）。
+    - 主選單 DataLoaded 166 秒。
+  - DynDOLOD：
+    - `D:\PM\tools` 裡 3 個設定檔的 `D:\MV` 改成 `D:\PM`（Bethini、PGPatcher、DynDOLOD 預設檔，都有備份）。
+    - High、Occlusion、不做草 LOD。3 分鐘時出現 Unresolved FormID 63 個：DBM_HUB_Unslaad 55、SoulHunterArmor 5、TwilightPrincess 3，都是 HoF 2.4.26 的補丁對上 LOTD_HUB 2.3.9。
+    - 只能按 Exit，沒有輸出。
+    - 誤開的第二個 DynDOLOD 已結束，沒有寫檔。
+  - HoF 2.4.26 和 2.3.9 比對：LOTD_HUB.esp 有 5,063 筆 2.3.9 的記錄在新版不存在；ST／FINH 改成 1.71 並重新編號；39 個啟用中的插件以 HoF 為前置。
+  - 下一步：推送後等雲端決定 (A) 整包升級 HoF 2.4.26＋TCC 4.9，或 (B) 停用 3 個 DBM_HUB 補丁和 3 個 TCC 插件，再重跑 DynDOLOD。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
