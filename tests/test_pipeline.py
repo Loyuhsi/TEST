@@ -221,6 +221,8 @@ def test_full_pipeline(world, monkeypatch):
     cp = {r["plugin"]: r for r in csv.DictReader(open(w["reports"] / "check_plugins.csv", encoding="utf-8-sig"))}
     assert cp["Synthesis.esp"]["status"] == "pending"
     assert cp["City.esp"]["kind"] == "light" and cp["ccbgssse001-fish.esm"]["kind"] == "light"
+    cpt = (w["reports"] / "check_plugins.txt").read_text(encoding="utf-8")
+    assert "輸出重建後的完整插件（預估）" in cpt and "DynDOLOD.esm, DynDOLOD.esp 一定是完整插件" in cpt
     assert audit_skse.main(["--pm", str(w["pm"]), "--out", str(w["reports"])]) == 1   # CityHelper.dll is AE-only
     au = {r["dll"]: r for r in csv.DictReader(open(w["reports"] / "audit_skse.csv", encoding="utf-8-sig"))}
     assert au["CityHelper.dll"]["class"] == "ae_only" and au["BackportedESLSupport.dll"]["class"] == "se"

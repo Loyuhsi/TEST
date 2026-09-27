@@ -134,3 +134,88 @@ def build_header(name: str, *, masters: list[str] = (), flags: int = 0, hedr_ver
     for m in masters:
         body += sub(b"MAST", m.encode("utf-8") + b"\x00") + sub(b"DATA", b"\x00" * 8)
     return b"TES4" + struct.pack("<IIIIHH", len(body), flags, 0, 0, form_version, 0) + body
+
+
+# ---------------------------------------------------------------- records
+ESL_MAX_NEW = 2048                  # new records a light plugin may hold (0x800-0xFFF)
+ESL_MIN_ID, ESL_MIN_ID_BEES, ESL_MAX_ID = 0x800, 0x000, 0xFFF
+
+
+def iter_records(data: bytes, name: str = ""):
+    """Yield (type, flags, formID) for every record after the TES4 header.
+
+    Groups are only headers (24 bytes) followed by their contents, so a linear walk that
+    steps over GRUP headers visits every record, nested or not.
+    """
+    if len(data) < 24 or data[:4] != b"TES4":
+        raise PluginError(f"{name}: not a TES4 plugin")
+    pos = 24 + struct.unpack_from("<I", data, 4)[0]
+    end = len(data)
+    while pos < end:
+        if pos + 24 > end:
+            raise PluginError(f"{name}: truncated record header at {pos}")
+        typ = bytes(data[pos:pos + 4])
+        size, flags, form_id = struct.unpack_from("<III", data, pos + 4)
+        if typ == b"GRUP":
+            if size < 24:
+                raise PluginError(f"{name}: bad group size at {pos}")
+            pos += 24
+            continue
+        if pos + 24 + size > end:
+            raise PluginError(f"{name}: truncated {typ.decode('ascii', 'replace')} record at {pos}")
+        yield typ.decode("ascii", "replace"), flags, form_id
+        pos += 24 + size
+
+
+@dataclass
+class RecordSummary:
+    header: PluginHeader
+    records: int = 0
+    new: int = 0
+    new_by_type: dict[str, int] = field(default_factory=dict)
+    overrides_by_type: dict[str, int] = field(default_factory=dict)
+    new_ids: list[int] = field(default_factory=list)
+
+    @property
+    def overrides(self) -> int:
+        return self.records - self.new
+
+    @property
+    def new_cells(self) -> int:
+        return self.new_by_type.get("CELL", 0)
+
+
+def summarize_bytes(data: bytes, name: str = "") -> RecordSummary:
+    h = parse_header_bytes(data, name)
+    own = len(h.masters)
+    s = RecordSummary(h)
+    for typ, _flags, form_id in iter_records(data, name):
+        s.records += 1
+        if form_id >> 24 >= own:
+            s.new += 1
+            s.new_by_type[typ] = s.new_by_type.get(typ, 0) + 1
+            s.new_ids.append(form_id & 0xFFFFFF)
+        else:
+            s.overrides_by_type[typ] = s.overrides_by_type.get(typ, 0) + 1
+    return s
+
+
+def summarize(path: Path) -> RecordSummary:
+    path = Path(path)
+    return summarize_bytes(path.read_bytes(), path.name)
+
+
+def esl_ready(s: RecordSummary) -> tuple[bool, str]:
+    """Can the light flag be set as is, without compacting form IDs?
+
+    BEES lets 1.71-header plugins use object IDs from 0x000 on 1.5.97; older headers need 0x800+.
+    """
+    if s.header.is_light:
+        return False, "已經是輕量插件"
+    if s.new > ESL_MAX_NEW:
+        return False, f"新增記錄 {s.new} 筆，超過 {ESL_MAX_NEW}"
+    low = ESL_MIN_ID_BEES if s.header.needs_bees else ESL_MIN_ID
+    bad = [i for i in s.new_ids if not low <= i <= ESL_MAX_ID]
+    if bad:
+        return False, f"{len(bad)} 筆新增記錄的編號超出 0x{low:03X}–0x{ESL_MAX_ID:03X}（需要壓縮 FormID）"
+    return True, "可以直接加 ESL 旗標"

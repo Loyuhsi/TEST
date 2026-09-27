@@ -18,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pm import fsutil, pe, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
 
+# DynDOLOD's own plugins are always full; every other generated output has to end up light
+FULL_OUTPUTS = ("DynDOLOD.esm", "DynDOLOD.esp")
+
 
 def analyse(prof: vfs.Profile) -> tuple[list[dict], dict]:
     data_dir = prof.game_dir / "Data"
@@ -78,7 +81,11 @@ def analyse(prof: vfs.Profile) -> tuple[list[dict], dict]:
                        for paths in vfs.skse_dll_providers(prof.mods_dir, prof.enabled_folders).values()
                        for d in paths[:1])
     exe_ver = pe.file_version(prof.game_dir / "SkyrimSE.exe")
-    stats = {"full": full, "light": light, "bees_needed": bees_need, "bees_present": bees_present,
+    # MO2 drops missing plugins from plugins.txt, so count the outputs that are not loaded yet
+    loaded_names = {r["plugin"].lower() for r in loaded}
+    pending_full = [n for n in FULL_OUTPUTS if n.lower() not in loaded_names]
+    stats = {"full": full, "light": light, "pending_full": pending_full,
+             "bees_needed": bees_need, "bees_present": bees_present,
              "exe_version": exe_ver, "status_counts": dict(Counter(r["status"] for r in order))}
     return order, stats
 
@@ -99,6 +106,11 @@ def main(argv=None) -> int:
     sc = st["status_counts"]
     rep.add("full", "PASS" if st["full"] <= tes4.MAX_FULL else "FAIL", "完整插件數（含本體）",
             f"{st['full']} / {tes4.MAX_FULL}", st["full"])
+    if st["pending_full"]:
+        after = st["full"] + len(st["pending_full"])
+        rep.add("full_after", "PASS" if after <= tes4.MAX_FULL else "WARN", "輸出重建後的完整插件（預估）",
+                f"{after} / {tes4.MAX_FULL}：{', '.join(st['pending_full'])} 一定是完整插件；"
+                "Synthesis.esp、FNIS.esp、Occlusion.esp、PG_* 必須是輕量插件", after)
     rep.add("light", "PASS" if st["light"] <= tes4.MAX_LIGHT else "FAIL", "輕量插件數（ESL）",
             f"{st['light']} / {tes4.MAX_LIGHT}", st["light"])
     for key, title, status in (("missing_master", "缺少前置的插件", "FAIL"), ("master_order", "前置順序錯誤", "FAIL"),

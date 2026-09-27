@@ -76,6 +76,26 @@ class CloneStats:
         self.errors.extend(other.errors)
 
 
+def unshare(path: Path) -> bool:
+    """Give a hardlinked file its own copy, so writing it no longer changes the other links.
+
+    The copy is written next to the file and swapped in with os.replace: the other links keep
+    their data and nothing is deleted. Returns False when the file had only one link.
+    """
+    src = long_path(path)
+    if os.stat(src).st_nlink <= 1:
+        return False
+    tmp = src + ".unshare-tmp"
+    shutil.copy2(src, tmp)
+    try:
+        os.replace(tmp, src)
+    except OSError:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+    return True
+
+
 def clone_tree(src: Path, dst: Path, *, apply: bool, allow_copy_fallback: bool = False,
                copy_names: set[str] = COPY_INSTEAD_OF_LINK, overwrite: bool = False) -> CloneStats:
     """Mirror src into dst using hardlinks (copies for names in copy_names).

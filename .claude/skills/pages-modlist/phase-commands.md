@@ -58,9 +58,9 @@ python tools/nexus_fetch.py --pm "D:/PM" --limit 20 --apply
 # 沒有 FOMOD 的下載（含 replace_dll／reinstall：舊內容會搬到 D:/PM/_replaced）：
 python tools/install_archives.py --pm "D:/PM"
 python tools/install_archives.py --pm "D:/PM" --apply
-# _ResourcePack（docs/04 7.1）：STOCK GAME\Data 沒有才建
-cmd //c mklink /H "D:\PM\STOCK GAME\Data\_ResourcePack.esl" "D:\MV\mods\Creation Club\_ResourcePack.esl"
-cmd //c mklink /H "D:\PM\STOCK GAME\Data\_ResourcePack.bsa" "D:\MV\mods\Creation Club\_ResourcePack.bsa"
+# _ResourcePack（docs/04 7.1）：STOCK GAME\Data 沒有才建（Git Bash 下 mklink 的引號會被改掉，用 Python）
+python -c "import os; os.link(r'D:\MV\mods\Creation Club\_ResourcePack.esl', r'D:\PM\STOCK GAME\Data\_ResourcePack.esl')"
+python -c "import os; os.link(r'D:\MV\mods\Creation Club\_ResourcePack.bsa', r'D:\PM\STOCK GAME\Data\_ResourcePack.bsa')"
 # 補齊缺少的插件（docs/04 8.1；先試跑，再 --apply；剩下的回報雲端）：
 python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening"
 python tools/fill_plugins.py --pm "D:/PM" --mv "D:/MV" --nolvus "D:/Nolvus/Instances/Nolvus Awakening" --apply
@@ -95,13 +95,24 @@ python tools/audit_skse.py --pm "D:/PM"
 
 ## 第 5 階段：重建輸出（照 docs/05 的順序；工具從 MO2 執行）
 ```bash
-# 全部輸出產生完、MO2 關閉後：
+# 工具第一次執行前（工具要先關閉）：把它的設定檔硬連結換成獨立副本
+python tools/unshare_links.py --path "D:/PM/mods/BodySlide and Outfit Studio/CalienteTools/BodySlide" --apply
+python tools/unshare_links.py --path "D:/PM/tools" --apply
+# 每個工具的輸出搬好、MO2 關閉後：
 python tools/build_instance.py sync-order --pm "D:/PM"
 python tools/build_instance.py sync-order --pm "D:/PM" --apply
 python tools/check_plugins.py --pm "D:/PM"
 python tools/audit_skse.py --pm "D:/PM"
+# 輸出插件是完整插件時（DynDOLOD.esm／.esp 以外）：先試跑，再加 --apply
+python tools/esl_check.py --plugin "D:/PM/mods/SYNTHESSIS/Synthesis.esp" --flag
+python tools/esl_check.py --plugin "D:/PM/mods/SYNTHESSIS/Synthesis.esp" --flag --apply
+# 分析插件覆寫了哪些記錄（唯讀）；掃描可騰出名額的候選（唯讀）
+python tools/esl_check.py --plugin "路徑\某插件.esp"
+python tools/esl_check.py --scan --pm "D:/PM"
 ```
-- Synthesis 的 patcher 清單，以及 BodySlide 的 Preset／Build Morphs：等雲端在 `progress/cloud-notes.md` 給出後才做。
+- 完整插件名額：目前 252，重建後 `DynDOLOD.esm`、`DynDOLOD.esp` 會用掉最後 2 個（254/254）。其他輸出（Synthesis、FNIS、Occlusion、PG_*）一定要是輕量插件；`check_plugins` 的「輸出重建後的完整插件（預估）」超過 254 就停下來回報。
+- `esl_check --flag` 只會改單一連結的檔案（重建出來的輸出），硬連結的原檔會被拒絕。
+- Synthesis 的 patcher 清單：等雲端在 `progress/cloud-notes.md` 給出後才做。BodySlide 照 `docs/05` 第 2 節。
 
 ## 第 6 階段：繁中化
 ```bash

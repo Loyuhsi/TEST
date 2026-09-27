@@ -5,6 +5,63 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-27｜**第 4 階段完成回報判讀**（回應 1b2d951）。
+  - 第 4 階段接受為完成（Dibella 補上後）。`check_plugins` 全過、sync-order 移動 136 個、prune 停用 27 個都沒問題。
+  - `mklink` 在 Git Bash 失敗的回報是對的：`docs/04` 7.1 與 phase-commands 已改成 Python `os.link`。
+  1. **Dibella：照你的建議**。
+     - 在 706051 裡取 `JKs Temple of Dibella - Solitude and Temple Frescoes ESL No Lanterns patch.esp`（ModuleConfig 的 Complete (No Lanterns) - ESL 選項）。
+     - 改名成 `JKs Temple of Dibella - Solitude and Temple Frescoes patch.esp`，放進 `JK's Interiors Patch Collection`。
+     - Nolvus 的 Mara 等 4 個是舊版 JK 補丁，所以對不上；這不影響判斷。
+  2. **修剪的 27 個接受**。其中 2 項之後可能恢復，這一輪先收集資料：
+     - `Embershard.esp` 是地點本體，缺的 `SnozzResources.esp` 在 M&V 的「Snozz's Resource Pack」。
+     - `Grand Solitude - AI Overhaul patch.esp` 缺的 `AI Overhaul - USSEP Patch.esp` 在 M&V 裡。
+     - 兩者都只有在是**輕量插件**時才能加回（理由見第 3 點）。
+  3. **完整插件名額：重建後是 254／254，沒有餘裕**。
+     - DynDOLOD 官方文件寫明 `DynDOLOD.esm`、`DynDOLOD.esp` 一定是完整插件，會用掉最後 2 個名額。
+     - 所以 `Synthesis.esp`、`FNIS.esp`、`Occlusion.esp`、`PG_*` 都必須是輕量插件。Nolvus 手冊也會替 Synthesis.esp 加 ESL 旗標。
+     - 新工具：
+       - `tools/esl_check.py`：分析插件覆寫了哪些記錄、判斷能不能直接加 ESL 旗標。`--flag --apply` 只改單一連結的輸出檔，硬連結的原檔會被拒絕。`--scan` 列出可騰出名額的候選。
+       - `check_plugins` 多一行「輸出重建後的完整插件（預估）」。
+  4. **工具設定檔的硬連結**：
+     - BodySlide 的 `Config.xml`（來自 Nolvus）和 `D:\PM\tools` 的 DynDOLOD／xEdit 設定檔（來自 M&V）都是硬連結，工具會原地改寫它們。
+     - 新工具 `tools/unshare_links.py` 在工具執行前把設定類檔案換成內容相同的獨立副本。來源實例的檔案不變，也不刪除任何資料。
+  5. **第 5 階段**：
+     - BodySlide 照 Nolvus 手冊 10.3，`docs/05` 第 2 節已寫出具體設定：
+       - 3BBB Body Amazing＋CBBE Curvy (Outfit)，不勾 Build Morphs，Batch Build 全選。
+       - 衝突時的選擇規則也寫在那一節。
+     - Synthesis 清單下一輪才給。Nolvus 手冊（v5）只用 Water Does Damage 與 Remove Landscape Vertex Color 兩個 patcher，v6 內建的 Synthesis.esp 要先分析（第 4 步）才確定。
+     - 目標有 SunHelm、Dirt and Blood、Wet and Cold，Water Does Damage 幾乎確定要用。
+     - 這一輪只做到 Pandora、BodySlide。Synthesis、PGPatcher、草地、LOD 都依賴最後的插件清單，等恢復項目與 Synthesis 清單決定後再做。
+- 2026-09-27｜**接下來的順序**（每步先關 MO2）：
+  1. `git pull --rebase`、`python -m pytest -q`。
+  2. **Dibella**：
+     - 照第 1 點放入，不覆蓋任何檔案。
+     - `sync-order --restore-states --apply`：會重新啟用一部分之前修剪的插件。
+     - `prune_dependents` 試跑。預期要停用的插件都在上一輪那 27 個之內；有新的名字就先回報。
+     - `--disable-folders --apply`。
+     - `check_plugins` 應全部 `[通過]`（完整 252）；`verify` 預期缺少 42 個。
+  3. **開到主選單**（`docs/04` 第 10 節）：
+     - 從 MO2 用 SKSE 啟動，等 Community Shaders 編譯著色器，到主選單後離開，不要開新遊戲。
+     - 回報：有沒有到主選單、`skse64.log` 的載入摘要（載入幾個、載入失敗的外掛名稱）、`BackportedESLSupport.log` 的摘要。
+     - 當機時：附 crash log 的例外與前 10 行 call stack，去掉使用者名稱。
+  4. **收集資料**（都是唯讀）：
+     - `python tools/esl_check.py --plugin "<Nolvus 的 Synthesis Patch 資料夾>/Synthesis.esp"`：資料夾名稱照 Nolvus 實際安裝的，通常是 `Synthesis Patch - NOSREX`。
+     - 在 `D:\MV\mods` 找 `SnozzResources.esp`、`AI Overhaul - USSEP Patch.esp`，記下所在資料夾，各跑一次 `esl_check --plugin`。
+     - `python tools/esl_check.py --scan --pm "D:/PM"`。
+  5. **工具設定檔**（工具都先關閉）：
+     - `unshare_links --path "D:/PM/mods/BodySlide and Outfit Studio/CalienteTools/BodySlide" --apply`
+     - `unshare_links --path "D:/PM/tools" --apply`
+  6. **Pandora**：
+     - 照 `docs/05` 第 1 節。
+     - 關 MO2，跑 `sync-order --apply`（新的 FNIS.esp 會自動啟用並排到目標位置），再跑 `check_plugins`。
+     - `FNIS.esp` 如果是完整插件：先 `esl_check --plugin "<Pandora Output>/FNIS.esp" --flag` 試跑，再加 `--apply`，然後重跑 `check_plugins`。
+  7. **BodySlide**：照 `docs/05` 第 2 節。
+  8. 回報：
+     - 各報告的每一行：prune、check_plugins、verify、esl_check ×3、unshare_links、sync-order。
+     - 主選單的結果。
+     - `Pandora Output`、`BodySlide (Nude)` 的檔案數。
+     - BodySlide 衝突視窗裡判斷不了的組。
+  9. 推送後**在這裡停下**，等雲端給 Synthesis 清單與恢復項目的決定，再做 Synthesis 之後的步驟。
 - 2026-09-27｜**第 4 階段中途回報 5 判讀**（回應 9e62b41）。53 → 16、`audit_skse` 通過，做得很好。以下做法都接受：COTN 的改名放入、Riverwood Falls 的選項、Vanaheimr 的臨時 manifest。
   1. **`_ResourcePack.esl`**：
      - 用 M&V 的 1.6.1170 版（`D:\MV\mods\Creation Club`），esl 與 bsa 都用**硬連結**放進 `D:\PM\STOCK GAME\Data`。不另建 mod 資料夾，也不改 plugins.txt：`Skyrim.ccc` 已列它，遊戲會自動載入，1.71 版標頭由 BEES 處理。
