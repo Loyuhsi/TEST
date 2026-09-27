@@ -15,6 +15,7 @@ Sources, tried in order for each missing plugin:
 Destination: a data/plugin_sources.csv row, else the target folder named like the source folder
 (also MO2 "Name2" duplicates); for archives, the folder whose Nexus IDs match the archive's .meta
 (data/extra_archives.csv first, then reports\\manifest.csv).
+A target plugin whose file sits in a disabled modlist folder (pruned, or disabled on purpose) is not missing.
 Plugins with no source get candidate folders; --plan-downloads writes those folders' own Nexus
 archives to reports\\fill_plugins_downloads.csv (manifest format) for nexus_fetch.
 Never overwrites or deletes files and never creates mod folders.
@@ -159,10 +160,12 @@ class World:
     dropped: set[str]                                    # fold(folder) with action drop
     mapping: Mapping
     siblings: dict[str, Counter] = field(default_factory=dict)  # fold(prefix) -> folders holding such plugins
+    parked: list[str] = field(default_factory=list)      # target plugins whose file sits in a disabled folder
 
 
-def missing_plugins(prof: vfs.Profile) -> tuple[list[str], dict[str, Counter]]:
-    """Missing target plugins, plus which folders already hold plugins of each name prefix."""
+def missing_plugins(prof: vfs.Profile) -> tuple[list[str], dict[str, Counter], list[str]]:
+    """Missing target plugins, which folders already hold plugins of each name prefix, and the target
+    plugins left out because their file is in a disabled modlist folder (pruned or disabled on purpose)."""
     exp = prof.profile_dir / "_expected" / "plugins.txt"
     if not exp.exists():
         raise FileNotFoundError(f"找不到 {exp}（請先執行 build_instance.py create --apply）")
@@ -172,9 +175,15 @@ def missing_plugins(prof: vfs.Profile) -> tuple[list[str], dict[str, Counter]]:
     for path in present.values():
         if path.parent.parent == prof.mods_dir:
             siblings[mo2.fold(plugin_prefix(path.name))][path.parent.name] += 1
-    missing = [p.name for p in mo2.read_plugins(exp)
-               if p.enabled and p.name.lower() not in present and p.name.lower() not in generated]
-    return missing, dict(siblings)
+    disabled = [e.name for e in prof.modlist if not e.enabled and not e.is_separator]
+    parked_files = vfs.plugin_providers(prof.mods_dir, disabled, None)
+    missing, parked = [], []
+    for p in mo2.read_plugins(exp):
+        key = p.name.lower()
+        if not p.enabled or key in present or key in generated:
+            continue
+        (parked if key in parked_files else missing).append(p.name)
+    return missing, dict(siblings), parked
 
 
 def index_installs(sources: list[tuple[str, Path]]) -> dict[str, list[tuple[str, Path]]]:
@@ -232,7 +241,7 @@ def index_archives(dl_dir: Path, cache_path: Path) -> tuple[dict, dict, dict]:
 def load_world(args: argparse.Namespace) -> World:
     prof = vfs.open_profile(args.pm, args.profile)
     folders = prof.enabled_folders
-    missing, siblings = missing_plugins(prof)
+    missing, siblings, parked = missing_plugins(prof)
     srcs = [(label, Path(p)) for label, p in (("nolvus", args.nolvus), ("mv", args.mv)) if p]
     installs = index_installs(srcs)
     arch, members, archive_ids = index_archives(args.downloads or args.pm / "downloads",
@@ -258,7 +267,7 @@ def load_world(args: argparse.Namespace) -> World:
         folder_ids.setdefault(mo2.fold(folder), (mod, fid, (r.get("nexus_version") or "").strip()))
     return World(prof.mods_dir, folders, {mo2.fold(f): f for f in folders}, missing, installs, arch, members,
                  archive_ids, dict(id_folders), dict(mod_folders), folder_ids, dropped, load_mapping(args.sources),
-                 siblings)
+                 siblings, parked)
 
 
 # ---------------------------------------------------------------- planning
@@ -508,6 +517,9 @@ def main(argv: list[str] | None = None) -> int:
         return finish(rep, [], args.out)
     rows = plan(w)
     rep.add("missing", "INFO", "目標插件缺少檔案", f"{len(rows)} 個（已排除第 5 階段的輸出插件）")
+    if w.parked:
+        rep.add("parked", "INFO", "資料夾已停用的插件（不算缺少）",
+                f"{len(w.parked)} 個，例如：{', '.join(w.parked[:8])}")
     counts = defaultdict(int)
     for r in rows:
         counts[r["status"]] += 1

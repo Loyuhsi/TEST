@@ -32,6 +32,8 @@ from pm import fsutil, layout, mo2, sevenzip, swap  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, REPO_ROOT, Report, read_csv, write_csv  # noqa: E402
 
 NOTE_NEEDS_PERSON = ("FOMOD", "合併安裝", "Dynamic Interface Patcher")
+NOTE_NEGATIONS = ("沒有", "無", "不是", "不用", "不需要")          # "沒有 FOMOD" does not ask for a person
+NOTE_NEGATIONS_EN = ("no", "not", "without")
 STAGING_DIR = "_install_staging"
 REPLACED_DIR = "_replaced"
 JOURNAL = "swap-in-progress.txt"
@@ -120,8 +122,22 @@ def _bad_folder(name: str) -> bool:
             or name.split(".")[0].strip().lower() in RESERVED)
 
 
+def _negated(before: str) -> bool:
+    b = before.rstrip()
+    words = b.split()
+    return b.endswith(NOTE_NEGATIONS) or bool(words and words[-1].lower() in NOTE_NEGATIONS_EN)
+
+
 def _note_flag(note: str) -> str:
-    return next((k for k in NOTE_NEEDS_PERSON if k.lower() in note.lower()), "")
+    """The first keyword the note mentions without a negation right before it ('' when none)."""
+    low = note.lower()
+    for k in NOTE_NEEDS_PERSON:
+        start = low.find(k.lower())
+        while start >= 0:
+            if not _negated(note[:start]):
+                return k
+            start = low.find(k.lower(), start + 1)
+    return ""
 
 
 def _classify(row: dict, archive: Path, folder: str, busy: bool, inp: Inputs) -> dict:

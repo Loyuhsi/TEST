@@ -5,6 +5,75 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-28｜**第 5 階段回報判讀**（回應 75312da）。
+  - 換版、兩個掃描歸零、主選單測試都接受。
+  - 在 DynDOLOD 前停下是對的：Synthesis.esp 的 4 筆孤兒 LAND 很可能會讓 DynDOLOD 再停一次。
+  - 你對工具狀況做的 2 個調整都接受：
+    - BS Synergy 用包裝程式只略過備註關鍵字。
+    - Horsepower 壓縮檔暫時移開再 `--apply`，完成後搬回。
+  - 兩個工具已經修好，下次不用再這樣繞：
+    1. **`install_archives`**：備註裡的關鍵字前面緊接否定詞（「沒有」「無」「不是」「不用」「no」「without」）時不算要人工。
+       - 同一段備註後面又有肯定的提到（例如「…再用 FOMOD 安裝」），仍然算要人工。
+       - 我用 `decisions.csv`、`extra_archives.csv` 的全部備註比對過：只有 BS Synergy 那一列的結果改變。
+       - 另外，壓縮檔裡真的有 FOMOD 安裝程式時，`layout` 本來就會擋下，不靠備註。
+    2. **`fill_plugins`**：檔案在 modlist 裡被停用的資料夾（已修剪或刻意停用）的插件不算缺少。
+       - 報告多一行「資料夾已停用的插件（不算缺少）」。
+       - 下次「找不到來源」應該只剩已接受缺少的那些。
+  1. **Synthesis：重跑**（必要）。
+     - 那 4 筆 LAND 的覆寫目標已經不存在，會變成多出來的新記錄。
+     - 另外 Synthesis 是複製當時生效的 LAND 再調亮，重跑才會對上現在的載入順序。
+     - 同一個 patcher、預設設定。`docs/05` 第 3 節新增第 8 步「重跑時」。
+  2. **PGPatcher：重跑**（約 5 分鐘）。
+     - `PG_1.esp` 存的是 3 個舊版補丁的記錄內容，可能把新版的模型路徑改回舊的。舊 BSA 已經在 `_replaced`，那樣會缺模型。
+     - 新版 BSA 裡的模型也要經過 PGPatcher。
+     - `docs/05` 第 4 節新增第 7 步「重跑時」。
+  3. **草地快取、xLODGen、TexGen：不重跑**。
+     - 換進來的新版都沒有 LAND／LTEX／GRAS（Lux Orbis 4.7 你已經看過；其他請在第 2 步確認）。
+     - 只有舊版 Lux Orbis LotD 那 4 筆 LAND 所在的格子可能有一點差異。請記下它們的世界空間與 cell 座標寫進回報。第 7 階段看得出問題再處理。
+  4. **手冊**：`docs/05` 共通原則新增「換掉插件之後」。
+     - 看 `reports\check_plugins.csv` 裡輸出插件（Synthesis、PGPatcher、PG_*）的 `masters` 欄。有換過的插件就重跑那個輸出。
+     - 新版帶模型就重跑 PGPatcher。
+     - 有 LAND／LTEX／GRAS 就記下位置回報。
+     - DynDOLOD 之後才換的，DynDOLOD 也要重跑。
+     - 舊輸出一律先搬到 `_replaced`。
+- 2026-09-28｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；長時間工作照 CLAUDE.md；搬移不刪除）：
+  1. `git pull --rebase`、`python -m pytest -q`（應該全過）。
+  2. **確認換過的插件沒有地形類記錄**（唯讀）：
+     - 用 `esl_check --plugin`（可以一次給多個 `--plugin`）看記錄類型：
+       - 目前生效的 8 個：5 個 DBM、Lux LotD、Lux Orbis LotD（版本不符修正裡那份）、`DBM_BSHeartlandPatch - Main.esp`。
+       - `_replaced` 裡的舊版 8 個。
+     - 預期只有舊版 Lux Orbis LotD 有 LAND（4 筆）。有其他的 LAND／LTEX／GRAS 就停下回報。
+     - 用你的掃描方法記下那 4 筆 LAND 的世界空間與 cell 座標，並看現在那幾格是由哪個插件提供 LAND。
+  3. **Synthesis**（`docs/05` 第 3 節第 8 步）：
+     1. 把 `D:\PM\mods\SYNTHESSIS\Synthesis.esp` 搬到 `_replaced\synthesis-<日期時間>\`。
+     2. 從 MO2 執行 Synthesis，同一個 patcher、預設設定，按執行。
+     3. Overwrite 裡的 `Synthesis.esp` 用「Move content to Mod…」移到 `SYNTHESSIS`（這時是空的，不會有取代的問題）。
+     4. 關 MO2：`esl_check --subrecords LAND --flag`（試跑）→ `--flag --apply`。
+        - 預期 LAND 7,671 筆左右（上次 7,675 減 4），每筆都有 VCLR。
+        - 前置不再有 `Lux Orbis - LotD patch.esp`。
+     5. `sync-order --apply`（會把新的 Synthesis.esp 改回啟用）→ `check_plugins`。
+  4. **PGPatcher**（`docs/05` 第 4 節第 7 步）：
+     1. 把 `pgpatcher_output` 裡的內容整個搬到 `_replaced\pgpatcher-output-<日期時間>\`（資料夾本身留著）。
+     2. 在 MO2 暫時停用 `pgpatcher_output` 和 `texgenCS`（`dyndolodCS2` 是空的，不用動）。
+     3. 從 MO2 執行 PGPatcher，設定和上次相同（輸出 `D:\PM\mods\pgpatcher_output`），等它完成。
+     4. 重新啟用 `pgpatcher_output`、`texgenCS`。
+     5. 關 MO2 跑 restore-states＋prune 一組：
+        - prune 先試跑，名單要和上一輪的 26 個相同。
+        - 然後 `--disable-folders --apply`。
+     6. `check_plugins`：
+        - `PGPatcher.esp`、`PG_1.esp` 是輕量插件，完整 251。
+        - 回報 `pgpatcher_output` 的檔案數（上次 20,432）。
+  5. **兩個掃描**：
+     - 覆寫掃描：只剩已接受的 16 個，Synthesis 那 4 筆消失。更新 `data/analysis/override_mismatch.csv`。
+     - 未解析引用掃描：0。
+  6. **主選單測試**（同上一輪）。
+  7. **DynDOLOD 之後**：照 78aa2e5 那一輪的第 9–13 步。
+     1. DynDOLOD：Advanced → High，Tree LOD 勾 **Ultra**。
+     2. 搬輸出到 `dyndolodCS2` → `sync-order --apply` → `check_plugins`（完整 253）。
+     3. `audit_skse`。
+     4. 第一次用 CS 啟動。
+     5. xEdit 檢查（唯讀）。
+     6. 回報並推送。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 cef4e36）。
   - 未解析引用的完整掃描做得很好：36 筆全部追到 LOTD V5，而且新版都先驗證過。
   - 在 Solstheim 停下、搬走不完整的輸出（沒有刪除），處理都正確。

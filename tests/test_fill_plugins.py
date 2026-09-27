@@ -37,6 +37,7 @@ class World:
         (self.nol / "MO2").mkdir(parents=True, exist_ok=True)
         (self.nol / "MO2" / "ModOrganizer.ini").write_text("[General]\n")
         self.folders: list[str] = []
+        self.disabled: set[str] = set()
         self.expected: list[str] = []
         self.manifest: list[dict] = []
         self.sources: list[dict] = []
@@ -67,7 +68,7 @@ class World:
 
     def args(self, *extra: str) -> list[str]:
         mo2.write_modlist(self.profile / "modlist.txt",
-                          [mo2.ModEntry(n, "+") for n in self.folders])
+                          [mo2.ModEntry(n, "-" if n in self.disabled else "+") for n in self.folders])
         mo2.write_plugins(self.profile / "_expected" / "plugins.txt",
                           [mo2.PluginEntry(p, True) for p in self.expected])
         write_rows(self.root / "manifest.csv", ["folder", "action", "nexus_mod_id", "nexus_file_id"], self.manifest)
@@ -293,3 +294,17 @@ def test_download_plan_never_uses_a_placeholder_file_id(world):
     assert "需要在 Nexus 選檔" in dl["COTN Winterhold Patch Collection2"]["note"]
     assert dl["COTN Winterhold Patch Collection2"]["url"].endswith("/mods/700")
 
+
+
+def test_plugin_in_a_disabled_folder_is_not_missing(world):
+    # a pruned patch: its folder is disabled, and the same plugin also sits in a downloaded archive
+    world.target("Horsepower Patch", {"Horse - SC Patch.esp": b"old"})
+    world.disabled.add("Horsepower Patch")
+    world.target("Horsepower Cache", mod="500", fid="5000")
+    world.archive("Horsepower-500-5000.7z", 500, 5000, {"Horse - SC Patch.esp": b"new"})
+    world.expected = ["Horse - SC Patch.esp"]
+    assert fill_plugins.main(world.args("--apply")) == 0
+    assert world.rows() == {}
+    assert not (world.mods / "Horsepower Cache" / "Horse - SC Patch.esp").exists()
+    text = (world.root / "reports" / "fill_plugins.txt").read_text(encoding="utf-8")
+    assert "資料夾已停用的插件（不算缺少）：1 個" in text

@@ -389,3 +389,14 @@ def test_journal_pointing_outside_mods_is_ignored(world):
     (staging / "swap-in-progress.txt").write_text(f"{outside}\n\n", encoding="utf-8")
     assert install_archives.main(w.args()) == 1
     assert not outside.exists()
+
+
+def test_note_flag_ignores_negated_keywords():
+    flag = install_archives._note_flag
+    assert flag("壓縮檔根目錄就是插件、沒有 FOMOD：舊內容由 install_archives 移到 _replaced") == ""
+    assert flag("無FOMOD，直接安裝") == ""
+    assert flag("archive has no FOMOD") == ""
+    assert flag("壓縮檔有 FOMOD：舊內容先搬到 D:\\PM\\_replaced，再用 MO2 安裝") == "FOMOD"
+    assert flag("主檔沒有 FOMOD；更新檔要用 FOMOD 安裝") == "FOMOD"      # a later plain mention still counts
+    assert flag("和第二個檔合併安裝") == "合併安裝"
+    assert flag("") == ""
