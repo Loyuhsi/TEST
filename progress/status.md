@@ -1,15 +1,15 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-27
-目前階段：4（完成回報：cloud-notes 27208e6 步驟 1–11；check_plugins 全部通過；Dibella 1 個插件等雲端決定；等第 5 階段清單）
+目前階段：5 前半（cloud-notes 4a9f006 步驟 1–8 完成；主選單要停用 LOTD 5 的 NPC 補丁才進得去，等雲端決定；恢復項目與 Synthesis 清單也在等雲端）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
 | 1 準備筆電 | 完成 | 2026-09-26 | preflight 全數通過（系統管理員執行）；雲端判讀通過，Python 3.13 與分頁檔設定都接受 |
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
-| 4 組合清單 | 完成（待雲端確認） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 未開始 | | |
+| 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
+| 5 重建輸出與英文基準 | 進行中 | | Dibella 放入、check_plugins 全過（完整 251、預估 253）、verify 缺 42；Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif（Preset CBBE Curvy (Outfit)、衝突照 Nolvus，和 Nolvus 都有的 5,450 個中 5,430 個幾何資料相同，另 10 組原因未查明；設定檔被 M&V Settings Hub 蓋掉的問題已用 `Pages - 設定覆寫` 修正）；**主選單卡住**：Nolvus 的 LOTD 5 NPC 補丁 ×2 對上 LOTD V6，等雲端決定 |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -119,6 +119,43 @@
   - Dibella：Mara 三種原始檔都對不上 Nolvus 那份（Nolvus 是舊版 1,061 bytes），依指示未放入；FOMOD 對應 Complete NL ESL → `…ESL No Lanterns patch.esp`，等雲端確認。
   - sync-order 移動 136 個到前置之後 → check_plugins 前置順序 0、缺前置 24 → prune 試跑 27 個（無 ESM、無本體）→ `--disable-folders --apply`（18 個資料夾）→ check_plugins 全部通過 → verify 缺 43。
   - 下一步：推送後等雲端確認 Dibella 與第 5 階段的 BodySlide 預設、Synthesis 清單。
+
+## 第 5 階段進行紀錄
+- 2026-09-27 雲端 4a9f006 的步驟 1–8（細節與報告全文在 local-report）：
+  - pytest 175 通過、1 略過。
+  - Dibella 放入（ESL No Lanterns 版改名）→ sync-order 啟用 10 → prune 9 個（全在上一輪 27 個內）→ check_plugins 全過（完整 252）→ verify 缺 42。
+  - 開到主選單：
+    - Knockback 的 DLL 是 AE 版（718570），讓遊戲結束 → 換成 SE 版 718571，舊內容在 `_replaced`。audit_skse 沒抓到。
+    - docs/04 第 7 節的 Community Shaders 在第 4 階段漏裝 → 補裝 CS 1.9.1、Skylighting、Upscaling、Grass Optimizations。
+    - 之後仍卡在背景畫面。取樣執行緒後查到 LOTD NPC `34D536`。
+      - 根本原因：Nolvus 的 `Modpocalypse NPCs (v3) Legacy of the Dragonborn.esp` 與 `LegacyoftheDragonborn - NPC Overhaul.esp` 是給 LOTD 5.6.5 的，引用了 V6 已不存在的記錄。
+      - 兩個各自都會卡住。連同依賴它們的 `Nolvus Awakening NPC Patch.esp` 一起停用後，可進主選單。
+      - 測完已還原 plugins.txt。NPC Overhaul 有 V6 版（514540）。
+    - 主選單那次：
+      - skse64 檢查 215、載入 214，只有 msdia140 沒載入（正常）。
+      - BEES 模擬舊標頭 1,939 行，無錯誤。
+      - OAR 2.3.6 與 M&V 的 RaySense OAR 外掛不合，533 行錯誤。
+      - 主選單偏下、被切掉一部分。
+  - esl_check：
+    - Synthesis.esp 已是輕量。
+    - SnozzResources.esp 是完整插件（ESM 旗標），要壓縮 FormID 才能改成輕量。
+    - AI Overhaul - USSEP Patch.esp 已是輕量。
+    - scan 列出 22 個可直接加旗標的候選。
+  - unshare_links：BodySlide 10 個、tools 926 個。
+  - Pandora：
+    - 第一次 `-o` 沒有作用，寫進 Steam 的遊戲資料夾（9 個檔）。檔案先複製到 `_replaced`，原檔由使用者刪除。
+    - 改好 Settings.json 後重跑：`Pandora Output` 41 檔，2 個 ERROR（Precision Creatures）。
+    - `FNIS.esp`（Pandora 資料夾附的空插件）加上 ESL 旗標 → check_plugins 完整 251、預估 253。
+  - BodySlide：
+    - M&V `Settings Hub` 的 `CalienteTools\BodySlide\Config.xml`（與 D:\MV 硬連結）在 VFS 中蓋掉 BodySlide 自己那份，路徑是錯的。
+    - 照 docs/05 建立 `Pages - 設定覆寫`（modlist 最高優先），放入正確的 Config.xml。
+    - Settings Hub 的原檔沒被改到。
+    - Batch Build 由使用者操作，共建了 5 次：
+      - 第 1 次沒選到 Preset、衝突多是預設，輸出已搬到 `_replaced`。
+      - 之後用腳本比對 Nolvus 預先建好的輸出，推回 483 組的選擇寫進 `BuildSelection.xml`。使用者選擇照 Nolvus。
+      - 最後一次：Preset `CBBE Curvy (Outfit)`，`BodySlide (Nude)` 5,825 個 nif。和 Nolvus 都有的 5,450 個中 5,430 個幾何資料完全相同。其餘 20 個（Twilight Princess、原版黑暗兄弟會路徑）來源檔相同但頂點不同，原因未查明。
+      - 沒建 morphs（照 docs）。但 Nolvus 其實有建，等雲端決定。
+  - 下一步：推送後停下，等雲端決定 LOTD NPC 補丁、OAR、恢復項目與 Synthesis 清單。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
