@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-28
-目前階段：5（cloud-notes 47b1758 步驟 1–7 完成：Synthesis／PGPatcher 重跑、DynDOLOD（Ultra）完成、完整 253、第一次 CS 啟動正常、xEdit 檢查 294 個有 3 個錯誤；下一步是第 11 節測試路線，由使用者玩）
+目前階段：5（cloud-notes 3f81324 步驟 1–6 完成：Madmen - Simonrim 停用、NITHI Reach 補丁外觀轉送修正、xEdit 0 錯誤、主選單正常；下一步是第 11 節測試路線，由使用者玩，通過後做第 12 節 EN-baseline）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -271,6 +271,19 @@
     - NITHI AI Overhaul 補丁 23（WNAM 皮膚指到 TXST／HDPT／ARMA）。
     - DBM_JKBluePalace 1（NAVI）。
   - 下一步：推送後等雲端決定 xEdit 找到的 3 個插件；之後第 11 節測試路線由使用者玩，第 12 節 EN-baseline。
+- 2026-09-28 雲端 3f81324 的步驟 1–6（細節與報告全文在 local-report）：
+  - pytest 207 全過。
+  - Madmen - Simonrim 停用：
+    - create → MO2 開關 → restore-states（仍停用）。
+    - prune 26 個（和已接受的相同）。
+    - check_plugins 完整 253、輕量 4012；輸出插件的前置都沒有它。
+  - NITHI Reach：
+    - 我們裝的 Women.esp 是 38,136 bytes（RSV 變體）。
+    - `forward_appearance` 改 49 筆 NPC 外觀（NAM9 11、PNAM 11、QNAM 32、RNAM 1、WNAM 20），8 筆已一致，沒有 note；修正版寫到 `Pages - 版本不符修正`。
+  - xEdit：修正版與 Nolvus 的另外 4 個 NITHI AI Overhaul 補丁都是 0 錯誤。
+  - Lastendell：Nolvus 用現成 DynDOLOD 輸出、沒有記錄；Lastendell 的 LOD 檔 Nolvus 47、我們 52。
+  - 主選單 176 秒，沒有當機。
+  - 下一步：使用者照 `docs/測試路線.md` 玩第 11 節（馬卡斯多看 NPC 臉和身體），通過後做第 12 節 EN-baseline 備份。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
