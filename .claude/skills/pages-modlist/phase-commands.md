@@ -142,31 +142,51 @@ python tools/esl_check.py --plugin "路徑/Synthesis.esp" --subrecords LAND
 - `esl_check --flag` 只會改單一連結的檔案（重建出來的輸出），硬連結的原檔會被拒絕。
 - Synthesis 的 patcher 清單：等雲端在 `progress/cloud-notes.md` 給出後才做。BodySlide 照 `docs/05` 第 2 節。
 
-## 第 6 階段：繁中化
+## 第 6 階段：繁中化（順序照 `docs/06`；ZH 整組已在目標清單）
 ```bash
 python -m pip install -r requirements-zh.txt
+python -m pytest -q
+# 1. 目標清單（多了 ZH 整組與 DSD）→ 開關 MO2 → restore-states＋prune 一組 → check_plugins（253／4012 不變）
+python tools/build_instance.py create --pm "D:/PM" --ini-from "D:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/Nolvus Awakening" --apply
+python tools/build_instance.py set-language --pm "D:/PM"
+python tools/build_instance.py set-language --pm "D:/PM" --apply
+# 2. 字型
 python tools/zh/fontconfig.py --pm "D:/PM" --official "D:/PM/mods/ZH - 官方繁中字串/interface/fontconfig_cn.txt" --out-mod "D:/PM/mods/ZH Overrides"
 python tools/zh/fontconfig.py --pm "D:/PM" --official "D:/PM/mods/ZH - 官方繁中字串/interface/fontconfig_cn.txt" --out-mod "D:/PM/mods/ZH Overrides" --apply
+# 3. DSD、STPP 1.10、Nexus 繁中（decisions.csv 已寫好）；Descriptions 只下載
+python tools/manifest.py --pm "D:/PM"
+python tools/nexus_fetch.py --pm "D:/PM" --apply
+python tools/install_archives.py --pm "D:/PM"
+python tools/install_archives.py --pm "D:/PM" --apply
+python tools/nexus_fetch.py --pm "D:/PM" --manifest data/zh_archives.csv --apply
+python tools/audit_skse.py --pm "D:/PM"
+# 4. 蘇禾：名詞釘選 → DSD 包轉繁 → MCM 英文備援 → Other 包比對 → 轉繁
 python tools/zh/strings_glossary.py chs-cht --a "D:/zh-packs/本體CC" --b "D:/PM/mods/ZH - 官方繁中字串/strings" --out "D:/PM/zh-work/pins_chs_cht.tsv"
-python tools/zh/opencc_convert.py "D:/PM/mods/ZH - 蘇禾 Nolvus DSD" "D:/PM/mods/ZH - 蘇禾 MV DSD" --pins "D:/PM/zh-work/pins_chs_cht.tsv"
-python tools/zh/opencc_convert.py "D:/PM/mods/ZH - 蘇禾 Nolvus DSD" "D:/PM/mods/ZH - 蘇禾 MV DSD" --pins "D:/PM/zh-work/pins_chs_cht.tsv" --in-place
+python tools/zh/opencc_convert.py "D:/PM/mods/ZH - 蘇禾 Nolvus DSD" "D:/PM/mods/ZH - 蘇禾 MV DSD" "D:/PM/mods/ZH - DBReV 中文" --pins "D:/PM/zh-work/pins_chs_cht.tsv"
+python tools/zh/opencc_convert.py "D:/PM/mods/ZH - 蘇禾 Nolvus DSD" "D:/PM/mods/ZH - 蘇禾 MV DSD" "D:/PM/mods/ZH - DBReV 中文" --pins "D:/PM/zh-work/pins_chs_cht.tsv" --in-place
+python tools/zh/mcm_txt.py scan --pm "D:/PM"
+python tools/zh/mcm_txt.py make-chinese --pm "D:/PM" --out-mod "D:/PM/mods/ZH - MCM 英文備援"
+python tools/zh/mcm_txt.py make-chinese --pm "D:/PM" --out-mod "D:/PM/mods/ZH - MCM 英文備援" --apply
 python tools/zh/diff_pack.py --pack "D:/zh-packs/Nolvus Other" --pm "D:/PM"
 python tools/zh/diff_pack.py --pack "D:/zh-packs/Nolvus Other" --pm "D:/PM" --accept-to "D:/PM/mods/ZH - 蘇禾 Nolvus Other" --apply
+python tools/zh/opencc_convert.py "D:/PM/mods/ZH - 蘇禾 Nolvus Other" "D:/PM/mods/ZH - 蘇禾 MV Other" --pins "D:/PM/zh-work/pins_chs_cht.tsv" --in-place
+# 5、6. 名詞對照表 → 涵蓋率
 python tools/zh/strings_glossary.py en-zh --a "D:/PM/zh-work/official_english/strings" --b "D:/PM/mods/ZH - 官方繁中字串/strings" --out "D:/PM/zh-work/glossary_en_zh.tsv"
-python tools/zh/mcm_txt.py scan --pm "D:/PM"
-python tools/zh/mcm_txt.py make-chinese --pm "D:/PM" --out-mod "D:/PM/mods/ZH Overrides"
-python tools/zh/mcm_txt.py make-chinese --pm "D:/PM" --out-mod "D:/PM/mods/ZH Overrides" --apply
 python tools/zh/coverage.py --pm "D:/PM" --work "D:/PM/zh-work"
-python tools/zh/llm_translate.py estimate --work "D:/PM/zh-work"
-# 以下兩行會花錢：先把 estimate 的金額告訴使用者，得到同意才執行
-python tools/zh/llm_translate.py run --work "D:/PM/zh-work" --glossary "D:/PM/zh-work/glossary_en_zh.tsv" --limit 5 --yes
+# 7. AI 翻譯：estimate 不花錢；run --yes 會花錢，每次都先問使用者（guard 也會擋）
+python tools/zh/llm_translate.py estimate --work "D:/PM/zh-work" --glossary "D:/PM/zh-work/glossary_en_zh.tsv"
+python tools/zh/llm_translate.py run --work "D:/PM/zh-work" --glossary "D:/PM/zh-work/glossary_en_zh.tsv" --limit 20 --mode sync --yes
 python tools/zh/llm_translate.py run --work "D:/PM/zh-work" --glossary "D:/PM/zh-work/glossary_en_zh.tsv" --yes
 python tools/zh/llm_translate.py apply --work "D:/PM/zh-work" --pm "D:/PM" --out-mod "D:/PM/mods/ZH - AI 翻譯"
 python tools/zh/coverage.py --pm "D:/PM" --work "D:/PM/zh-work"
 ```
-- 報告：`zh_fontconfig.txt`、`zh_opencc.txt`、`zh_diff_pack.txt/.csv`、`zh_mcm-*.txt` + `zh_mcm.csv`、`zh_coverage.txt/.csv`、`zh_llm-*.txt`。
-- 蘇禾漢化包的實際資料夾名稱依解壓結果調整。基底遊戲包的檔案清單先交給雲端判斷要保留哪些（`docs/06`）。
-- `llm_translate` 需要環境變數 `ANTHROPIC_API_KEY`。
+- 報告：`build_instance-set-language.txt`、`zh_fontconfig.txt`、`zh_opencc.txt`、`zh_diff_pack.txt/.csv`（Nolvus、M&V 各一份，改名 `-nolvus`／`-mv`）、`zh_mcm-*.txt` + `zh_mcm.csv`、`zh_coverage.txt/.csv`、`zh_dsd_unmatched.csv`、`zh_llm-*.txt`。
+- 蘇禾漢化包的實際資料夾名稱依解壓結果調整。本體＋CC 包只拿來做釘選表，不安裝。
+- 有 Nexus 原生繁中的插件（Vigilant.esm、Unslaad.esm、BSHeartland.esm、3DNPC.esp、Wyrmstooth.esp、evgSIRENROOT.esm、AHO）：把蘇禾 DSD 裡同名的插件資料夾**搬到** `D:/PM/_replaced/zh-sohe-overridden/`，不要刪除。
+- 同名替換插件的翻譯：用 `esl_check --plugin` 比對原版與翻譯版的記錄數，要相同。
+- `llm_translate` 需要 Windows 使用者環境變數 `ANTHROPIC_API_KEY`（使用者自己設，設好後重開 Claude Desktop）。
+- `llm_translate run` 中斷後重跑同一行即可：會先回收已送出的批次，不會重複付費。報告的「剩下的估計」是依實測推估的費用。
+- `build_instance create --ini-from` 會沿用設定檔原本的 `sLanguage`，漢化後重建設定檔不會變回英文。
 
 ## 第 7、8 階段
 - 沒有專用工具，依 `docs/07`、`docs/08` 操作。

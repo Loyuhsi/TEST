@@ -141,7 +141,9 @@ def main(argv=None) -> int:
             continue
         changed += 1
         if args.in_place:
-            shutil.copy2(f, f.with_name(f.name + ".bak"))
+            bak = f.with_name(f.name + ".bak")
+            if not bak.exists():                 # keep the untouched original from the first run
+                shutil.copy2(f, bak)
             f.write_bytes(new)
         elif args.out_dir:
             root = next((i for i in args.inputs if i.is_dir() and i in f.parents), f.parent)

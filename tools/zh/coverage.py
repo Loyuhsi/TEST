@@ -12,6 +12,9 @@ What counts as translated:
     python tools\\zh\\coverage.py --pm D:\\PM --work D:\\PM\\zh-work
 Outputs reports\\zh_coverage.csv, reports\\zh_coverage.txt/.json and <work>\\zh_worklist.jsonl.
 Plugin parsing is cached in <work>\\plugin_cache so re-runs are fast.
+Official masters (base game, DLC, Creation Club) are counted but never put on the worklist: their
+Chinese comes from the official localization. reports\\zh_dsd_unmatched.csv counts, per mod, DSD
+entries that point at no string of the winning plugins (a pack made for another mod version).
 """
 
 from __future__ import annotations
@@ -29,12 +32,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pm import bsa, fsutil, strings as st, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
 from zh import mcm_txt  # noqa: E402
-from zh.common import (WorkItem, has_cjk, items_to_rows, iter_dsd, needs_translation,  # noqa: E402
-                       read_dsd_file, string_key, write_jsonl)
+from zh.common import (PRICES, WorkItem, has_cjk, is_official_plugin, items_to_rows, iter_dsd,  # noqa: E402
+                       needs_translation, read_dsd_file, string_key, write_jsonl)
 
-# Rough prices per 1M tokens (input, output) for the cost estimate; batch = 50 %.
-PRICES = {"claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5": (2.0, 10.0),
-          "claude-haiku-4-5": (1.0, 5.0)}
+UNMATCHED_FIELDS = ["mod", "entries", "matched", "unmatched", "inactive_plugin", "localized_unchecked", "examples"]
 
 
 def extract_plugin_strings(path: Path, cache_dir: Path, localized: bool) -> list[dict]:
@@ -56,12 +57,18 @@ def extract_plugin_strings(path: Path, cache_dir: Path, localized: bool) -> list
     return rows
 
 
-def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, str]:
-    """Effective DSD strings: later plugin folders / later file names / higher mods win."""
-    files: dict[str, Path] = {}          # 'plugin/file.json' -> winning path
+def winning_dsd_files(prof: vfs.Profile) -> dict[str, tuple[str, Path]]:
+    """'plugin/file.json' (lower case) -> (mod folder, path) of the copy MO2 serves."""
+    files: dict[str, tuple[str, Path]] = {}
     for folder in reversed(prof.enabled_folders):          # low -> high priority, later overrides
         for plugin_dir, js in iter_dsd(prof.mods_dir / folder):
-            files[f"{plugin_dir.lower()}/{js.name.lower()}"] = js
+            files[f"{plugin_dir.lower()}/{js.name.lower()}"] = (folder, js)
+    return files
+
+
+def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, str]:
+    """Effective DSD strings: later plugin folders / later file names / higher mods win."""
+    files = {rel: path for rel, (_folder, path) in winning_dsd_files(prof).items()}
     order = {p.lower(): i for i, p in enumerate(active)}
     order["overwrite"] = 10 ** 9
     result: dict[tuple, str] = {}
@@ -90,34 +97,85 @@ def loose_strings_index(prof: vfs.Profile) -> dict[str, Path]:
     return idx
 
 
+def localized_table(provider: Path, plugin: str, language: str, ext: str,
+                    loose: dict[str, Path] | None = None) -> dict[int, str]:
+    """The string table the game would load: winning loose file among enabled mods, then the
+    plugin's own folder, then BSAs named after the plugin in that folder. {} when there is none."""
+    stem = Path(plugin).stem.lower()
+    mod = provider.parent
+    name = f"{stem}_{language}{ext}"
+    hit = (loose or {}).get(name)
+    for cand in ([hit] if hit else []) + [mod / "strings" / name, mod / "Strings" / name]:
+        if cand.exists():
+            return st.read(cand)
+    try:
+        bsas = [e.path for e in os.scandir(mod) if e.name.lower().endswith(".bsa")
+                and e.name.lower().startswith(stem)]
+    except OSError:
+        bsas = []
+    for b in bsas:
+        try:
+            with bsa.BSA(Path(b)) as arc:
+                found = arc.find(f"strings\\{name}")
+                if found:
+                    return st.parse(arc.read(found[0]), st.kind_of(name))
+        except (bsa.BSAError, OSError):
+            continue
+    return {}
+
+
 def localized_tables(provider: Path, plugin: str, language: str,
                      loose: dict[str, Path] | None = None) -> dict[int, str]:
-    stem = Path(plugin).stem.lower()
     out: dict[int, str] = {}
-    mod = provider.parent
     for ext in (".strings", ".dlstrings", ".ilstrings"):
-        name = f"{stem}_{language}{ext}"
-        hit = (loose or {}).get(name)
-        cands = ([hit] if hit else []) + [mod / "strings" / name, mod / "Strings" / name]
-        for cand in cands:
-            if cand.exists():
-                out.update(st.read(cand))
-                break
-        else:
+        out.update(localized_table(provider, plugin, language, ext, loose))
+    return out
+
+
+def dsd_unmatched(prof: vfs.Profile, active: list[str], light: set[str], localized: set[str],
+                  effective: dict[tuple, tuple]) -> list[dict]:
+    """Per mod: DSD entries of the winning files that match no string of the winning plugins."""
+    active_low = {p.lower() for p in active}
+    stats: dict[str, dict] = {}
+    for rel, (folder, path) in winning_dsd_files(prof).items():
+        s = stats.setdefault(folder, {"mod": folder, "entries": 0, "matched": 0, "unmatched": 0,
+                                      "inactive_plugin": 0, "localized_unchecked": 0, "examples": []})
+        plugin = rel.split("/")[0]
+        entries = read_dsd_file(path)
+        if plugin not in active_low:
+            s["inactive_plugin"] += len(entries)
+            continue
+        if plugin in localized:
+            s["localized_unchecked"] += len(entries)
+            continue
+        for e in entries:
             try:
-                bsas = [e.path for e in os.scandir(mod) if e.name.lower().endswith(".bsa")
-                        and e.name.lower().startswith(stem)]
-            except OSError:
-                bsas = []
-            for b in bsas:
-                try:
-                    with bsa.BSA(Path(b)) as arc:
-                        hit = arc.find(f"strings\\{name}")
-                        if hit:
-                            out.update(st.parse(arc.read(hit[0]), st.kind_of(name)))
-                            break
-                except (bsa.BSAError, OSError):
-                    continue
+                k = string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"), light)
+            except (KeyError, ValueError):
+                k = None
+            s["entries"] += 1
+            if k is not None and k in effective:
+                s["matched"] += 1
+            else:
+                s["unmatched"] += 1
+                if len(s["examples"]) < 3:
+                    s["examples"].append(f"{e.get('form_id', '?')} {e.get('type', '?')}")
+    rows = sorted(stats.values(), key=lambda r: r["mod"].lower())
+    for r in rows:
+        r["examples"] = "; ".join(r["examples"])
+    return rows
+
+
+def lost_zh_plugins(prof: vfs.Profile, providers: dict[str, Path]) -> list[str]:
+    """Plugins inside enabled ZH folders that some higher-priority mod overrides (the translation is not used)."""
+    out = []
+    for folder in prof.enabled_folders:
+        if not folder.upper().startswith("ZH"):
+            continue
+        for name in vfs.root_plugins(prof.mods_dir / folder):
+            win = providers.get(name.lower())
+            if win is not None and win.parent.name != folder:
+                out.append(f"{name}（{folder} 被 {win.parent.name} 蓋掉）")
     return out
 
 
@@ -147,6 +205,7 @@ def main(argv=None) -> int:
     dsd = dsd_map(prof, active, light)
     rows: list[dict] = []
     work: list[WorkItem] = []
+    official_todo = 0
     effective: dict[tuple, tuple[str, dict]] = {}     # key -> (plugin, entry): last override wins
     if not args.skip_plugins:
         cache_dir = args.work / "plugin_cache"
@@ -163,12 +222,19 @@ def main(argv=None) -> int:
                 en = localized_tables(path, name, "english", loose)
                 done = sum(1 for v in zh.values() if has_cjk(v))
                 todo = {sid: v for sid, v in en.items() if needs_translation(v) and not has_cjk(zh.get(sid, ""))}
-                for sid, text in todo.items():
-                    work.append(WorkItem(WorkItem.make_id("strings", name, sid), "strings", text, "localized",
-                                         plugin=name, file=Path(name).stem.lower(), key=str(sid)))
+                official = is_official_plugin(name)
+                if official:
+                    official_todo += len(todo)
+                else:
+                    for sid, text in todo.items():
+                        work.append(WorkItem(WorkItem.make_id("strings", name, sid), "strings", text, "localized",
+                                             plugin=name, file=Path(name).stem.lower(), key=str(sid)))
+                note = "" if zh else "沒有 _chinese 字串表：畫面可能出現空白名稱"
+                if official and todo:
+                    note = (note + "；" if note else "") + "官方插件：不送 AI"
                 rows.append({"kind": "localized_plugin", "name": name, "total": len(en), "translated": done,
                              "untranslated": len(todo), "chars": sum(len(t) for t in todo.values()),
-                             "note": "" if zh else "沒有 _chinese 字串表：畫面可能出現空白名稱"})
+                             "note": note})
                 continue
             try:
                 entries = extract_plugin_strings(path, cache_dir, localized=False)
@@ -214,14 +280,30 @@ def main(argv=None) -> int:
     rep = Report("zh_coverage")
     rep.add("coverage", "INFO", "整體涵蓋率", f"{done}/{total}（{(done / total * 100 if total else 100):.1f}%）")
     rep.add("todo", "INFO", "待翻譯", f"{len(work)} 條；去除重複後約 {unique_chars:,} 個英文字元")
-    blanks = [r["name"] for r in rows if r["kind"] == "localized_plugin" and r["note"]]
+    blanks = [r["name"] for r in rows if r["kind"] == "localized_plugin" and r["note"].startswith("沒有")]
     rep.add("blank", "WARN" if blanks else "PASS", "缺中文字串表的本地化插件",
             f"{len(blanks)} 個" + (f"：{', '.join(blanks[:8])}" if blanks else ""))
+    rep.add("official", "INFO", "官方插件（本體、DLC、CC）仍是英文的字串",
+            f"{official_todo} 條（不送 AI；官方繁中本來就有的名詞保持官方譯法）")
+    if not args.skip_plugins:
+        localized = {n for n, h in headers.items() if h.is_localized}
+        unmatched = dsd_unmatched(prof, active, light, localized, effective)
+        write_csv(args.out / "zh_dsd_unmatched.csv", unmatched, UNMATCHED_FIELDS)
+        worst = [r for r in unmatched if r["entries"] and r["unmatched"] / r["entries"] > 0.2]
+        rep.add("dsd_unmatched", "WARN" if worst else "INFO", "DSD 對不上的條目（依 mod）",
+                ("；".join(f"{r['mod']} {r['unmatched']}/{r['entries']}"
+                          + (f"（插件未啟用 {r['inactive_plugin']}）" if r["inactive_plugin"] else "")
+                          for r in unmatched if r["entries"] or r["inactive_plugin"]) or "沒有 DSD 檔")
+                + "（見 reports\\zh_dsd_unmatched.csv）")
+    lost = lost_zh_plugins(prof, providers)
+    rep.add("lost", "WARN" if lost else "PASS", "ZH 資料夾裡沒有生效的插件",
+            f"{len(lost)} 個" + (f"：{'；'.join(lost[:8])}" if lost else ""))
     in_tok = unique_chars / 4 * 1.3 + len(work) * 12        # text + JSON/id overhead
-    out_tok = unique_chars / 4 * 1.6 + len(work) * 10
+    out_tok = (unique_chars / 4 * 1.6 + len(work) * 10) * 2  # x2: room for thinking tokens
     est = [f"{m}：約 ${(in_tok * a + out_tok * b) / 1e6:,.0f}（Batch 約 ${(in_tok * a + out_tok * b) / 2e6:,.0f}）"
-           for m, (a, b) in PRICES.items()]
-    rep.add("cost", "INFO", "機器翻譯費用粗估（未含重試）", "；".join(est))
+           for m, (a, b, _c) in PRICES.items()]
+    rep.add("cost", "INFO", "機器翻譯費用粗估（含思考的預留；準確數字看 llm_translate 試翻後的 estimate）",
+            "；".join(est))
     rep.data = {"worklist": str(args.work / "zh_worklist.jsonl"), "items": len(work), "unique_chars": unique_chars}
     path = rep.save(args.out, stem="zh_coverage")
     print(rep.text())

@@ -125,3 +125,22 @@ Pages - LOTD V6 修正,keep,本地由 tools/strip_refs.py 產生：LOTD 5 補丁
 Open Animation Replacer - RaySense3,reinstall,1.2.0 新增 RaySense_Ledge 條件（1.1 會有 80 行 not found）；需要 OAR 3.0.2 以上；插件同名 RaySense.esp,175498,796343,1.2.0
 Pages - 版本不符修正,keep,本地由 tools/strip_refs.py --drop-missing 產生：對應新版主插件的補丁，刪掉覆寫不存在記錄的那幾筆後的同名修正版（清單見 data/analysis/override_mismatch.csv）,,,
 Beyond Skyrim - Legacy of the Dragonborn Synergy Patch2,reinstall,1.13.2 對應 LOTD V6（Nolvus 的舊版 DBM_BSHeartlandPatch - Main.esp 有 6 個放置記錄的基底物件在 V6 已刪除，DynDOLOD 會停下）；壓縮檔根目錄就是插件、沒有 FOMOD：舊內容由 install_archives 移到 D:\PM\_replaced,36074,667108,1.13.2
+Dynamic String Distributor,download,第 6 階段：DSD 1.4.3（只有 SKSE 外掛，不佔插件名額）,107676,753995,1.4.3
+Scaleform Translation Plus Plus NG,reinstall,第 6 階段：Nolvus 的 1.6 更新到 1.10；舊內容由 install_archives 移到 D:\PM\_replaced,77359,794368,1.10
+ZH - Nexus 繁中 - VIGILANT,download,VIGILANT 1.8.2 的繁中 DSD 版（Vagrant999；不換插件）,158886,775093,1.8.2
+ZH - Nexus 繁中 - Unslaad,download,Unslaad 3.0.6 的繁中 DSD 版（Vagrant999；不換插件）,160631,775090,3.0.6
+ZH - Nexus 繁中 - Bruma,download,Beyond Skyrim Bruma 1.6.3 繁中（sedna1795）；install_archives 判為人工時用 MO2 裝進這個空資料夾,13821,557184,1.6.3
+ZH - Nexus 繁中 - 3DNPC,download,Interesting NPCs 4.54 繁中（hor0303）；install_archives 判為人工時用 MO2 裝進這個空資料夾,134422,564185,4.54
+ZH - Nexus 繁中 - Wyrmstooth,download,Wyrmstooth 1.20.2 繁中（zeinman55）；install_archives 判為人工時用 MO2 裝進這個空資料夾,85745,516633,1.20.2
+ZH - Nexus 繁中 - SIRENROOT,download,SIRENROOT 1.21 繁中（zeinman55）；install_archives 判為人工時用 MO2 裝進這個空資料夾,123735,518984,1.21
+ZH - DBReV 中文,download,Dragonborn ReVoiced 1.5.2 的 MCM 簡中翻譯；安裝後用 opencc_convert 轉成繁體,187113,804348,1.5.2
+ZH - Nexus 繁中 - Project AHO,keep,Project AHO 2.0 繁中（Nexus 24004）：依我們的 AHO 插件是不是 ESM 旗標版，手動選 88522 或 88523 裝進這個空資料夾,,,
+ZH - Nexus 繁中 - Descriptions,keep,Descriptions for Various Mods 繁中 2.6.1（我們是 2.4.1）：用 data/zh_archives.csv 下載，解壓後以 diff_pack 比對並複製通過的檔案,,,
+ZH Overrides,keep,第 6 階段本地產生：fontconfig、ImGui 字型等設定覆寫,,,
+ZH - AI 翻譯,keep,第 6 階段本地產生：llm_translate.py apply 的輸出,,,
+ZH - 蘇禾 Nolvus Other,keep,蘇禾 Nolvus 6.0.20 Other 包（使用者從夸克下載）以 diff_pack 比對後複製、轉繁體,,,
+ZH - 蘇禾 MV Other,keep,蘇禾 M&V Other 包（使用者從夸克下載）以 diff_pack 比對後複製、轉繁體,,,
+ZH - 蘇禾 Nolvus DSD,keep,蘇禾 Nolvus 6.0.20 Ultimate DSD 包（使用者從夸克下載）用 MO2 安裝後轉繁體,,,
+ZH - 蘇禾 MV DSD,keep,蘇禾 M&V DSD 包（使用者從夸克下載）用 MO2 安裝後轉繁體,,,
+ZH - MCM 英文備援,keep,第 6 階段本地產生：mcm_txt.py make-chinese 的英文備援（放在 ZH 最低，任何翻譯都會蓋過它）,,,
+ZH - 官方繁中字串,keep,第 2 階段 extract_official.py 產生,,,

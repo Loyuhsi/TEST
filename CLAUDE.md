@@ -33,7 +33,7 @@
 - 在對話、檔案或指令列顯示 API 金鑰。金鑰只放在 Windows 使用者環境變數 `NEXUS_API_KEY`、`ANTHROPIC_API_KEY`。
 - 下載蘇禾分享中的「纯净本体-英文」整包或轉載的 Nexus 檔案。只拿手冊列出的漢化檔。
 - 對 `D:\Nolvus` 或 `D:\MV` 按 Nolvus Update 或 Wabbajack 更新。
-- 使用大學漢化；新增任何翻譯用 ESP（插件名額只剩約 27 個）。
+- 使用大學漢化；新增任何翻譯用 ESP（完整插件 253／254，只剩 1 個名額）。
 - 修改 `D:\PM` 裡硬連結的原始檔（ini 之類的設定改在獨立 mod「Pages - 設定覆寫」）。
 
 ## 協作流程：用 GitHub 分支當中繼（雲端 Claude 對話識別碼 `0e5bdc`）

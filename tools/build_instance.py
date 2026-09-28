@@ -5,6 +5,8 @@
 Subcommands (all dry-run unless --apply; close MO2 first):
     python tools\\build_instance.py create --pm D:\\PM --ini-from "D:\\Nolvus\\Instances\\Nolvus Awakening\\MODS\\profiles\\Nolvus Awakening"
     python tools\\build_instance.py verify --pm D:\\PM          (after the first MO2 start: did MO2 drop lines?)
+    python tools\\build_instance.py set-language --pm D:\\PM [--language CHINESE] [--apply]
+        (phase 6: set sLanguage in the profile's Skyrim.ini; create --ini-from keeps it afterwards)
     python tools\\build_instance.py sync-order --pm D:\\PM      (after generating outputs: restore target plugin order;
                                                              patches whose masters sit below them move down)
 
@@ -52,6 +54,42 @@ def backup(files: list[Path], profile_dir: Path, apply: bool) -> Path | None:
         for f in existing:
             shutil.copy2(f, dest / f.name)
     return dest
+
+
+def ini_value(text: str, section: str, key: str) -> str | None:
+    cur = ""
+    for line in text.splitlines():
+        t = line.strip()
+        if t.startswith("[") and t.endswith("]"):
+            cur = t[1:-1].strip().lower()
+        elif cur == section.lower() and "=" in t and t.split("=", 1)[0].strip().lower() == key.lower():
+            return t.split("=", 1)[1].strip()
+    return None
+
+
+def set_ini_value(text: str, section: str, key: str, value: str) -> str:
+    """Replace key in [section] (or add it right after the section header, or add the section)."""
+    nl = "\r\n" if "\r\n" in text else "\n"
+    lines = text.splitlines()
+    cur, header = "", None
+    for i, line in enumerate(lines):
+        t = line.strip()
+        if t.startswith("[") and t.endswith("]"):
+            cur = t[1:-1].strip().lower()
+            if cur == section.lower() and header is None:
+                header = i
+        elif cur == section.lower() and "=" in t and t.split("=", 1)[0].strip().lower() == key.lower():
+            lines[i] = f"{line.split('=', 1)[0]}={value}"
+            return nl.join(lines) + nl
+    if header is None:
+        lines = [f"[{section}]", f"{key}={value}", *lines]
+    else:
+        lines.insert(header + 1, f"{key}={value}")
+    return nl.join(lines) + nl
+
+
+def read_ini(path: Path) -> str:
+    return path.read_bytes().decode("latin-1")          # byte-exact round trip for ANSI ini files
 
 
 def find_tools(pm: Path, max_depth: int = 5) -> list[tuple[str, Path]]:
@@ -144,6 +182,8 @@ def cmd_create(args, rep: Report) -> None:
         mo2.write_plugins(exp / "plugins.txt", plugins)
         (pm / "portable.txt").touch()
     copied = []
+    skyrim_ini = pdir / "Skyrim.ini"
+    language = ini_value(read_ini(skyrim_ini), "General", "sLanguage") if skyrim_ini.exists() else None
     if args.ini_from:
         for name in PROFILE_INIS:
             src = next((p for p in Path(args.ini_from).glob("*") if p.name.lower() == name.lower()), None)
@@ -151,6 +191,13 @@ def cmd_create(args, rep: Report) -> None:
                 copied.append(name)
                 if apply:
                     shutil.copy2(src, pdir / name)
+    if language and "Skyrim.ini" in copied:
+        # the ini comes from Nolvus (English); keep the language this profile was switched to
+        if apply and skyrim_ini.exists():
+            text = read_ini(skyrim_ini)
+            if ini_value(text, "General", "sLanguage") != language:
+                skyrim_ini.write_bytes(set_ini_value(text, "General", "sLanguage", language).encode("latin-1"))
+        rep.add("language", "INFO", "遊戲語言", f"沿用設定檔原本的 sLanguage={language}")
     # MO2 keeps libssl in dlls\; without a copy next to the exe, Windows may load an
     # incompatible libssl from PATH (miniconda, Git) and MO2 fails to start.
     ssl = [n for n in OPENSSL_DLLS if (pm / "dlls" / n).exists() and not (pm / n).exists()]
@@ -175,6 +222,30 @@ def cmd_create(args, rep: Report) -> None:
     if bdir:
         rep.add("backup", "INFO", "備份", str(bdir))
     rep.data = {"placeholders": placeholders}
+
+
+def cmd_set_language(args, rep: Report) -> None:
+    pdir = args.pm / "profiles" / args.profile
+    path = pdir / "Skyrim.ini"
+    if not path.exists():
+        rep.add("ini", "FAIL", "找不到設定檔的 Skyrim.ini", str(path))
+        return
+    text = read_ini(path)
+    current = ini_value(text, "General", "sLanguage")
+    if current == args.language:
+        rep.add("language", "PASS", "遊戲語言", f"已經是 sLanguage={args.language}")
+    else:
+        bdir = backup([path], pdir, args.apply)
+        if args.apply:
+            path.write_bytes(set_ini_value(text, "General", "sLanguage", args.language).encode("latin-1"))
+        rep.add("language", "PASS" if args.apply else "INFO", "遊戲語言",
+                f"sLanguage：{current or '（未設定）'} → {args.language}" + (f"；備份 {bdir}" if args.apply else "（試跑）"))
+    archives = ini_value(text, "Archive", "sResourceArchiveList2") or ""
+    if "voices_en0" in archives.lower():
+        rep.add("voices", "PASS", "英文語音", "sResourceArchiveList2 仍有 Skyrim - Voices_en0.bsa（官方繁中沒有配音）")
+    else:
+        rep.add("voices", "WARN", "英文語音", "Skyrim.ini 的 sResourceArchiveList2 沒有 Skyrim - Voices_en0.bsa，"
+                "遊戲可能沒有語音；停下回報")
 
 
 def cmd_verify(args, rep: Report) -> None:
@@ -352,7 +423,7 @@ def cmd_sync_order(args, rep: Report) -> None:
 def main(argv=None) -> int:
     fsutil.enable_utf8_console()
     ap = argparse.ArgumentParser(description="建立／檢查 D:\\PM 實例（預設試跑，加 --apply 才寫入；請先關閉 MO2）")
-    ap.add_argument("command", choices=["create", "verify", "sync-order"])
+    ap.add_argument("command", choices=["create", "verify", "sync-order", "set-language"])
     ap.add_argument("--pm", type=Path, default=Path("D:/PM"))
     ap.add_argument("--profile", default=DEFAULT_PROFILE)
     ap.add_argument("--manifest", type=Path, default=DEFAULT_REPORT_DIR / "manifest.csv")
@@ -363,12 +434,14 @@ def main(argv=None) -> int:
     ap.add_argument("--restore-states", action="store_true",
                     help="sync-order：依 _expected 還原插件的啟用狀態（MO2 會把新裝的插件列為停用）；"
                          "只處理檔案已在的插件，之後要再跑 prune_dependents")
+    ap.add_argument("--language", default="CHINESE", help="set-language：Skyrim.ini 的 sLanguage（預設 CHINESE）")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
     rep = Report(f"build_instance-{args.command}")
     rep.add("mode", "INFO", "模式", "實際執行" if args.apply else "試跑（加 --apply 才會寫入）")
-    {"create": cmd_create, "verify": cmd_verify, "sync-order": cmd_sync_order}[args.command](args, rep)
+    {"create": cmd_create, "verify": cmd_verify, "sync-order": cmd_sync_order,
+     "set-language": cmd_set_language}[args.command](args, rep)
     path = rep.save(args.out, stem=f"build_instance-{args.command}")
     print(rep.text())
     print(f"\n報告：{path}")

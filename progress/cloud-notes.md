@@ -5,6 +5,105 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-28｜**第 5 階段回報判讀**（回應 719b045）：全部接受。
+  - Madmen Simonrim 已停用；NITHI Reach 49 筆外觀已轉送，xEdit 0 錯誤。
+  - Lastendell：Nolvus 用的是現成輸出，沒有記錄可比對。我們的 LOD 檔比 Nolvus 還多（52 對 47），接受。
+  - **第 5 階段完成。**
+- 2026-09-28｜**使用者決定：先漢化，漢化完再玩測試路線。** 第 6 階段的設計（`docs/06` 已改寫）：
+  1. **先備份英文版**（`EN-baseline-未測試-日期.7z`），出問題時可以整組停用 ZH 或還原。
+  2. **ZH 整組已經寫進目標清單**：
+     - 排在三個 `Pages -` 修正 mod 之下、其他所有 mod 之上，以 `-ZH_separator` 分組。
+     - DSD 放在 STPP 旁邊。
+     - `create --apply` 會建立空的佔位資料夾，之後重建設定檔也不會弄亂順序。
+  3. **遊戲語言**：新指令 `build_instance set-language`。
+     - `create --ini-from` 會沿用設定檔原本的 `sLanguage`，不會被 Nolvus 的 ini 蓋回英文。
+  4. **Nexus 原生繁中**（`decisions.csv` 已寫好，manifest → nexus_fetch → install_archives）：
+     - VIGILANT、Unslaad 用 DSD 版（不換插件）。
+     - Bruma、3DNPC、Wyrmstooth、SIRENROOT、DBReV 中文 MCM：直接安裝。
+     - Project AHO：依我們的插件類型手動選檔。
+     - Descriptions for Various Mods：2.6.1 對我們的 2.4.1，只下載，再用 diff_pack 比對。
+     - Serana Dialogue Add-On：繁中是舊版，不採用。
+     - DSD 1.4.3 新裝，STPP 更新到 1.10。
+  5. **蘇禾的包**：
+     - Nolvus 6.0.20 的包和我們的版本一致。
+     - M&V 我們是 **2.6.2**，請使用者先找 2.6.x 的包，沒有才用 2.5.1；涵蓋率報告會算出對不上的比例。
+     - 本體＋CC 包只拿來做名詞釘選，不安裝（官方繁中已涵蓋本體、DLC、CC）。
+     - 有 Nexus 原生繁中的插件，要把蘇禾 DSD 裡同名的資料夾**搬到** `_replaced\zh-sohe-overridden\`。
+  6. **工具修正**（審查時發現）：
+     - `llm_translate apply` 以前可能把本體的中文字串表蓋回英文。現在：
+       - 官方插件的字串表一律不寫。
+       - 其他插件以「遊戲目前讀到的中文表」為底，只補新譯。
+     - MCM 英文備援改放在 ZH 組最低的 `ZH - MCM 英文備援`。以前放在最高的 `ZH Overrides`，會蓋掉 AI 翻譯的 MCM。
+     - `llm_translate run` 中斷後重跑：會先回收已送出的批次，不會重複付費。
+     - 費用：
+       - 試翻後，依實測（含思考 token）推估全部；報告最後一行是「剩下的估計」。
+       - 和官方名詞完全相同的文字，直接用官方譯法，不花錢。
+     - `coverage` 新增三項：
+       - 官方插件不送 AI。
+       - `zh_dsd_unmatched.csv`：每個 DSD 包有多少條目對不上我們的插件。
+       - ZH 資料夾裡被蓋掉、沒有生效的插件。
+     - `fontconfig` 不再讀到自己上次的輸出；`opencc --in-place` 重跑時保留第一次的 `.bak`。
+     - 插件名額的說明更新為完整 253／254。
+- 2026-09-28｜**使用者要先做的事**（可以和本地的第 1–6 步同時進行）：
+  - 從夸克下載蘇禾的包，存到自己的下載資料夾（清單見 `docs/06` 4.1）。連結與提取碼不要寫進任何檔案。
+    - Nolvus Ultimate 6.0.20：DSD＋Other。
+    - M&V：DSD＋Other，先找 2.6.x。
+    - 本體＋CC 包。
+  - 設定 Windows 使用者環境變數 `ANTHROPIC_API_KEY`（`docs/06` 第 7 節），然後重開 Claude Desktop。金鑰不要貼進對話。
+- 2026-09-28｜**接下來的順序**（照新的 `docs/06`；每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；搬移不刪除）：
+  1. `git pull --rebase`、`python -m pip install -r requirements-zh.txt`、`python -m pytest -q`。
+     - 應該全過，而且翻譯工具的測試不會被略過。
+  2. **英文版備份**（`docs/06` 第 0 節）：
+     - 先確認 D 槽以外的空間（約 25 GB），不夠就問使用者。
+     - 用 7-Zip 備份 `Pages-ZH` 設定檔、`ModOrganizer.ini`、8 個輸出資料夾、`Pages - 設定覆寫`、`Pages - 版本不符修正`、`Pages - LOTD V6 修正`。
+  3. **目標清單**：
+     1. `create --apply`：佔位資料夾應該是 ZH 整組、`ZH_separator`、`Dynamic String Distributor`。
+     2. 開 MO2 一次再關。
+     3. restore-states＋prune：名字要和已接受的 26 個相同。
+     4. `check_plugins`：完整 253、輕量 4012。
+     5. `verify`。
+  4. **`set-language`** 試跑 → `--apply`：「英文語音」要 `[通過]`。
+  5. **字型**（`docs/06` 2.1）：
+     - fontconfig 試跑 → `--apply`，在 MO2 確認由 `ZH Overrides` 勝出。
+     - ImGui 類 mod 的字型（2.2）先不改，等使用者遊玩時看到問號再處理。
+  6. **DSD、STPP、Nexus 繁中**（`docs/06` 第 3 節）：
+     1. `manifest`：預期下載 8、重裝 1。
+     2. `nexus_fetch --apply`。
+     3. `install_archives` 試跑 → `--apply`；判為人工的，用 MO2 裝進同名的空資料夾。
+     4. 替換插件的翻譯：用 `esl_check` 比對記錄數，要和原版相同。
+     5. AHO：依插件類型選檔。
+     6. Descriptions：`nexus_fetch --manifest data\zh_archives.csv --apply`，解壓到 `D:\zh-packs\Descriptions`。
+     7. `audit_skse`。
+  7. **蘇禾的包**（`docs/06` 第 4 節）。使用者還沒下載好就先回報推送，等使用者下載。
+     1. 本體＋CC 包解壓 → 名詞釘選表。
+     2. 兩個 DSD 包用 MO2 裝進空的佔位資料夾 → `opencc` 試跑（連同 `ZH - DBReV 中文`）→ `--in-place`。
+     3. 有原生繁中的插件：把蘇禾 DSD 裡同名的資料夾搬到 `_replaced\zh-sohe-overridden\`。
+     4. `mcm_txt scan` → `make-chinese --out-mod "D:\PM\mods\ZH - MCM 英文備援"` 試跑 → `--apply`。
+     5. 兩個 Other 包和 Descriptions：`diff_pack` 試跑 → 只複製 accept 的 → Other 兩個資料夾跑 `opencc`。
+        - 回報各狀態的數量。
+        - Other 包裡有插件就停下問。
+  8. **名詞對照表** → **`coverage`**。回報：
+     - 涵蓋率、待翻條數與字元數。
+     - 官方插件仍是英文的條數。
+     - `zh_dsd_unmatched.csv` 每個 mod 的「對不上／條目數」：M&V 包和 Nolvus 包比，比例差很多就停下回報。
+     - 沒有生效的 ZH 插件。
+  9. **AI 翻譯**（`docs/06` 第 7 節；每次 `run --yes` 都要先問使用者，guard 也會擋）：
+     1. `estimate`：報告粗估金額。
+     2. 問使用者 → 試翻 20 組：`run --limit 20 --mode sync --yes`。
+     3. 回報：
+        - 3–5 則短的譯文樣本（英文與中文各一行即可）。
+        - 報告的「實際用量換算費用」與「剩下的估計（依實測）」。
+     4. **等使用者同意金額** → 全部翻譯（batch）。
+        - 可能要幾小時，照 CLAUDE.md 的長時間工作處理。
+        - 中斷就重跑同一行。
+     5. `apply` → `coverage`。
+  10. **檢查**：
+      - `check_plugins`：完整 253、輕量 4012，和英文版相同。
+      - `audit_skse`。
+      - 主選單測試：選單是中文、沒有方框；`DynamicStringDistributor.log` 錯誤的數量。
+  11. **回報並推送**。之後請使用者照介面檢查表和測試路線玩。
+      - 遊戲有問題時，先把 ZH 整組停用比較英文版。
+      - 截圖只給使用者看，不要推上 GitHub。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 ec7d72e）。
   - **重建全部接受**：
     - Synthesis：LAND 數沒少是因為每格只輸出一筆，你的解釋對，逐筆比對也做得很好。

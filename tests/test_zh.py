@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from pm import bsa, pex, strings as st, tes4
+from pm.report import read_csv
 from zh import common, diff_pack, extract_official, fontconfig, llm_translate, mcm_txt, strings_glossary
 
 opencc = pytest.importorskip("opencc")
@@ -75,6 +76,11 @@ def test_opencc_convert_formats(tmp_path):
     assert conv.hits["鋼鐵長劍→鋼製長劍"] == 1
     assert oc.main([str(root), "--in-place", "--out", str(tmp_path / "rep")]) == 0
     assert (dsd.parent / "a.json.bak").exists()
+    first_bak = (dsd.parent / "a.json.bak").read_bytes()
+    dsd.write_text(json.dumps([{"form_id": "0x800|Mod.esp", "type": "WEAP FULL", "string": "设置"}],
+                              ensure_ascii=False), encoding="utf-8")
+    assert oc.main([str(root), "--in-place", "--out", str(tmp_path / "rep")]) == 0
+    assert (dsd.parent / "a.json.bak").read_bytes() == first_bak              # the original is kept
 
 
 # ---------------------------------------------------------------- glossary
@@ -257,7 +263,8 @@ def test_llm_validation_and_grouping():
     assert all(t[0] != "Ironwood" for t in terms)
     item = {"kind": "dsd", "type": "BOOK DESC", "source": "x"}
     assert llm_translate.context_of(item) == "book"
-    assert llm_translate.estimate([{"en": "x" * 4000}], "claude-opus-5", batch=True) > 0
+    usd, basis = llm_translate.estimate([{"en": "x" * 4000}], "claude-opus-5", batch=True)
+    assert usd > 0 and basis.startswith("粗估")
 
 
 def test_llm_batch_path(tmp_path):
@@ -289,13 +296,148 @@ def test_llm_batch_path(tmp_path):
                     type="succeeded", message=msg(submitted[cid], refuse=(n == 0))))
 
     client = SimpleNamespace(messages=SimpleNamespace(batches=Batches()))
-    usage = {"input": 0.0, "cache_write": 0.0, "cache_read": 0.0, "output": 0.0}
+    usage = {}
     work = tmp_path / "w"
     work.mkdir()
     failed = llm_translate.run_batch(client, groups, llm_translate.GlossaryIndex([]), "claude-opus-5", "medium",
                                      work, usage, poll=0)
     cache = llm_translate.load_cache(work)
     assert len(cache) + len(failed) == 3 and all(f["problem"] == "refusal" for f in failed) and failed
-    assert usage["input"] == 10 and usage["cache_read"] == 8            # batch usage counted at 50 %
+    slot = usage["claude-opus-5|batch"]                                  # raw tokens of both results
+    assert slot["input"] == 20 and slot["cache_read"] == 16 and slot["output"] == 10
+    full = (20 * 5 + 16 * 5 * 0.1 + 10 * 25) / 1e6
+    assert llm_translate.cost(usage) == pytest.approx(full / 2)          # batch price is half
+    assert llm_translate.cost(usage, list_price=True) == pytest.approx(full)
     state = json.loads((work / "llm_batches.json").read_text())
-    assert state["batches"][0]["id"] == "msgbatch_1"
+    assert state["batches"][0]["id"] == "msgbatch_1" and state["batches"][0]["collected"] is True
+
+
+def test_resume_collects_an_uncollected_batch_without_resending(tmp_path):
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "llm_batches.json").write_text(json.dumps(
+        {"batches": [{"id": "msgbatch_old", "groups": {"g0": ["h1", "h2"]}}]}), encoding="utf-8")
+    known = {"h1": {"h": "h1", "ctx": "name", "en": "Sword"}, "h2": {"h": "h2", "ctx": "name", "en": "Shield"}}
+    out = {"items": [{"id": "k0", "zh": "劍"}, {"id": "k1", "zh": "盾"}]}
+
+    class Batches:
+        created = 0
+
+        def create(self, requests):                                      # must not be called
+            Batches.created += 1
+
+        def retrieve(self, bid):
+            assert bid == "msgbatch_old"
+            return SimpleNamespace(processing_status="ended", request_counts=SimpleNamespace(processing=0))
+
+        def results(self, bid):
+            msg = SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps(out, ensure_ascii=False))],
+                                  stop_reason="end_turn", model="claude-opus-5",
+                                  usage=SimpleNamespace(input_tokens=10, output_tokens=6,
+                                                        cache_creation_input_tokens=0, cache_read_input_tokens=0))
+            yield SimpleNamespace(custom_id="g0", result=SimpleNamespace(type="succeeded", message=msg))
+
+    client = SimpleNamespace(messages=SimpleNamespace(batches=Batches()))
+    usage = {}
+    n, chars = llm_translate.resume_batches(client, work, known, usage, poll=0)
+    assert (n, chars) == (1, len("Sword") + len("Shield")) and Batches.created == 0
+    assert {r["zh"] for r in llm_translate.load_cache(work).values()} == {"劍", "盾"}
+    state = json.loads((work / "llm_batches.json").read_text())
+    assert state["batches"][0]["collected"] is True
+    assert llm_translate.resume_batches(client, work, known, usage, poll=0) == (0, 0)   # nothing left
+
+
+def test_estimate_uses_the_measured_rate(tmp_path):
+    work = tmp_path / "w"
+    work.mkdir()
+    llm_translate.record_usage(work, "claude-opus-5", "medium", 10, 1000,
+                               {"claude-opus-5|sync": {"input": 1000, "cache_write": 0, "cache_read": 0,
+                                                       "output": 2000}})
+    rate = (1000 * 5 + 2000 * 25) / 1e6 / 1000                           # US$ per character
+    usd, basis = llm_translate.estimate([{"en": "x" * 2000}], "claude-opus-5", True, work, "medium")
+    assert usd == pytest.approx(2000 * rate / 2) and basis.startswith("依實測")
+    usd2, basis2 = llm_translate.estimate([{"en": "x" * 2000}], "claude-opus-5", True, work, "high")
+    assert basis2.startswith("粗估")                                     # other effort: no measurement
+
+
+def test_prefill_uses_only_unambiguous_official_terms(tmp_path):
+    work = tmp_path / "w"
+    work.mkdir()
+    gl = tmp_path / "gl.tsv"
+    gl.write_text("source\ttarget\tcount\tvariants\ttable\n"
+                  "Iron Sword\t鐵劍\t9\t1\tskyrim.strings\n"
+                  "Bolt\t弩箭\t3\t2\tskyrim.strings\n", encoding="utf-8")
+    exact = llm_translate.exact_glossary(gl)
+    assert exact == {"Iron Sword": "鐵劍"}
+    units = [{"h": "a", "ctx": "name", "en": "Iron Sword"}, {"h": "b", "ctx": "name", "en": "Bolt"},
+             {"h": "c", "ctx": "name", "en": "Iron Sword of Doom"}]
+    assert llm_translate.prefill(units, exact, work) == 1
+    assert list(llm_translate.load_cache(work)) == ["a"]
+
+
+def add_localized_plugin(pm):
+    """Loc.esp (localized) with English tables in its mod and a Chinese table in the ZH pack."""
+    mods = pm / "mods"
+    (mods / "Loc Mod" / "strings").mkdir(parents=True)
+    (mods / "Loc Mod" / "Loc.esp").write_bytes(tes4.build_header("Loc.esp", flags=tes4.FLAG_LOCALIZED))
+    st.write(mods / "Loc Mod" / "strings" / "loc_english.strings", {5: "Hello", 6: "World"})
+    (mods / "ZH Pack" / "strings").mkdir(parents=True)
+    st.write(mods / "ZH Pack" / "strings" / "loc_chinese.strings", {6: "世界"})
+    game_strings = pm / "STOCK GAME" / "Data" / "strings"
+    game_strings.mkdir(parents=True)
+    st.write(game_strings / "skyrim_english.strings", {1: "Whiterun"})
+    prof = pm / "profiles" / "Pages-ZH"
+    (prof / "modlist.txt").write_text("+ZH Pack\n+Loc Mod\n+Blade Mod\n")
+    (prof / "plugins.txt").write_text("*Blade.esp\n*Loc.esp\n")
+
+
+def test_apply_builds_tables_on_the_current_chinese_and_skips_official(pm, tmp_path):
+    add_localized_plugin(pm)
+    items = [{"kind": "strings", "plugin": "Loc.esp", "file": "loc", "key": "5", "source": "Hello"},
+             {"kind": "strings", "plugin": "Skyrim.esm", "file": "skyrim", "key": "1", "source": "Whiterun"}]
+    cache = {llm_translate.cache_key("text", "Hello"): {"zh": "哈囉"},
+             llm_translate.cache_key("text", "Whiterun"): {"zh": "雪漫城"}}
+    out = pm / "mods" / "ZH - AI"
+    stats = llm_translate.apply_results(items, cache, pm, "Pages-ZH", out)
+    assert st.read(out / "strings" / "loc_chinese.strings") == {5: "哈囉", 6: "世界"}   # superset of the pack
+    assert not (out / "strings" / "skyrim_chinese.strings").exists()
+    assert stats["official_skipped"] == 1 and stats["string_tables"] == 1
+
+
+def test_coverage_skips_official_and_counts_unmatched_dsd(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import coverage
+    add_localized_plugin(pm)
+    base = pm / "mods" / "ZH Pack" / "SKSE" / "Plugins" / "DynamicStringDistributor"
+    (base / "Blade.esp" / "b.json").write_text(json.dumps(
+        [{"form_id": "0x000999|Blade.esp", "type": "WEAP FULL", "string": "不存在"}], ensure_ascii=False),
+        encoding="utf-8")
+    (base / "Gone.esp").mkdir()
+    (base / "Gone.esp" / "a.json").write_text(json.dumps(
+        [{"form_id": "0x000800|Gone.esp", "type": "WEAP FULL", "string": "x"}]), encoding="utf-8")
+    zh_mod = pm / "mods" / "ZH - Nexus"
+    zh_mod.mkdir()
+    (zh_mod / "Blade.esp").write_bytes(b"translated copy")                # loses to Blade Mod below
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+Blade Mod\n+ZH Pack\n+ZH - Nexus\n+Loc Mod\n")
+    work = tmp_path / "work"
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(tmp_path / "r")]) == 0
+    items = common.read_jsonl(work / "zh_worklist.jsonl")
+    assert {i["plugin"] for i in items if i["kind"] == "strings"} == {"Loc.esp"}   # Skyrim.esm is official
+    assert [i["source"] for i in items if i["kind"] == "strings"] == ["Hello"]
+    rows = {r["mod"]: r for r in read_csv(tmp_path / "r" / "zh_dsd_unmatched.csv")}
+    assert rows["ZH Pack"]["entries"] == "2" and rows["ZH Pack"]["unmatched"] == "1"
+    assert rows["ZH Pack"]["inactive_plugin"] == "1"
+    text = (tmp_path / "r" / "zh_coverage.txt").read_text(encoding="utf-8")
+    assert "Blade.esp（ZH - Nexus 被 Blade Mod 蓋掉）" in text
+    assert "官方插件（本體、DLC、CC）仍是英文的字串：1 條" in text
+
+
+def test_fontconfig_ignores_its_own_output(pm):
+    mods = pm / "mods"
+    for folder, font in (("ZH Overrides", "MSJH"), ("Edge UI", "Sanguis")):
+        (mods / folder / "interface").mkdir(parents=True)
+        (mods / folder / "interface" / "fontconfig.txt").write_text(f'map "$EverywhereFont" = "{font}" Normal\n')
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH Overrides\n+Edge UI\n+ZH Pack\n+Blade Mod\n")
+    assert fontconfig.winning_fontconfig(pm, "Pages-ZH").parent.parent.name == "ZH Overrides"
+    found = fontconfig.winning_fontconfig(pm, "Pages-ZH", skip=mods / "ZH Overrides")
+    assert found.parent.parent.name == "Edge UI"

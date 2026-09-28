@@ -25,6 +25,14 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 DSD_DIR = Path("SKSE") / "Plugins" / "DynamicStringDistributor"
+# Official masters: their Chinese comes from the official localization, never from this tool chain.
+OFFICIAL_PLUGINS = frozenset({"skyrim.esm", "update.esm", "dawnguard.esm", "hearthfires.esm", "dragonborn.esm",
+                              "_resourcepack.esl"})
+# Claude API list prices per 1M tokens: (input, output, cache-read price as a share of input).
+# Cache writes cost 1.25x input; the Batches API halves everything.
+PRICES = {"claude-opus-5": (5.0, 25.0, 0.1), "claude-opus-5-5": (4.0, 20.0, 0.05),
+          "claude-sonnet-5": (2.0, 10.0, 0.1), "claude-haiku-4-5": (1.0, 5.0, 0.1),
+          "claude-fable-5-1": (10.0, 50.0, 0.025)}
 CJK_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 LATIN_RE = re.compile(r"[A-Za-z]")
 # Tokens that must survive translation unchanged.
@@ -35,6 +43,12 @@ PLACEHOLDER_RE = re.compile(
     r"|\$[A-Za-z_][A-Za-z0-9_]*"       # $MCM_Key references
     r"|\[PageBreak\]|\[pagebreak\]"
 )
+
+
+def is_official_plugin(name: str) -> bool:
+    """Base game, DLC and Creation Club masters (cc*.esm / cc*.esl)."""
+    n = name.lower()
+    return n in OFFICIAL_PLUGINS or (n.startswith("cc") and n.endswith((".esm", ".esl")))
 
 
 def has_cjk(text: str) -> bool:

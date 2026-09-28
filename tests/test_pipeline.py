@@ -192,6 +192,12 @@ def test_full_pipeline(world, monkeypatch):
     assert (w["pm"] / "mods" / "Needs Download").is_dir()            # placeholder so MO2 keeps the line
     assert (w["pm"] / "mods" / "MV_separator" / "meta.ini").exists()
     assert (pdir / "Skyrim.ini").exists() and (w["pm"] / "portable.txt").exists()
+    # phase 6 switches the profile to Chinese; copying the Nolvus ini again must keep that
+    assert build_instance.main(["set-language", "--pm", str(w["pm"]), "--out", str(w["reports"]), "--apply"]) == 0
+    assert build_instance.main(["create", *bi, "--ini-from",
+                                str(w["nol"] / "MODS" / "profiles" / "Nolvus Awakening"), "--apply"]) == 0
+    lang = build_instance.ini_value(build_instance.read_ini(pdir / "Skyrim.ini"), "General", "sLanguage")
+    assert lang == "CHINESE"
     assert (w["pm"] / "libssl-3-x64.dll").read_bytes() == b"MZssl"
     ini = (w["pm"] / "ModOrganizer.ini").read_text()
     assert "gamePath=@ByteArray(" in ini and "SSEEdit" in ini and "selected_profile=@ByteArray(Pages-ZH)" in ini

@@ -75,9 +75,13 @@ def merge(official: dict, current: dict) -> tuple[str, list[str]]:
     return "\r\n".join(lines) + "\r\n", remapped
 
 
-def winning_fontconfig(pm: Path, profile: str) -> Path | None:
+def winning_fontconfig(pm: Path, profile: str, skip: Path | None = None) -> Path | None:
+    """The loose fontconfig.txt the game loads, ignoring `skip` (our own output mod from an earlier run)."""
     prof = vfs.open_profile(pm, profile)
+    skip_dir = skip.resolve() if skip else None
     for folder in prof.enabled_folders:
+        if skip_dir is not None and (prof.mods_dir / folder).resolve() == skip_dir:
+            continue
         for cand in ("interface/fontconfig.txt", "Interface/fontconfig.txt", "interface/FontConfig.txt"):
             p = prof.mods_dir / folder / cand
             if p.exists():
@@ -97,7 +101,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
     rep = Report("zh_fontconfig")
-    current_path = args.current or winning_fontconfig(args.pm, args.profile)
+    current_path = args.current or winning_fontconfig(args.pm, args.profile, skip=args.out_mod)
     official = parse(read_text(args.official))
     current = parse(read_text(current_path)) if current_path and current_path.exists() else \
         {"libs": [], "maps": {}, "valid": None}
