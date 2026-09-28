@@ -5,6 +5,66 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-09-28｜**第 5 階段回報判讀**（回應 ec7d72e）。
+  - **重建全部接受**：
+    - Synthesis：LAND 數沒少是因為每格只輸出一筆，你的解釋對，逐筆比對也做得很好。
+    - PGPatcher 重跑、DynDOLOD（Ultra，billboard 上限警告 0）、完整 253／254、第一次用 CS 啟動都接受。
+    - xEdit 的做法（只列範圍內的插件、唯讀腳本、確認沒有存檔）也很好。
+    - MO2 關著時改 modlist 並留備份，接受。
+    - CS 記錄的 1 個 E（FullScreenBlur 在 1.5.97 沒裝上）只影響一個模糊效果，第 7 階段有需要再看。
+  1. **`Madmen - Simonrim.esp`：停用**（目標 `plugins.txt` 已改，做法同 HoF 那 6 個）。
+     - Nexus 上它只有一個版本（2023 年，主檔 443194 裡的 418 KB），是照舊版 Adamant 做的：
+       - 引用的編號（0D01CC、51FD45…）超出輕量插件的範圍。
+       - 對不上我們的 Adamant，也沒有其他版本可換。
+     - Nolvus 自己的 Madmen - Patches 也沒有選它。
+     - 停用後，Forsworn 拿不到 Adamant 的 perk（現在本來就拿不到），法術回到 Madmen 本身的設定。
+  2. **NITHI Reach 的 AI Overhaul 補丁：做「外觀轉送」修正版**，新工具 `forward_appearance`。
+     - 原因：
+       - NITHI The Reach 的 Women.esp 有 4 種變體（Default 39.5 KB、UNP／CBBE 39.7 KB、RSV 38.1 KB）。
+       - 補丁（Patch Hub 1.3，和 2025 年的新版同一份）是照其中一種做的，所以編號錯位。
+       - 錯位的不只 xEdit 抓到的 23 個：型別剛好對上的錯誤引用，xEdit 不會報。
+     - 不能只停用補丁：AI Overhaul.esp 排在 NITHI 後面，會蓋掉 NITHI 的外觀，Markarth 的 NPC 會黑臉、頭身不合。
+     - 做法：
+       - 每筆 NPC 保留補丁的 AI 資料。
+       - 外觀改用我們裝的 NITHI 那一筆：RNAM、WNAM、ANAM、PNAM、HCLF、身高體重、FTST、QNAM、NAM9、NAMA、膚色層。
+       - FormID 換算成補丁的前置編號。
+       - 同名修正版寫到 `Pages - 版本不符修正`。
+     - 其他欄位如果還指向 NITHI 自己的記錄、而且和 NITHI 不一致，工具會列成 `[注意]`（不更動）。
+  3. `DBM_JKBluePalace_Patch.esp` 的 1 筆 NAVI：接受。
+  4. **Lastendell 的 Ignoring Cell 372 個**：只影響 Midwood Isle 的遠景，先接受。
+     - 請唯讀看 Nolvus 自己的 DynDOLOD 記錄有沒有同樣的訊息（找得到才看，找不到就寫「沒有記錄」）。
+  5. 這兩項都是 NPC／法術記錄，**不用重跑 DynDOLOD**。
+     - 但要確認輸出插件（Synthesis、PG_*、DynDOLOD.*、Occlusion）的前置裡沒有 `Madmen - Simonrim.esp`。
+  6. `docs/05` 第 12 節的備份清單加上 `Pages - 版本不符修正`、`Pages - LOTD V6 修正`；常見問題加上「NPC 補丁外觀指錯」的處理。
+- 2026-09-28｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報）：
+  1. `git pull --rebase`、`python -m pytest -q`（應該全過）。
+  2. **停用 Madmen - Simonrim**：
+     1. `create --apply` → 開 MO2 一次再關。
+     2. `sync-order --restore-states --apply`：`Madmen - Simonrim.esp` 會是停用。
+     3. `prune_dependents` 試跑：名字要都在已接受的 26 個裡，或原因是「前置是 Madmen - Simonrim.esp」；有其他新名字就先回報。
+     4. `--disable-folders --apply`。
+     5. `check_plugins`：
+        - 全部通過。回報完整插件數（如果它原本是完整插件，會變 252）。
+        - 在 `reports\check_plugins.csv` 確認輸出插件的 `masters` 欄沒有 `Madmen - Simonrim.esp`；有的話停下回報。
+  3. **NITHI Reach 補丁**：
+     1. （唯讀）記下我們裝的 `NITHI NPCS - The Reach - Women.esp` 大小與所在資料夾，對照上面 4 種變體。
+     2. `forward_appearance` 試跑（指令在 phase-commands）：
+        ```bash
+        python tools/forward_appearance.py --pm "D:/PM" --plugin "NITHI NPCs - The Reach - Complete - AI Overhaul.esp" --from "NITHI NPCS - The Reach - Women.esp" --from "NITHI NPCs - The Reach - Men.esp" --out "D:/PM/mods/Pages - 版本不符修正"
+        ```
+        - 回報：改了幾筆 NPC、各欄位的數量、已一致幾筆。
+        - `reports\forward_appearance.csv` 裡有 note 的每一列（這些只有插件名稱與 FormID，可以寫進回報）。
+        - 有「前置不同沒有更動」的就先停下回報。
+     3. 再加 `--apply` → `sync-order --apply` → `check_plugins`。
+  4. **xEdit 唯讀檢查**（用你上次的腳本）：
+     - 新的修正版要 0 錯誤。
+     - 順便檢查 Nolvus 帶來的另外 4 個 NITHI AI Overhaul 補丁（Fort Dawn、Volkihar、The Rift、Whiterun）。有錯誤就回報，不用先處理。
+  5. **Lastendell**：看 Nolvus 的 DynDOLOD 記錄（唯讀）。
+  6. **主選單測試**（同上一輪）。
+  7. 回報並推送。
+  8. 之後請使用者照 `docs/測試路線.md` 玩第 11 節的新遊戲測試。
+     - 馬卡斯那站多看幾個 NPC 的臉和身體：沒有黑臉，頭和脖子的膚色一致。
+     - 使用者回報測試通過後，你再做第 12 節的 EN-baseline 備份（清單已更新）。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 75312da）。
   - 換版、兩個掃描歸零、主選單測試都接受。
   - 在 DynDOLOD 前停下是對的：Synthesis.esp 的 4 筆孤兒 LAND 很可能會讓 DynDOLOD 再停一次。

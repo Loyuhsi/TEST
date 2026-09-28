@@ -128,6 +128,10 @@ python tools/esl_check.py --plugin "路徑/Synthesis.esp" --subrecords LAND
   ```
 - 生效的插件已經是 `--out` 裡的修正版時，`strip_refs` 會重新檢查並原地更新（只限單一連結的檔）；沒有要改的就回報「已修正」。
 - `strip_refs` 的報告目錄參數是 `--report-dir`（`--out` 是輸出的 mod 資料夾）。
+- `forward_appearance`：NPC 補丁照外觀 mod 的另一個版本做的（xEdit 報皮膚／頭部零件指錯）時，寫出同名修正版，保留補丁的 AI 資料，外觀改用 `--from` 那一筆。報告 `reports/forward_appearance.*`；`[注意]` 會列出沒能換算的 NPC 和其他仍指向外觀 mod 且不一致的欄位：
+  ```bash
+  python tools/forward_appearance.py --pm "D:/PM" --plugin "NITHI NPCs - The Reach - Complete - AI Overhaul.esp" --from "NITHI NPCS - The Reach - Women.esp" --from "NITHI NPCs - The Reach - Men.esp" --out "D:/PM/mods/Pages - 版本不符修正"
+  ```
 - 換掉插件之後：看 `reports/check_plugins.csv` 裡 `Synthesis.esp`、`PGPatcher.esp`、`PG_*.esp` 的 `masters` 欄，有換過的插件就重跑那個輸出；新版帶模型就重跑 PGPatcher；有 LAND／LTEX／GRAS 就記下世界空間與 cell 座標回報，由雲端決定要不要重跑草地快取與 xLODGen（`docs/05` 共通原則）。舊輸出先搬到 `_replaced`。
 - `fill_plugins` 會把「檔案在停用資料夾裡」的插件當成已修剪，不算缺少（報告的「資料夾已停用的插件」）。
 - `install_archives`：decisions 備註裡「沒有 FOMOD」這種否定的寫法不會被當成要人工。

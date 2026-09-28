@@ -2352,7 +2352,7 @@ LOTD_TCC_Unslaad.esp
 *JKJ- Ohmes Risaad Restored.esp
 *Madmen - Aetherius Magic Resist.esp
 *Madmen - Leveled List Difficulty Addon.esp
-*Madmen - Simonrim.esp
+Madmen - Simonrim.esp
 *maerchenwald - the archwood lite.esp
 *Nature of the Wild Lands.esp
 *NotWL - Autumn Rift.esp
