@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
 最後更新：2026-09-28
-目前階段：5（cloud-notes 78aa2e5 步驟 1–8 完成：LOTD 5.6 補丁換成 V6 版、兩個掃描歸零；DynDOLOD 前停下：Synthesis.esp 是用舊版 Lux Orbis LotD 產生的，等雲端決定要不要重跑 Synthesis／PGPatcher）
+目前階段：5（cloud-notes 47b1758 步驟 1–7 完成：Synthesis／PGPatcher 重跑、DynDOLOD（Ultra）完成、完整 253、第一次 CS 啟動正常、xEdit 檢查 294 個有 3 個錯誤；下一步是第 11 節測試路線，由使用者玩）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；LOTD 5.6 補丁換成 V6 版（官方 6.10.9 ×5、Lux 7.2、Lux Orbis 4.7、BS Synergy 1.13.2），室內 2 筆用 `--drop-unresolved-base`；未解析引用 0、覆寫掃描只剩接受的 16 個；**DynDOLOD 前停下**：Synthesis.esp 還有 4 筆 LAND 覆寫舊版 Lux Orbis LotD 的記錄，PG_1 也以 3 個換過的補丁為前置，等雲端決定要不要重跑 |
+| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；LOTD 5.6 補丁換成 V6 版（官方 6.10.9 ×5、Lux 7.2、Lux Orbis 4.7、BS Synergy 1.13.2），室內 2 筆用 `--drop-unresolved-base`；未解析引用 0、覆寫掃描只剩接受的 16 個；Synthesis（LAND 7,675 全有 VCLR）與 PGPatcher（20,425 檔）重跑；**DynDOLOD 完成**（High＋Ultra 樹 LOD，25 分鐘，2,431 檔，完整 253／254，Occlusion 輕量，billboard 上限警告 0）；audit_skse 通過；第一次 CS 啟動到主選單、無當機；xEdit 檢查 294 個：Madmen - Simonrim（505，對應完整版 Adamant）、NITHI AI Overhaul 補丁（20 個 WNAM 類型錯）、DBM_JKBluePalace（1）待雲端決定；下一步第 11 節測試路線（使用者玩） |
 | 6 繁中化 | 未開始 | | |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
@@ -251,6 +251,26 @@
   - 掃描：未解析引用 0；覆寫掃描剩接受的 16 個（BS Synergy 已不在），加上 Synthesis.esp → Lux Orbis LotD 4 筆 LAND。
   - check_plugins 全過（完整 251、輕量 4012、BEES 918），主選單 166 秒。
   - 下一步：推送後等雲端決定要不要先重跑 Synthesis（可能還有 PGPatcher），再做 DynDOLOD（Ultra）。
+- 2026-09-28 雲端 47b1758 的步驟 1–7（細節與報告全文在 local-report）：
+  - pytest 200 全過。
+  - 換過的 8 個插件和舊版 9 份：只有舊版 Lux Orbis LotD 有 LAND 4 筆（Riften (42,-25)(42,-24)、Whiterun (5,-2)(4,-2)），都沒有 LTEX／GRAS。
+  - Synthesis 重跑：
+    - LAND 7,675、全有 VCLR；前置少了 Lux Orbis LotD、多了 HSPlayerHomes - Breezehome（那 4 格改由現在生效的 LAND 補上）。
+    - 已加 ESL 旗標。
+  - PGPatcher 重跑：253 秒、20,425 檔；restore-states＋prune（8 個，都在 26 個內）；check_plugins 全過。
+  - 掃描：未解析引用 0、覆寫掃描只剩接受的 16 個。主選單 191 秒。
+  - DynDOLOD：
+    - Advanced → High → Ultra，25 分鐘完成。
+    - 2,431 檔 → `dyndolodCS2`；check_plugins 完整 253／254、Occlusion 輕量；audit_skse 通過。
+    - 記錄：錯誤 748（Lastendell 的 Ignoring Cell 372、Texture resolution 309、Deleted reference 59…）、警告 2,274，billboard 上限 0。
+  - 第一次 CS 啟動：主選單 176 秒、無當機、`End` 開得了 CS 選單；CS 記錄 E 1（FullScreenBlur adapter）、W 9。
+  - xEdit 檢查：
+    - 範圍 294 個（fill_plugins 取出的 286 個＋換進來的 8 個），用自訂的 plugins.txt 加唯讀腳本，沒有存檔。
+    - 291 個 0 錯誤。
+    - Madmen - Simonrim 505（Adamant 是 ESL 版，補丁對應完整版）。
+    - NITHI AI Overhaul 補丁 23（WNAM 皮膚指到 TXST／HDPT／ARMA）。
+    - DBM_JKBluePalace 1（NAVI）。
+  - 下一步：推送後等雲端決定 xEdit 找到的 3 個插件；之後第 11 節測試路線由使用者玩，第 12 節 EN-baseline。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
