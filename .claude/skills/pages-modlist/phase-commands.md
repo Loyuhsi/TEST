@@ -193,10 +193,10 @@ python tools/zh/coverage.py --pm "D:/PM" --work "D:/PM/zh-work"
 ```
 - 報告：`build_instance-set-language.txt`、`zh_fontconfig.txt`、`zh_dsd_normalize.txt`、`zh_esp_to_dsd-*.txt`、`zh_opencc.txt`、`zh_diff_pack.txt/.csv`（Descriptions、Nolvus、M&V 各一份，改名 `-descriptions`／`-nolvus`／`-mv`）、`zh_mcm-*.txt` + `zh_mcm.csv`、`zh_coverage.txt/.csv`、`zh_dsd_unmatched.csv`、`zh_llm-*.txt`。
 - 蘇禾漢化包的實際資料夾名稱依解壓結果調整。本體＋CC 包只拿來做釘選表，不安裝。
-- 有 Nexus 原生繁中的插件（Vigilant.esm、Unslaad.esm、BSHeartland.esm、3DNPC.esp、Wyrmstooth.esp、evgSIRENROOT.esm、Dwarfsphere.esp）：把蘇禾 DSD 裡同名的插件資料夾**搬到** `D:/PM/_replaced/zh-sohe-overridden/`，不要刪除。`SeranaDialogAddon.esp` 不搬。
-- 同名替換插件的翻譯：用 `esl_check --plugin` 比對原版與翻譯版的記錄數，要相同；不同就改用 `esp_to_dsd`，不裝插件。
+- 有 Nexus 原生繁中的插件（Vigilant.esm、Unslaad.esm、BSAssets.esm、BSHeartland.esm、BS_DLC_patch.esp、3DNPC.esp、Wyrmstooth.esp、evgSIRENROOT.esm、Dwarfsphere.esp）：把蘇禾 DSD 裡同名的插件資料夾**搬到** `D:/PM/_replaced/zh-sohe-overridden/`，不要刪除。`SeranaDialogAddon.esp` 不搬。
+- 同名替換插件的翻譯：用 `esl_check --plugin` 比對原版與翻譯版的記錄數，要相同；不同就停下回報（雲端決定是否改用 `esp_to_dsd`）。
 - DSD 誰贏看資料夾（插件載入順序）→ 檔名（位元組順序）→ 檔內順序，和 MO2 順序無關（`docs/06` 8.1）。AI 的 DSD 在 `Skyrim.esm/!ai_*.json`，刻意最弱。
-- NIM／Lex Translator、xTranslator 只用來修個別 mod，只用 DSD 匯出，放 `ZH Overrides`，再跑 `dsd_normalize`（`docs/06` 第 10 節）。
+- NIM／Lex Translator、xTranslator 只用來修個別 mod，只用 DSD 匯出，放 `ZH Overrides` 的插件資料夾跑 `dsd_normalize`，再搬到 `Overwrite` 資料夾（`docs/06` 第 10 節）。
 - `llm_translate` 需要 Windows 使用者環境變數 `ANTHROPIC_API_KEY`（使用者自己設，設好後重開 Claude Desktop）。
 - `llm_translate run` 中斷後重跑同一行即可：會先回收已送出的批次，不會重複付費。報告的「剩下的估計」是依實測推估的費用。
 - `build_instance create --ini-from` 會沿用設定檔原本的 `sLanguage`，漢化後重建設定檔不會變回英文。

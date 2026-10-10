@@ -518,10 +518,11 @@ def test_apply_fills_missing_chinese_tables(pm, tmp_path):
     prof = pm / "profiles" / "Pages-ZH"
     (prof / "modlist.txt").write_text("+ZH Pack\n+Loc Mod\n+Bare Mod\n+Blade Mod\n")
     (prof / "plugins.txt").write_text("*Blade.esp\n*Loc.esp\n*Bare.esp\n")
-    out = pm / "mods" / "ZH - AI"
-    stats = llm_translate.apply_results([], {}, pm, "Pages-ZH", out)
+    out, low = pm / "mods" / "ZH - AI", pm / "mods" / "ZH - MCM 英文備援"
+    stats = llm_translate.apply_results([], {}, pm, "Pages-ZH", out, low)
     assert stats["filled_tables"] == ["bare_chinese.strings"]             # Loc.esp has one, Skyrim.esm is official
-    assert st.read(out / "strings" / "bare_chinese.strings") == {3: "Vault Key"}
+    assert st.read(low / "strings" / "bare_chinese.strings") == {3: "Vault Key"}   # lowest ZH mod: anything beats it
+    assert not (out / "strings").exists()
 
 
 # ---------------------------------------------------------------- MCM: Chinese placed in _english files
@@ -543,6 +544,14 @@ def test_make_chinese_uses_chinese_from_english_file(pm, tmp_path):
                          "--out", str(tmp_path / "r")]) == 0
     zh = common.read_translation_txt(out / "interface" / "translations" / "blade_CHINESE.txt")
     assert zh == {"$Title": "刀刃設定", "$Num": "100", "$Extra": "Extra"}
+    # an English _chinese.txt in a higher ZH mod (e.g. a pack) beats that fallback: apply writes the merge on top
+    common.write_translation_txt(mods / "ZH - Pack Other" / "interface" / "translations" / "blade_chinese.txt",
+                                 {"$Title": "Blade Settings", "$Num": "100"})
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text(
+        "+ZH - AI\n+ZH - Nexus\n+ZH - Pack Other\n+ZH - MCM\n+ZH Pack\n+Settings Loader\n+Blade Mod\n")
+    stats = llm_translate.apply_results([], {}, pm, "Pages-ZH", mods / "ZH - AI")
+    zh = common.read_translation_txt(mods / "ZH - AI" / "interface" / "translations" / "blade_CHINESE.txt")
+    assert zh["$Title"] == "刀刃設定" and stats["mcm_files"] == 1
 
 
 # ---------------------------------------------------------------- translated plugin -> DSD
@@ -725,3 +734,17 @@ def test_indexed_english_dsd_entry_is_matched_with_the_same_index(pm, tmp_path):
     assert "Frost Brand" not in {i["source"] for i in common.read_jsonl(work / "zh_worklist.jsonl")}
     rows = {r["mod"]: r for r in read_csv(tmp_path / "r" / "zh_dsd_unmatched.csv")}
     assert rows["ZH - AI"]["entries"] == "1" and rows["ZH - AI"]["matched"] == "1"
+
+
+def test_ai_answer_without_chinese_is_not_sent_again(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import coverage
+    out = pm / "mods" / "ZH - AI"
+    write_dsd(out, "Skyrim.esm", "!ai_Blade.esp.json",
+              [{"form_id": "01000800|Blade.esp", "type": "WEAP FULL", "string": "HP"}])      # the AI kept it
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH - AI\n+ZH Pack\n+Blade Mod\n")
+    work = tmp_path / "work"
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(tmp_path / "r")]) == 0
+    items = common.read_jsonl(work / "zh_worklist.jsonl")
+    assert not [i for i in items if i["type"] == "WEAP FULL" and i["form_id"].endswith("|Blade.esp")]
+    assert "生效的是英文 DSD" not in (tmp_path / "r" / "zh_coverage.txt").read_text(encoding="utf-8")

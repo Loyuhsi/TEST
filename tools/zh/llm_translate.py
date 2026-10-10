@@ -41,6 +41,7 @@ from zh.coverage import localized_table, loose_strings_index  # noqa: E402
 
 DEFAULT_MODEL = "claude-opus-5"
 AI_DSD_FOLDER = "Skyrim.esm"   # loads first, so its DSD folder has the lowest priority
+FALLBACK_MOD = "ZH - MCM 英文備援"   # lowest ZH mod: English placeholders that any real translation beats
 THINKING_ALLOWANCE = 1.0     # rough estimate only: thinking can add as many output tokens as the answer
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 MAX_BATCH_CHARS = 6000
@@ -420,7 +421,10 @@ def ai_dsd_path(out_mod: Path, plugin: str, over: str = "") -> Path:
     return out_mod / DSD_DIR / AI_DSD_FOLDER / f"!ai_{plugin}.json"
 
 
-def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mod: Path) -> dict:
+def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mod: Path,
+                  fallback_mod: Path | None = None) -> dict:
+    """Write the cached translations as a mod. English placeholders for missing Chinese string tables go to
+    fallback_mod (the lowest ZH mod), so a real translation installed later still wins."""
     dsd: dict[Path, list[dict]] = defaultdict(list)
     mcm: dict[str, dict[str, str]] = defaultdict(dict)
     tables: dict[tuple[str, str], dict[int, str]] = defaultdict(dict)
@@ -454,15 +458,20 @@ def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mo
             except (KeyError, ValueError, AttributeError):
                 continue
         write_dsd_file(dest, list(merged.values()))
-    if mcm:
-        from zh import mcm_txt
-        found = mcm_txt.collect(pm, profile)
-        for base, new in mcm.items():
-            en = found.get((base, "ENGLISH"))
-            zh = found.get((base, "CHINESE"))
-            merged = merge_translation(en.table if en else None, zh.table if zh else None)
-            merged.update(new)
+    from zh import mcm_txt
+    found = mcm_txt.collect(pm, profile)
+    mcm_written = 0
+    for (base, lang), en in sorted(found.items()):
+        if lang != "ENGLISH":
+            continue
+        zh = found.get((base, "CHINESE"))
+        merged = merge_translation(en.table, zh.table if zh else None)
+        merged.update(mcm.get(base, {}))
+        # also when a translator put the Chinese in _english.txt but a higher mod's _chinese.txt is English:
+        # the game reads _CHINESE, so the merged file has to win from this (high) mod
+        if base in mcm or (zh and any(has_cjk(v) and not has_cjk(zh.table.get(k, "")) for k, v in merged.items())):
             write_translation_txt(out_mod / "interface" / "translations" / f"{base}_CHINESE.txt", merged)
+            mcm_written += 1
     skipped_official = 0
     prof = vfs.open_profile(pm, profile)
     providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
@@ -484,17 +493,18 @@ def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mo
                 dest = out_mod / "strings" / f"{stem}_chinese{ext}"
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 st.write(dest, merged, "utf-8")
-    filled = fill_missing_tables(prof, providers, loose, out_mod)
+    filled = fill_missing_tables(prof, providers, loose, fallback_mod or out_mod, out_mod)
     return {"dsd_files": len(dsd), "dsd_entries": sum(len(v) for v in dsd.values()),
-            "dsd_over_english": over_english, "mcm_files": len(mcm),
+            "dsd_over_english": over_english, "mcm_files": mcm_written,
             "string_tables": len(tables) - skipped_official, "official_skipped": skipped_official,
             "filled_tables": filled, "not_translated_yet": missing}
 
 
-def fill_missing_tables(prof, providers: dict[str, Path], loose: dict[str, Path], out_mod: Path) -> list[str]:
-    """Write an English-content _chinese table for every enabled, non-official localized plugin that has an
-    English table but no Chinese one (the game would otherwise show blank names). Tables written above
-    with translations already exist in out_mod and are left alone."""
+def fill_missing_tables(prof, providers: dict[str, Path], loose: dict[str, Path], dest_mod: Path,
+                        out_mod: Path | None = None) -> list[str]:
+    """Write an English-content _chinese table into dest_mod for every enabled, non-official localized plugin
+    that has an English table but no Chinese one (the game would otherwise show blank names). Tables with
+    translations that apply wrote into out_mod are left alone."""
     written = []
     for p in prof.plugins:
         if not p.enabled or is_official_plugin(p.name) or p.name in vfs.GENERATED_PLUGINS:
@@ -509,8 +519,8 @@ def fill_missing_tables(prof, providers: dict[str, Path], loose: dict[str, Path]
             continue
         stem = Path(p.name).stem.lower()
         for ext in (".strings", ".dlstrings", ".ilstrings"):
-            dest = out_mod / "strings" / f"{stem}_chinese{ext}"
-            if dest.exists():
+            dest = dest_mod / "strings" / f"{stem}_chinese{ext}"
+            if dest.exists() or (out_mod and (out_mod / "strings" / f"{stem}_chinese{ext}").exists()):
                 continue
             en = localized_table(path, p.name, "english", ext, loose)
             if not en or localized_table(path, p.name, "chinese", ext, loose):
@@ -538,6 +548,8 @@ def main(argv=None) -> int:
     ap.add_argument("--pm", type=Path, default=Path("D:/PM"))
     ap.add_argument("--profile", default="Pages-ZH")
     ap.add_argument("--out-mod", type=Path, default=None)
+    ap.add_argument("--fallback-mod", type=Path, default=None,
+                    help="缺中文字串表時，英文替代表寫到這裡（預設 <pm>\\mods\\ZH - MCM 英文備援，ZH 組最低）")
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORT_DIR)
     args = ap.parse_args(argv)
     args.work.mkdir(parents=True, exist_ok=True)
@@ -613,7 +625,8 @@ def main(argv=None) -> int:
         if not args.out_mod:
             rep.add("out", "FAIL", "需要 --out-mod", "")
         else:
-            stats = apply_results(items, load_cache(args.work), args.pm, args.profile, args.out_mod)
+            fallback = args.fallback_mod or args.pm / "mods" / FALLBACK_MOD
+            stats = apply_results(items, load_cache(args.work), args.pm, args.profile, args.out_mod, fallback)
             rep.add("apply", "PASS", "已輸出到 " + str(args.out_mod),
                     f"DSD {stats['dsd_entries']} 條／{stats['dsd_files']} 個檔"
                     + (f"（其中 {stats['dsd_over_english']} 條要蓋過英文 DSD）" if stats["dsd_over_english"] else "")

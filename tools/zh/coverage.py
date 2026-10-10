@@ -67,6 +67,12 @@ def winning_dsd_files(prof: vfs.Profile) -> dict[str, tuple[str, Path]]:
     return files
 
 
+def is_ai_dsd(where: str) -> bool:
+    """True for llm_translate's own output ("Skyrim.esm/!ai_X.json", "<folder>/<stem>~ai.json")."""
+    name = where.rsplit("/", 1)[-1]
+    return name.startswith("!ai_") or name.endswith("~ai.json")
+
+
 def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, dict]:
     """Effective DSD strings -> {string, where ("<DSD folder>/<file name>"), index, mod}. Later plugin folders
     win, then later file names inside a folder (byte order, case-sensitive), then later entries in a file."""
@@ -261,7 +267,8 @@ def main(argv=None) -> int:
             # a DSD entry replaces the plugin's text in game; an English one must be out-ranked, not undercut
             won = dsd.get(k)
             text = won["string"] if won else e["string"]
-            if has_cjk(text) or not needs_translation(text):
+            ai_kept = bool(won) and is_ai_dsd(won["where"])     # the AI already answered (e.g. kept "HP")
+            if ai_kept or has_cjk(text) or not needs_translation(text):
                 c[1] += 1
                 continue
             c[2] += 1

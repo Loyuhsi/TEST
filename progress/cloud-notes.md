@@ -31,8 +31,8 @@
        - 新增 `--include 檔名`：人工確認過的 review 檔也複製。
        - 只找到一部分鍵的 10 個不採用。
        - 我們 2.4.1 另外 14 個 `*_DESC.ini` 會維持英文（coverage 不處理 `*_DESC.ini`），之後再說。
-    5. **`wraithguardvaultfixer.esp`：`llm_translate apply` 會補一份 `_chinese` 表**（先放英文，有譯文的換成中文）。所有缺中文表的非官方本地化插件都會補。
-    6. **Wyrmstooth 的 MCM：`make-chinese` 現在每個鍵依序取**：已是中文的 `_CHINESE` 值 → 已是中文的 `_ENGLISH` 值 → 英文。那 38 句會用上。coverage 也會把這些算成已翻譯。
+    5. **`wraithguardvaultfixer.esp`：`llm_translate apply` 會補一份英文的 `_chinese` 表**，放在 ZH 組最低的 `ZH - MCM 英文備援`，之後的真正翻譯一定蓋得過；有譯文的表寫在 `ZH - AI 翻譯`。所有缺中文表的非官方本地化插件都會補。
+    6. **Wyrmstooth 的 MCM：`make-chinese` 現在每個鍵依序取**：已是中文的 `_CHINESE` 值 → 已是中文的 `_ENGLISH` 值 → 英文。那 38 句會用上。coverage 也會把這些算成已翻譯；如果之後有更高優先的 `_chinese.txt` 是英文，`apply` 會把合併結果寫進 `ZH - AI 翻譯`。
     7. 小事：
        - VIGILANT 的 `.OLD000` 遊戲不讀，不用管。
        - DBReV：用記事本把 `zh_CN.json` 裡的語言名稱改成「繁體中文」，檔名不要改。
@@ -58,7 +58,7 @@
   6. 重跑 `coverage`。回報新的待翻條數、字元數，以及「DSD 對不上」和「生效的是英文 DSD 的字串」兩行。
   7. 推送回報。之後等使用者下載蘇禾的包、設定 API 金鑰，再照 `docs/06` 第 4 節繼續。
      - 蘇禾的 DSD 包裝好、搬完資料夾後，再跑一次 `dsd_normalize`。
-     - 搬移對象加上 `evgSIRENROOT.esm`、`Dwarfsphere.esp`；`SeranaDialogAddon.esp` 不搬。
+     - 搬移對象加上 `BSAssets.esm`、`BS_DLC_patch.esp`（Bruma 也換了這兩個）、`evgSIRENROOT.esm`、`Dwarfsphere.esp`；`SeranaDialogAddon.esp` 不搬。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 719b045）：全部接受。
   - Madmen Simonrim 已停用；NITHI Reach 49 筆外觀已轉送，xEdit 0 錯誤。
   - Lastendell：Nolvus 用的是現成輸出，沒有記錄可比對。我們的 LOD 檔比 Nolvus 還多（52 對 47），接受。
