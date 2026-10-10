@@ -25,6 +25,9 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 DSD_DIR = Path("SKSE") / "Plugins" / "DynamicStringDistributor"
+# DSD 1.4.x reads "index" only for these fields. For every other field an index must be left out:
+# DSD does not de-duplicate a lower-priority entry that carries one, so it can override the winner.
+INDEXED_TYPES = frozenset({"QUST CNAM", "QUST NNAM", "INFO NAM1", "MESG ITXT", "PERK EPF2", "PERK EPFD"})
 # Official masters: their Chinese comes from the official localization, never from this tool chain.
 OFFICIAL_PLUGINS = frozenset({"skyrim.esm", "update.esm", "dawnguard.esm", "hearthfires.esm", "dragonborn.esm",
                               "_resourcepack.esl"})
@@ -80,6 +83,19 @@ def norm_form(form_id: str, light: bool = False) -> tuple[int, str]:
     return value, plugin.strip().lower()
 
 
+def uses_index(rtype: str) -> bool:
+    return (rtype or "").upper() in INDEXED_TYPES
+
+
+def key_index(rtype: str, index: int | None) -> int:
+    """The index DSD actually uses: none for single fields, 0 for an INFO NAM1 without one."""
+    if not uses_index(rtype):
+        return -1
+    if index is None or index == -1:
+        return 0 if rtype.upper() == "INFO NAM1" else -1
+    return int(index)
+
+
 def string_key(form_id: str, rtype: str, index: int | None, editor_id: str | None = None,
                light_plugins: set[str] | frozenset = frozenset()) -> tuple:
     if rtype.upper() == "GMST DATA":
@@ -87,7 +103,7 @@ def string_key(form_id: str, rtype: str, index: int | None, editor_id: str | Non
     local, plugin = norm_form(form_id)
     if plugin in light_plugins:
         local &= 0xFFF
-    return (local, plugin, rtype.upper(), index if index is not None else -1)
+    return (local, plugin, rtype.upper(), key_index(rtype, index))
 
 
 # ------------------------------------------------------------------ DSD
@@ -119,7 +135,7 @@ def write_dsd_file(path: Path, entries: list[dict]) -> None:
     clean = []
     for e in entries:
         d = {"form_id": e["form_id"], "type": e["type"], "string": e["string"]}
-        if e.get("index") is not None and e.get("index") != -1:
+        if uses_index(e["type"]) and e.get("index") is not None and e.get("index") != -1:
             d["index"] = int(e["index"])
         if e.get("editor_id") and e["type"].upper() == "GMST DATA":
             d["editor_id"] = e["editor_id"]
@@ -158,6 +174,17 @@ def translation_bytes(table: dict[str, str]) -> bytes:
     """UTF-16LE with BOM and CRLF (what SkyUI and STPP-NG expect)."""
     body = "\r\n".join(f"{k}\t{v}" for k, v in table.items()) + "\r\n"
     return b"\xff\xfe" + body.encode("utf-16-le")
+
+
+def merge_translation(english: dict[str, str] | None, chinese: dict[str, str] | None) -> dict[str, str]:
+    """All keys of both files; per key the first value that is already Chinese (the _chinese file first,
+    then the _english file, which some translators fill with Chinese), else the _chinese value, else English."""
+    english, chinese = english or {}, chinese or {}
+    out = {}
+    for k in dict.fromkeys([*english, *chinese]):
+        zv, ev = chinese.get(k), english.get(k)
+        out[k] = next((v for v in (zv, ev) if v and has_cjk(v)), zv if zv is not None else ev)
+    return out
 
 
 def write_translation_txt(path: Path, table: dict[str, str]) -> None:

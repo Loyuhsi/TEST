@@ -132,9 +132,9 @@ ZH - Nexus 繁中 - Unslaad,download,Unslaad 3.0.6 的繁中 DSD 版（Vagrant99
 ZH - Nexus 繁中 - Bruma,download,Beyond Skyrim Bruma 1.6.3 繁中（sedna1795）；install_archives 判為人工時用 MO2 裝進這個空資料夾,13821,557184,1.6.3
 ZH - Nexus 繁中 - 3DNPC,download,Interesting NPCs 4.54 繁中（hor0303）；install_archives 判為人工時用 MO2 裝進這個空資料夾,134422,564185,4.54
 ZH - Nexus 繁中 - Wyrmstooth,download,Wyrmstooth 1.20.2 繁中（zeinman55）；install_archives 判為人工時用 MO2 裝進這個空資料夾,85745,516633,1.20.2
-ZH - Nexus 繁中 - SIRENROOT,download,SIRENROOT 1.21 繁中（zeinman55）；install_archives 判為人工時用 MO2 裝進這個空資料夾,123735,518984,1.21
+ZH - Nexus 繁中 - SIRENROOT,keep,SIRENROOT 1.21 繁中（zeinman55，518984）的插件比我們的少 96 筆記錄：不安裝插件，用 tools/zh/esp_to_dsd.py 轉成 DSD 寫進這個資料夾,,,
 ZH - DBReV 中文,download,Dragonborn ReVoiced 1.5.2 的 MCM 簡中翻譯；安裝後用 opencc_convert 轉成繁體,187113,804348,1.5.2
-ZH - Nexus 繁中 - Project AHO,keep,Project AHO 2.0 繁中（Nexus 24004）：依我們的 AHO 插件是不是 ESM 旗標版，手動選 88522 或 88523 裝進這個空資料夾,,,
+ZH - Nexus 繁中 - Project AHO,keep,Project AHO 2.0 繁中（Nexus 24004 的 88523，ESM 旗標版）是未清理版，我們用 Clean Patch：不安裝插件，用 tools/zh/esp_to_dsd.py 轉成 DSD 寫進這個資料夾,,,
 ZH - Nexus 繁中 - Descriptions,keep,Descriptions for Various Mods 繁中 2.6.1（我們是 2.4.1）：用 data/zh_archives.csv 下載，解壓後以 diff_pack 比對並複製通過的檔案,,,
 ZH Overrides,keep,第 6 階段本地產生：fontconfig、ImGui 字型等設定覆寫,,,
 ZH - AI 翻譯,keep,第 6 階段本地產生：llm_translate.py apply 的輸出,,,
@@ -144,3 +144,4 @@ ZH - 蘇禾 Nolvus DSD,keep,蘇禾 Nolvus 6.0.20 Ultimate DSD 包（使用者從
 ZH - 蘇禾 MV DSD,keep,蘇禾 M&V DSD 包（使用者從夸克下載）用 MO2 安裝後轉繁體,,,
 ZH - MCM 英文備援,keep,第 6 階段本地產生：mcm_txt.py make-chinese 的英文備援（放在 ZH 最低，任何翻譯都會蓋過它）,,,
 ZH - 官方繁中字串,keep,第 2 階段 extract_official.py 產生,,,
+ZH - Nexus 繁中 - Serana,keep,Serana Dialogue Add-On 4.2.2hotfix 繁中（Nexus 32324 的 687528）比我們的 4.3.2 舊：不安裝插件，用 tools/zh/esp_to_dsd.py 只轉 4.3.2 還有、EditorID 相同的記錄（檔名用 ! 開頭，讓同版本的蘇禾翻譯優先）,,,

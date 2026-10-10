@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pm import bsa, fsutil, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
-from zh.common import (check_translation_encoding, has_cjk, needs_translation,  # noqa: E402
+from zh.common import (check_translation_encoding, has_cjk, merge_translation, needs_translation,  # noqa: E402
                        parse_translation_bytes, write_translation_txt)
 
 
@@ -89,7 +89,9 @@ def analyse(found: dict) -> list[dict]:
         en = found[(base, "ENGLISH")]
         zh = found.get((base, "CHINESE"))
         missing = [k for k in en.table if not zh or k not in zh.table]
-        untranslated = [k for k, v in (zh.table.items() if zh else []) if needs_translation(v)]
+        # a _chinese value still in English is fine when the _english file already has it in Chinese
+        untranslated = [k for k, v in (zh.table.items() if zh else []) if needs_translation(v)
+                        and not has_cjk(en.table.get(k, ""))]
         rows.append({
             "base": base, "english_from": f"{en.folder} [{en.where}]", "english_keys": len(en.table),
             "chinese_from": f"{zh.folder} [{zh.where}]" if zh else "",
@@ -126,10 +128,10 @@ def main(argv=None) -> int:
             for r in rows:
                 en = found[(r["base"], "ENGLISH")]
                 zh = found.get((r["base"], "CHINESE"))
-                if r["status"] in ("missing", "incomplete", "bad_encoding"):
-                    merged = dict(zh.table) if zh else {}
-                    for k, v in en.table.items():
-                        merged.setdefault(k, v)
+                needs_cjk = bool(zh) and any(has_cjk(v) and not has_cjk(zh.table.get(k, ""))
+                                             for k, v in en.table.items())
+                if r["status"] in ("missing", "incomplete", "bad_encoding") or needs_cjk:
+                    merged = merge_translation(en.table, zh.table if zh else None)
                     if args.apply:
                         write_translation_txt(args.out_mod / "interface" / "translations" / f"{r['base']}_CHINESE.txt",
                                               merged)

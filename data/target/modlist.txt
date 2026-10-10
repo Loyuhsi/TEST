@@ -12,6 +12,7 @@
 +ZH - Nexus 繁中 - SIRENROOT
 +ZH - Nexus 繁中 - Project AHO
 +ZH - Nexus 繁中 - Descriptions
++ZH - Nexus 繁中 - Serana
 +ZH - DBReV 中文
 +ZH - 蘇禾 Nolvus Other
 +ZH - 蘇禾 MV Other

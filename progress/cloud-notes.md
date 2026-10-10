@@ -5,6 +5,59 @@
 個別資料夾的動作覆寫寫在 `data/decisions.csv`（`folder,action,note,nexus_mod_id,nexus_file_id,nexus_version`，後三欄可留空），`tools/manifest.py` 會自動採用。
 
 ## 最新指示
+- 2026-10-10｜**第 6 階段中途回報判讀**（回應 d18f26b）：做完的 1–6 全部接受。
+  - 英文版備份（12.9 GB，`7z t` 通過）、目標清單、prune 26 個、`set-language`、字型：都照預期。
+  - Nexus 繁中只裝 6 個、SIRENROOT 和 AHO 不裝：判斷正確。Bruma 包的 `bskopenspellquestsc.pex` 只改兩句提示，接受。
+  - MCM 英文備援 127 個檔、名詞對照表 16,843 筆、coverage 基準 47.9%：接受，當作蘇禾包之前的基準。
+  - 「需要雲端決定」的 7 點：
+    1. **DSD 的 index：已修工具，而且比回報的更嚴重。**
+       - 查了 DSD 1.4.3 的原始碼：只有 QUST CNAM／NNAM、INFO NAM1、MESG ITXT、PERK EPF2／EPFD 用 index。
+       - 其他欄位帶了 index，DSD 不會把它和別的檔的同一條去重，低優先的那筆可能反過來蓋掉正確的。
+       - 修正：
+         - `coverage` 對這些欄位不比 index。VIGILANT 應該變成 0 筆對不上，Unslaad 約 160 筆。
+         - 新工具 `dsd_normalize.py` 拿掉 ZH mod 裡這些多餘的 index，也會補上缺的 `|插件名`。
+         - AI 的 DSD 改放在優先最低的位置：`Skyrim.esm\!ai_<插件>.json`。人工或蘇禾的譯文一定贏過 AI。
+         - 例外：原本生效的是**英文** DSD（有些 mod 用 DSD 改名稱）時，AI 會照遊戲裡的英文翻，譯文放在那個英文檔的同一個資料夾、檔名排在它後面，才蓋得過。
+       - 規則整理在 `docs/06` 8.1。
+    2. **SIRENROOT：用新工具 `esp_to_dsd.py` 轉成 DSD，不換插件。**
+       - 只取同一筆記錄、同一欄位、EditorID 相同、我們的是英文、翻譯版是中文、標記一致的字串。
+       - 我們多的 96 筆維持英文，之後由 AI 補。包裡 CC 067 的字串表不要用。
+    3. **AHO：一樣用 `esp_to_dsd.py`**，翻譯版用 downloads 裡的 88523。
+       - 另外加上 **Serana Dialogue Add-On**（687528，4.2.2hotfix 對我們的 4.3.2）：只轉 4.3.2 還有、EditorID 相同的記錄。檔名用 `!` 開頭，蘇禾的同版本翻譯優先。
+       - 目標清單加了 `ZH - Nexus 繁中 - Serana`。`decisions.csv` 和 `zh_archives.csv` 已經更新。
+    4. **Descriptions：同名的 2 個，加上鍵全部找得到的 16 個。**
+       - `diff_pack` 現在會索引 mod 根目錄的檔。`*_DESC.ini` 同名而且鍵包含我們全部的鍵 → accept；沒有對應 → review。
+       - 新增 `--include 檔名`：人工確認過的 review 檔也複製。
+       - 只找到一部分鍵的 10 個不採用。
+       - 我們 2.4.1 另外 14 個 `*_DESC.ini` 會維持英文（coverage 不處理 `*_DESC.ini`），之後再說。
+    5. **`wraithguardvaultfixer.esp`：`llm_translate apply` 會補一份 `_chinese` 表**（先放英文，有譯文的換成中文）。所有缺中文表的非官方本地化插件都會補。
+    6. **Wyrmstooth 的 MCM：`make-chinese` 現在每個鍵依序取**：已是中文的 `_CHINESE` 值 → 已是中文的 `_ENGLISH` 值 → 英文。那 38 句會用上。coverage 也會把這些算成已翻譯。
+    7. 小事：
+       - VIGILANT 的 `.OLD000` 遊戲不讀，不用管。
+       - DBReV：用記事本把 `zh_CN.json` 裡的語言名稱改成「繁體中文」，檔名不要改。
+- 2026-10-10｜**使用者的問題：有沒有像 Lex Translator 那樣簡單快速的工具？**
+  - Lex Translator 已改名 **NIM Translator**（Nexus 143056）。它是單檔圖形介面工具，一次只能翻一個插件，預設會直接改寫 ESP。
+  - xTranslator、ESP-ESM Translator、SSE Auto Translator 也都查過，沒有一個能同時做到：整份清單、LLM、台灣繁中、只輸出 DSD。
+  - 結論：我們的流程照舊。這些工具只用來在遊玩時修個別 mod，而且只用 DSD 匯出（`docs/06` 第 10 節）。
+  - 模型和花費由使用者決定：試翻 20 組後，依實測報價再決定。
+- 2026-10-10｜**接下來的順序**（每步先關 MO2；遇到 `[失敗]` 或不在預期內的結果就停下回報；搬移不刪除）：
+  1. `git pull --rebase`、`python -m pytest -q`：應該全過，沒有略過。
+  2. **DSD 整理**（`docs/06` 第 3 節第 6 點）：`dsd_normalize.py` 試跑 → `--apply`。
+     - 預期：VIGILANT、Unslaad 合計約 7,600 條拿掉 index。
+     - 有 `[失敗]`（硬連結）就停下。
+  3. **`esp_to_dsd`**（`docs/06` 第 3 節第 4 點）：
+     - 對象是 SIRENROOT、AHO、Serana；Serana 先用 `nexus_fetch --manifest data\zh_archives.csv --apply` 下載。
+     - 每個先試跑，回報「結果」和「涵蓋」兩行，再 `--apply`。
+     - Serana 加 `--file-name "!nexus_cht_old.json"`。
+     - 做完重跑第 1 節那一組（`create` → 開關 MO2 → restore-states＋prune → `check_plugins`），讓 Serana 的資料夾進設定檔。完整插件仍要 253、輕量 4012。
+  4. **Descriptions**（`docs/06` 第 3 節第 5 點）：
+     - 試跑預期 accept 2、review 26。
+     - 再加上 16 個 `--include` 與 `--apply`，報告的 include 要是 16。
+  5. 重跑 `mcm_txt make-chinese` 試跑 → `--apply`：Wyrmstooth 應該有 38 個中文鍵。
+  6. 重跑 `coverage`。回報新的待翻條數、字元數，以及「DSD 對不上」和「生效的是英文 DSD 的字串」兩行。
+  7. 推送回報。之後等使用者下載蘇禾的包、設定 API 金鑰，再照 `docs/06` 第 4 節繼續。
+     - 蘇禾的 DSD 包裝好、搬完資料夾後，再跑一次 `dsd_normalize`。
+     - 搬移對象加上 `evgSIRENROOT.esm`、`Dwarfsphere.esp`；`SeranaDialogAddon.esp` 不搬。
 - 2026-09-28｜**第 5 階段回報判讀**（回應 719b045）：全部接受。
   - Madmen Simonrim 已停用；NITHI Reach 49 筆外觀已轉送，xEdit 0 錯誤。
   - Lastendell：Nolvus 用的是現成輸出，沒有記錄可比對。我們的 LOD 檔比 Nolvus 還多（52 對 47），接受。

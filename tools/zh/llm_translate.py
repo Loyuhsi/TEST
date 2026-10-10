@@ -32,13 +32,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pm import fsutil, strings as st, vfs  # noqa: E402
+from pm import fsutil, strings as st, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report  # noqa: E402
-from zh.common import (PRICES, has_cjk, is_official_plugin, placeholders, read_jsonl,  # noqa: E402
-                       source_hash, write_dsd_file, write_translation_txt)
+from zh.common import (DSD_DIR, PRICES, has_cjk, is_official_plugin, merge_translation,  # noqa: E402
+                       placeholders, read_jsonl, source_hash, write_dsd_file, write_translation_txt)
 from zh.coverage import localized_table, loose_strings_index  # noqa: E402
 
 DEFAULT_MODEL = "claude-opus-5"
+AI_DSD_FOLDER = "Skyrim.esm"   # loads first, so its DSD folder has the lowest priority
 THINKING_ALLOWANCE = 1.0     # rough estimate only: thinking can add as many output tokens as the answer
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 MAX_BATCH_CHARS = 6000
@@ -407,11 +408,22 @@ def estimate(units: list[dict], model: str, batch: bool, work: Path | None = Non
 
 
 # ------------------------------------------------------------------ apply
+def ai_dsd_path(out_mod: Path, plugin: str, over: str = "") -> Path:
+    """Where an AI DSD entry goes. Normally the lowest DSD priority on purpose: the Skyrim.esm folder loads
+    first and "!" sorts below every other file name, so any human or community translation of the same
+    string wins. When an English DSD file wins in game (over = "<folder>/<file>"), the entry goes into that
+    same folder with a file name that sorts right after it, so the translation beats that English text."""
+    if over:
+        folder, name = over.split("/", 1)
+        return out_mod / DSD_DIR / folder / f"{Path(name).stem}~ai.json"
+    return out_mod / DSD_DIR / AI_DSD_FOLDER / f"!ai_{plugin}.json"
+
+
 def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mod: Path) -> dict:
-    dsd: dict[str, list[dict]] = defaultdict(list)
+    dsd: dict[Path, list[dict]] = defaultdict(list)
     mcm: dict[str, dict[str, str]] = defaultdict(dict)
     tables: dict[tuple[str, str], dict[int, str]] = defaultdict(dict)
-    missing = 0
+    missing = over_english = 0
     for it in items:
         hit = cache.get(cache_key(context_of(it), it["source"]))
         if not hit:
@@ -419,31 +431,31 @@ def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mo
             continue
         zh = hit["zh"]
         if it["kind"] == "dsd":
-            dsd[it["plugin"]].append({"form_id": it["form_id"], "type": it["type"], "index": it.get("index"),
-                                      "editor_id": it.get("editor_id"), "string": zh})
+            over = (it.get("extra") or {}).get("dsd_over", "")
+            over_english += bool(over)
+            dsd[ai_dsd_path(out_mod, it["plugin"], over)].append(
+                {"form_id": it["form_id"], "type": it["type"], "index": it.get("index"),
+                 "editor_id": it.get("editor_id"), "string": zh})
         elif it["kind"] == "mcm":
             mcm[it["file"]][it["key"]] = zh
         elif it["kind"] == "strings":
             tables[(it["plugin"], it["file"])][int(it["key"])] = zh
-    for plugin, entries in dsd.items():
-        write_dsd_file(out_mod / "SKSE" / "Plugins" / "DynamicStringDistributor" / plugin / "zz_pages_ai_zh.json",
-                       entries)
+    for dest, entries in dsd.items():
+        write_dsd_file(dest, entries)
     if mcm:
         from zh import mcm_txt
         found = mcm_txt.collect(pm, profile)
         for base, new in mcm.items():
             en = found.get((base, "ENGLISH"))
             zh = found.get((base, "CHINESE"))
-            merged = dict(en.table) if en else {}
-            if zh:
-                merged.update({k: v for k, v in zh.table.items() if has_cjk(v)})
+            merged = merge_translation(en.table if en else None, zh.table if zh else None)
             merged.update(new)
             write_translation_txt(out_mod / "interface" / "translations" / f"{base}_CHINESE.txt", merged)
     skipped_official = 0
+    prof = vfs.open_profile(pm, profile)
+    providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
+    loose = loose_strings_index(prof)
     if tables:
-        prof = vfs.open_profile(pm, profile)
-        providers = vfs.plugin_providers(prof.mods_dir, prof.enabled_folders, prof.game_dir / "Data")
-        loose = loose_strings_index(prof)
         for (plugin, stem), new in tables.items():
             path = providers.get(plugin.lower())
             if not path:
@@ -460,9 +472,41 @@ def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mo
                 dest = out_mod / "strings" / f"{stem}_chinese{ext}"
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 st.write(dest, merged, "utf-8")
-    return {"dsd_plugins": len(dsd), "dsd_entries": sum(len(v) for v in dsd.values()), "mcm_files": len(mcm),
+    filled = fill_missing_tables(prof, providers, loose, out_mod)
+    return {"dsd_files": len(dsd), "dsd_entries": sum(len(v) for v in dsd.values()),
+            "dsd_over_english": over_english, "mcm_files": len(mcm),
             "string_tables": len(tables) - skipped_official, "official_skipped": skipped_official,
-            "not_translated_yet": missing}
+            "filled_tables": filled, "not_translated_yet": missing}
+
+
+def fill_missing_tables(prof, providers: dict[str, Path], loose: dict[str, Path], out_mod: Path) -> list[str]:
+    """Write an English-content _chinese table for every enabled, non-official localized plugin that has an
+    English table but no Chinese one (the game would otherwise show blank names). Tables written above
+    with translations already exist in out_mod and are left alone."""
+    written = []
+    for p in prof.plugins:
+        if not p.enabled or is_official_plugin(p.name) or p.name in vfs.GENERATED_PLUGINS:
+            continue
+        path = providers.get(p.name.lower())
+        if not path:
+            continue
+        try:
+            if not tes4.read_header(path).is_localized:
+                continue
+        except (tes4.PluginError, OSError):
+            continue
+        stem = Path(p.name).stem.lower()
+        for ext in (".strings", ".dlstrings", ".ilstrings"):
+            dest = out_mod / "strings" / f"{stem}_chinese{ext}"
+            if dest.exists():
+                continue
+            en = localized_table(path, p.name, "english", ext, loose)
+            if not en or localized_table(path, p.name, "chinese", ext, loose):
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            st.write(dest, en, "utf-8")
+            written.append(dest.name)
+    return written
 
 
 # ------------------------------------------------------------------ CLI
@@ -559,8 +603,13 @@ def main(argv=None) -> int:
         else:
             stats = apply_results(items, load_cache(args.work), args.pm, args.profile, args.out_mod)
             rep.add("apply", "PASS", "已輸出到 " + str(args.out_mod),
-                    f"DSD {stats['dsd_entries']} 條／{stats['dsd_plugins']} 個插件；介面檔 {stats['mcm_files']} 個；"
+                    f"DSD {stats['dsd_entries']} 條／{stats['dsd_files']} 個檔"
+                    + (f"（其中 {stats['dsd_over_english']} 條要蓋過英文 DSD）" if stats["dsd_over_english"] else "")
+                    + f"；介面檔 {stats['mcm_files']} 個；"
                     f"字串表 {stats['string_tables']} 組；尚未翻譯 {stats['not_translated_yet']} 條")
+            if stats["filled_tables"]:
+                rep.add("filled", "INFO", "補上缺的中文字串表（先放英文）",
+                        f"{len(stats['filled_tables'])} 個：{', '.join(stats['filled_tables'][:8])}")
             if stats["official_skipped"]:
                 rep.add("official", "WARN", "略過官方插件的字串表",
                         f"{stats['official_skipped']} 組（官方中文不覆蓋；請重跑新版 coverage.py）")

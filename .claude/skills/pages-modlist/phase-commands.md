@@ -159,6 +159,17 @@ python tools/nexus_fetch.py --pm "D:/PM" --apply
 python tools/install_archives.py --pm "D:/PM"
 python tools/install_archives.py --pm "D:/PM" --apply
 python tools/nexus_fetch.py --pm "D:/PM" --manifest data/zh_archives.csv --apply
+# 3-4. 記錄數不同的翻譯版插件 → DSD（只解壓到 D:/zh-packs，不安裝；每個先試跑再 --apply，報告改名 -sirenroot/-aho/-serana）
+python tools/zh/esp_to_dsd.py --pm "D:/PM" --translated "D:/zh-packs/SIRENROOT/evgSIRENROOT.esm" --out-mod "D:/PM/mods/ZH - Nexus 繁中 - SIRENROOT"
+python tools/zh/esp_to_dsd.py --pm "D:/PM" --translated "D:/zh-packs/AHO/Dwarfsphere.esp" --out-mod "D:/PM/mods/ZH - Nexus 繁中 - Project AHO"
+python tools/zh/esp_to_dsd.py --pm "D:/PM" --translated "D:/zh-packs/Serana/SeranaDialogAddon.esp" --out-mod "D:/PM/mods/ZH - Nexus 繁中 - Serana" --file-name "!nexus_cht_old.json"
+# （Serana 是新資料夾：重跑 1. 的 create → 開關 MO2 → restore-states＋prune → check_plugins）
+# 3-5. Descriptions：accept 2 個＋人工確認過的 16 個（每個一個 --include，用實際檔名）；報告改名 -descriptions
+python tools/zh/diff_pack.py --pack "D:/zh-packs/Descriptions" --pm "D:/PM"
+python tools/zh/diff_pack.py --pack "D:/zh-packs/Descriptions" --pm "D:/PM" --accept-to "D:/PM/mods/ZH - Nexus 繁中 - Descriptions" --include "<檔名>_DESC.ini" --apply
+# 3-6. DSD 整理（單一欄位拿掉 index、form_id 補 |插件名）；蘇禾 DSD 包裝好、搬完資料夾後再跑一次
+python tools/zh/dsd_normalize.py --pm "D:/PM"
+python tools/zh/dsd_normalize.py --pm "D:/PM" --apply
 python tools/audit_skse.py --pm "D:/PM"
 # 4. 蘇禾：名詞釘選 → DSD 包轉繁 → MCM 英文備援 → Other 包比對 → 轉繁
 python tools/zh/strings_glossary.py chs-cht --a "D:/zh-packs/本體CC" --b "D:/PM/mods/ZH - 官方繁中字串/strings" --out "D:/PM/zh-work/pins_chs_cht.tsv"
@@ -180,10 +191,12 @@ python tools/zh/llm_translate.py run --work "D:/PM/zh-work" --glossary "D:/PM/zh
 python tools/zh/llm_translate.py apply --work "D:/PM/zh-work" --pm "D:/PM" --out-mod "D:/PM/mods/ZH - AI 翻譯"
 python tools/zh/coverage.py --pm "D:/PM" --work "D:/PM/zh-work"
 ```
-- 報告：`build_instance-set-language.txt`、`zh_fontconfig.txt`、`zh_opencc.txt`、`zh_diff_pack.txt/.csv`（Nolvus、M&V 各一份，改名 `-nolvus`／`-mv`）、`zh_mcm-*.txt` + `zh_mcm.csv`、`zh_coverage.txt/.csv`、`zh_dsd_unmatched.csv`、`zh_llm-*.txt`。
+- 報告：`build_instance-set-language.txt`、`zh_fontconfig.txt`、`zh_dsd_normalize.txt`、`zh_esp_to_dsd-*.txt`、`zh_opencc.txt`、`zh_diff_pack.txt/.csv`（Descriptions、Nolvus、M&V 各一份，改名 `-descriptions`／`-nolvus`／`-mv`）、`zh_mcm-*.txt` + `zh_mcm.csv`、`zh_coverage.txt/.csv`、`zh_dsd_unmatched.csv`、`zh_llm-*.txt`。
 - 蘇禾漢化包的實際資料夾名稱依解壓結果調整。本體＋CC 包只拿來做釘選表，不安裝。
-- 有 Nexus 原生繁中的插件（Vigilant.esm、Unslaad.esm、BSHeartland.esm、3DNPC.esp、Wyrmstooth.esp、evgSIRENROOT.esm、AHO）：把蘇禾 DSD 裡同名的插件資料夾**搬到** `D:/PM/_replaced/zh-sohe-overridden/`，不要刪除。
-- 同名替換插件的翻譯：用 `esl_check --plugin` 比對原版與翻譯版的記錄數，要相同。
+- 有 Nexus 原生繁中的插件（Vigilant.esm、Unslaad.esm、BSHeartland.esm、3DNPC.esp、Wyrmstooth.esp、evgSIRENROOT.esm、Dwarfsphere.esp）：把蘇禾 DSD 裡同名的插件資料夾**搬到** `D:/PM/_replaced/zh-sohe-overridden/`，不要刪除。`SeranaDialogAddon.esp` 不搬。
+- 同名替換插件的翻譯：用 `esl_check --plugin` 比對原版與翻譯版的記錄數，要相同；不同就改用 `esp_to_dsd`，不裝插件。
+- DSD 誰贏看資料夾（插件載入順序）→ 檔名（位元組順序）→ 檔內順序，和 MO2 順序無關（`docs/06` 8.1）。AI 的 DSD 在 `Skyrim.esm/!ai_*.json`，刻意最弱。
+- NIM／Lex Translator、xTranslator 只用來修個別 mod，只用 DSD 匯出，放 `ZH Overrides`，再跑 `dsd_normalize`（`docs/06` 第 10 節）。
 - `llm_translate` 需要 Windows 使用者環境變數 `ANTHROPIC_API_KEY`（使用者自己設，設好後重開 Claude Desktop）。
 - `llm_translate run` 中斷後重跑同一行即可：會先回收已送出的批次，不會重複付費。報告的「剩下的估計」是依實測推估的費用。
 - `build_instance create --ini-from` 會沿用設定檔原本的 `sLanguage`，漢化後重建設定檔不會變回英文。

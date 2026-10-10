@@ -1,2 +1,3 @@
 folder,action,nexus_mod_id,nexus_file_id,nexus_version,note
 ZH - Nexus 繁中 - Descriptions,download,153964,643274,2.6.1,只下載：解壓到 D:\zh-packs\Descriptions 後用 diff_pack 比對（我們的原版是 2.4.1）
+ZH - Nexus 繁中 - Serana,download,32324,687528,4.2.2hotfix,只下載：解壓到 D:\zh-packs\Serana 後用 esp_to_dsd 轉成 DSD（我們的原版是 4.3.2）

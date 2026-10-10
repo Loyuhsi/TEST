@@ -33,7 +33,7 @@ from pm import bsa, fsutil, strings as st, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
 from zh import mcm_txt  # noqa: E402
 from zh.common import (PRICES, WorkItem, has_cjk, is_official_plugin, items_to_rows, iter_dsd,  # noqa: E402
-                       needs_translation, read_dsd_file, string_key, write_jsonl)
+                       merge_translation, needs_translation, read_dsd_file, string_key, write_jsonl)
 
 UNMATCHED_FIELDS = ["mod", "entries", "matched", "unmatched", "inactive_plugin", "localized_unchecked", "examples"]
 
@@ -66,21 +66,24 @@ def winning_dsd_files(prof: vfs.Profile) -> dict[str, tuple[str, Path]]:
     return files
 
 
-def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, str]:
-    """Effective DSD strings: later plugin folders / later file names / higher mods win."""
+def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, tuple[str, str]]:
+    """Effective DSD strings -> (string, "<DSD folder>/<file name>" it comes from). Later plugin folders win,
+    then later file names inside a folder (byte order, case-sensitive), then later entries in a file."""
     files = {rel: path for rel, (_folder, path) in winning_dsd_files(prof).items()}
     order = {p.lower(): i for i, p in enumerate(active)}
     order["overwrite"] = 10 ** 9
-    result: dict[tuple, str] = {}
-    for rel in sorted(files, key=lambda r: (order.get(r.split("/")[0], -1), r)):
+    result: dict[tuple, tuple[str, str]] = {}
+    for rel in sorted(files, key=lambda r: (order.get(r.split("/")[0], -1), files[r].name)):
         if rel.split("/")[0] not in order:
             continue                          # DSD only loads folders of active plugins
-        for e in read_dsd_file(files[rel]):
+        path = files[rel]
+        where = f"{path.parent.name}/{path.name}"
+        for e in read_dsd_file(path):
             try:
                 k = string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"), light)
             except (KeyError, ValueError):
                 continue
-            result[k] = e["string"]
+            result[k] = (e["string"], where)
     return result
 
 
@@ -206,6 +209,7 @@ def main(argv=None) -> int:
     rows: list[dict] = []
     work: list[WorkItem] = []
     official_todo = 0
+    dsd_english = 0
     effective: dict[tuple, tuple[str, dict]] = {}     # key -> (plugin, entry): last override wins
     if not args.skip_plugins:
         cache_dir = args.work / "plugin_cache"
@@ -249,14 +253,18 @@ def main(argv=None) -> int:
         for k, (plugin, e) in effective.items():
             c = per_plugin[plugin]
             c[0] += 1
-            text = e["string"]
-            if has_cjk(dsd.get(k, "")) or has_cjk(text) or not needs_translation(text):
+            # a DSD entry replaces the plugin's text in game; an English one must be out-ranked, not undercut
+            text, over = dsd.get(k) or (e["string"], "")
+            if has_cjk(text) or not needs_translation(text):
                 c[1] += 1
                 continue
             c[2] += 1
             c[3] += len(text)
+            if over:
+                dsd_english += 1
             work.append(WorkItem(WorkItem.make_id(*k), "dsd", text, e["type"], plugin=plugin, form_id=e["form_id"],
-                                 type=e["type"], index=e["index"], editor_id=e.get("editor_id")))
+                                 type=e["type"], index=e["index"], editor_id=e.get("editor_id"),
+                                 extra={"dsd_over": over} if over else {}))
         for plugin, (total, done, todo, chars) in sorted(per_plugin.items()):
             rows.append({"kind": "plugin", "name": plugin, "total": total, "translated": done,
                          "untranslated": todo, "chars": chars, "note": ""})
@@ -264,11 +272,12 @@ def main(argv=None) -> int:
     for r in mcm_txt.analyse(found):
         en = found[(r["base"], "ENGLISH")]
         zh = found.get((r["base"], "CHINESE"))
-        todo = {k: v for k, v in en.table.items() if needs_translation(v) and not has_cjk((zh.table if zh else {}).get(k, ""))}
+        current = merge_translation(en.table, zh.table if zh else None)     # what the game would show
+        todo = {k: v for k, v in current.items() if needs_translation(v)}
         for k, v in todo.items():
             work.append(WorkItem(WorkItem.make_id("mcm", r["base"], k), "mcm", v, k, file=r["base"], key=k))
-        rows.append({"kind": "interface", "name": r["base"], "total": len(en.table),
-                     "translated": len(en.table) - len(todo), "untranslated": len(todo),
+        rows.append({"kind": "interface", "name": r["base"], "total": len(current),
+                     "translated": len(current) - len(todo), "untranslated": len(todo),
                      "chars": sum(len(v) for v in todo.values()), "note": r["status"]})
 
     args.work.mkdir(parents=True, exist_ok=True)
@@ -285,6 +294,9 @@ def main(argv=None) -> int:
             f"{len(blanks)} 個" + (f"：{', '.join(blanks[:8])}" if blanks else ""))
     rep.add("official", "INFO", "官方插件（本體、DLC、CC）仍是英文的字串",
             f"{official_todo} 條（不送 AI；官方繁中本來就有的名詞保持官方譯法）")
+    if dsd_english:
+        rep.add("dsd_english", "INFO", "生效的是英文 DSD 的字串",
+                f"{dsd_english} 條（照遊戲裡看到的英文翻；AI 譯文會寫在同一個 DSD 資料夾、檔名排在它後面，才蓋得過）")
     if not args.skip_plugins:
         localized = {n for n, h in headers.items() if h.is_localized}
         unmatched = dsd_unmatched(prof, active, light, localized, effective)
