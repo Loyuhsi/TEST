@@ -81,7 +81,12 @@ class Resolver:
                 return self._keys
             from zh.coverage import extract_plugin_strings
             light = {self.plugin_dir.lower()} if self.header.is_light else set()
-            for r in extract_plugin_strings(path, self.cache, localized=self.header.is_localized):
+            try:
+                rows = extract_plugin_strings(path, self.cache, localized=self.header.is_localized)
+            except Exception as e:  # noqa: BLE001 - one bad plugin must not stop the run
+                self.problem = f"無法解析插件：{e}"
+                return self._keys
+            for r in rows:
                 self._keys.add(string_key(r["form_id"], r["type"], None, None, light)[:3])
         return self._keys
 

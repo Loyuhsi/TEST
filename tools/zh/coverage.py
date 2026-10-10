@@ -73,13 +73,21 @@ def is_ai_dsd(where: str) -> bool:
     return name.startswith("!ai_") or name.endswith("~ai.json")
 
 
+def is_user_fix(info: dict) -> bool:
+    """A hand-made fix in the DSD Overwrite folder of a ZH mod (docs/06 section 10): never translated over."""
+    return info["where"].lower().startswith("overwrite/") and info["mod"].upper().startswith("ZH")
+
+
 def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, dict]:
-    """Effective DSD strings -> {string, where ("<DSD folder>/<file name>"), index, mod}. Later plugin folders
-    win, then later file names inside a folder (byte order, case-sensitive), then later entries in a file."""
+    """Effective DSD strings -> {string, where ("<DSD folder>/<file name>"), index, mod, indexed}. Later plugin
+    folders win, then later file names inside a folder (byte order, case-sensitive), then later entries in a
+    file. "indexed" is the last single-field entry that carries an index: DSD does not merge such an entry with
+    plain ones, so it can still show in game when it loses on order."""
     files = winning_dsd_files(prof)
     order = {p.lower(): i for i, p in enumerate(active)}
     order["overwrite"] = 10 ** 9
     result: dict[tuple, dict] = {}
+    indexed: dict[tuple, dict] = {}
     for rel in sorted(files, key=lambda r: (order.get(r.split("/")[0], -1), files[r][1].name)):
         if rel.split("/")[0] not in order:
             continue                          # DSD only loads folders of active plugins
@@ -88,9 +96,14 @@ def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple
         for e in read_dsd_file(path):
             try:
                 k = string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"), light)
-            except (KeyError, ValueError):
+            except (KeyError, ValueError, AttributeError):
                 continue
-            result[k] = {"string": e["string"], "where": where, "index": e.get("index"), "mod": mod}
+            info = {"string": e["string"], "where": where, "index": e.get("index"), "mod": mod}
+            result[k] = info
+            if e.get("index") is not None and not uses_index(str(e["type"])):
+                indexed[k] = info
+    for k, info in indexed.items():
+        result[k] = dict(result[k], indexed=info)
     return result
 
 
@@ -266,10 +279,19 @@ def main(argv=None) -> int:
             c[0] += 1
             # a DSD entry replaces the plugin's text in game; an English one must be out-ranked, not undercut
             won = dsd.get(k)
+            ix = (won or {}).get("indexed")
+            if ix and is_ai_dsd(ix["where"]):
+                won = ix                              # the AI already matched an indexed English entry
+            elif (ix and not has_cjk(ix["string"]) and needs_translation(ix["string"])
+                  and not (won and is_user_fix(won))):
+                won = ix                              # applied apart from plain entries: must be matched itself
             text = won["string"] if won else e["string"]
-            ai_kept = bool(won) and is_ai_dsd(won["where"])     # the AI already answered (e.g. kept "HP")
-            if ai_kept or has_cjk(text) or not needs_translation(text):
+            # the AI already answered (e.g. kept "HP"), or the user fixed it by hand
+            final = bool(won) and (is_ai_dsd(won["where"]) or is_user_fix(won))
+            if final or has_cjk(text) or not needs_translation(text):
                 c[1] += 1
+                if ix and ix is not won and not has_cjk(ix["string"]) and not ix["mod"].upper().startswith("ZH"):
+                    indexed_english.append(f"{ix['mod']}：{ix['where']}")
                 continue
             c[2] += 1
             c[3] += len(text)

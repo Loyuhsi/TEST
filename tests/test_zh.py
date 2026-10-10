@@ -748,3 +748,61 @@ def test_ai_answer_without_chinese_is_not_sent_again(pm, tmp_path):
     items = common.read_jsonl(work / "zh_worklist.jsonl")
     assert not [i for i in items if i["type"] == "WEAP FULL" and i["form_id"].endswith("|Blade.esp")]
     assert "生效的是英文 DSD" not in (tmp_path / "r" / "zh_coverage.txt").read_text(encoding="utf-8")
+
+
+def test_indexed_english_entry_that_loses_on_order_is_still_matched(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import coverage
+    write_dsd(pm / "mods" / "Rename Mod", "Blade.esp", "Rename.json",
+              [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "index": 0, "string": "Frost Brand"}])
+    write_dsd(pm / "mods" / "ZH Pack", "Blade.esp", "zz_pack.json",
+              [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "string": "霜凍之刃"}])
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH - AI\n+ZH Pack\n+Rename Mod\n+Blade Mod\n")
+    work, r = tmp_path / "work", tmp_path / "r"
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(r)]) == 0
+    full = next(i for i in common.read_jsonl(work / "zh_worklist.jsonl") if i["type"] == "WEAP FULL"
+                and i["form_id"].endswith("|Blade.esp"))
+    assert full["source"] == "Frost Brand" and full["extra"] == {"dsd_over": "Blade.esp/Rename.json", "dsd_index": 0}
+    cache = {llm_translate.cache_key(llm_translate.context_of(full), "Frost Brand"): {"zh": "霜之烙印"}}
+    llm_translate.apply_results([full], cache, pm, "Pages-ZH", pm / "mods" / "ZH - AI")
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(r)]) == 0
+    assert not [i for i in common.read_jsonl(work / "zh_worklist.jsonl") if i["source"] == "Frost Brand"]
+
+
+def test_hand_fix_in_overwrite_is_never_translated_over(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import coverage
+    write_dsd(pm / "mods" / "ZH Overrides", "Overwrite", "zz_fix_Blade.esp.json",
+              [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "string": "Frost Blade"}])  # kept English
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH Overrides\n+ZH Pack\n+Blade Mod\n")
+    work = tmp_path / "work"
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(tmp_path / "r")]) == 0
+    assert not [i for i in common.read_jsonl(work / "zh_worklist.jsonl")
+                if i["type"] == "WEAP FULL" and i["form_id"].endswith("|Blade.esp")]
+
+
+def bad_plugin(path: Path, masters: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = record(b"WEAP", 0x01000900, [(b"EDID", b"Bad\x00")])
+    path.write_bytes(tes4.build_header(path.name, masters=masters)
+                     + b"GRUP" + struct.pack("<I", 24 + len(body)) + b"WEAP" + struct.pack("<IHHI", 12345, 0, 0, 0)
+                     + body)
+
+
+def test_unparsable_plugins_are_reported_not_fatal(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import dsd_normalize, esp_to_dsd
+    bad_plugin(pm / "mods" / "Bad Mod" / "Bad.esp", ["Skyrim.esm", "Blade.esp"])
+    write_dsd(pm / "mods" / "ZH Pack", "Bad.esp", "x.json", [{"form_id": "0x000800", "type": "WEAP FULL", "string": "壞"}])
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH Pack\n+Bad Mod\n+Blade Mod\n")
+    (pm / "profiles" / "Pages-ZH" / "plugins.txt").write_text("*Blade.esp\n*Bad.esp\n")
+    r = tmp_path / "r"
+    assert dsd_normalize.main(["--pm", str(pm), "--work", str(tmp_path / "work"), "--out", str(r)]) == 0
+    assert "判斷不出插件的 form_id" in (r / "zh_dsd_normalize.txt").read_text(encoding="utf-8")
+    tr = tmp_path / "pack" / "Blade.esp"
+    tr.parent.mkdir()
+    tr.write_bytes(tes4.build_header("Blade.esp", masters=["Skyrim.esm"]) + grup(b"WEAP", record(
+        b"WEAP", 0x01000800, [(b"EDID", b"MyBlade\x00"), (b"FULL", "霜凍之刃\x00".encode("utf-8"))])))
+    assert esp_to_dsd.main(["--pm", str(pm), "--translated", str(tr), "--out-mod", str(pm / "mods" / "ZH - T"),
+                            "--work", str(tmp_path / "work"), "--out", str(r)]) == 0
+    assert "沒辦法核對的插件" in (r / "zh_esp_to_dsd.txt").read_text(encoding="utf-8")

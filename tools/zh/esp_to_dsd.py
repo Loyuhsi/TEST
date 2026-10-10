@@ -126,16 +126,17 @@ def convert(ours: list[dict], translated: list[dict], plugin: str, light_ours: b
 
 
 def later_overrides(prof: vfs.Profile, providers: dict[str, Path], plugin: str, light: bool,
-                    cache: Path) -> tuple[dict[tuple, str], list[str]]:
-    """Text of our plugin's own records as the last later plugin that lists it as a master leaves it."""
+                    cache: Path) -> tuple[dict[tuple, str], list[str], list[str]]:
+    """Text of our plugin's own records as the last later plugin that lists it as a master leaves it;
+    also (names checked, names that could not be read)."""
     primaries = vfs.primary_plugins(prof.game_dir)
     active = primaries + [p.name for p in prof.plugins if p.enabled and p.name not in primaries]
     pos = next((i for i, n in enumerate(active) if n.lower() == plugin.lower()), None)
     if pos is None:
-        return {}, []
+        return {}, [], []
     own, lo = plugin.lower(), ({plugin.lower()} if light else set())
     later: dict[tuple, str] = {}
-    names = []
+    names, unreadable = [], []
     for name in active[pos + 1:]:
         path = providers.get(name.lower())
         if not path:
@@ -144,14 +145,22 @@ def later_overrides(prof: vfs.Profile, providers: dict[str, Path], plugin: str, 
             h = tes4.read_header(path)
         except (tes4.PluginError, OSError):
             continue
-        if own not in {m.lower() for m in h.masters} or h.is_localized:
+        if own not in {m.lower() for m in h.masters}:
+            continue
+        if h.is_localized:
+            unreadable.append(f"{name}（本地化）")
+            continue
+        try:
+            rows = extract_plugin_strings(path, cache, localized=False)
+        except Exception as e:  # noqa: BLE001 - one bad plugin must not stop the run
+            unreadable.append(f"{name}（{e}）")
             continue
         names.append(name)
-        for e in extract_plugin_strings(path, cache, localized=False):
+        for e in rows:
             k = string_key(e["form_id"], e["type"], e["index"], e.get("editor_id"), lo)
             if k[0] != "GMST" and k[1] == own:
                 later[k] = e["string"]
-    return later, names
+    return later, names, unreadable
 
 
 def main(argv=None) -> int:
@@ -207,13 +216,16 @@ def main(argv=None) -> int:
                 rep.add("light", "WARN", "ESL 旗標不同",
                         f"我們的{'是' if h_ours.is_light else '不是'} ESL、翻譯版{'是' if h_tr.is_light else '不是'}："
                         "FormID 可能重編過，沒有 EditorID 的記錄不轉（有英文原版時用 --original 核對）")
-            later, dependents = later_overrides(prof, providers, plugin, h_ours.is_light, cache)
+            later, dependents, unreadable = later_overrides(prof, providers, plugin, h_ours.is_light, cache)
             entries, rows = convert(ours, translated, plugin, h_ours.is_light, h_tr.is_light, original, later)
             c = Counter(r["reason"] for r in rows)
             rep.add("source", "INFO", "比對", f"我們的 {ours_path.parent.name}\\{plugin}：{len(ours)} 條字串；"
                     f"翻譯版：{len(translated)} 條" + (f"；英文原版：{len(original)} 條" if original is not None else ""))
             rep.add("later", "INFO", "後面以它為前置的插件",
                     f"{len(dependents)} 個" + (f"：{', '.join(dependents[:6])}" if dependents else ""))
+            if unreadable:
+                rep.add("later_bad", "WARN", "後面以它為前置、但沒辦法核對的插件",
+                        f"{len(unreadable)} 個：{'；'.join(unreadable[:4])}（這些插件改過的文字可能被舊譯文蓋掉，回報 Claude）")
             rep.add("result", "INFO", "結果", "；".join(f"{REASONS[k]} {c[k]}" for k in REASONS if c.get(k)))
             how = Counter(r["checked"] for r in rows if r["checked"])
             if how:
