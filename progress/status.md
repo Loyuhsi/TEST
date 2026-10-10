@@ -1,7 +1,7 @@
 # 進度（本地代理更新；只寫進度與結論，不貼報告內容、不寫硬體序號或金鑰）
 
-最後更新：2026-09-28
-目前階段：5（cloud-notes 3f81324 步驟 1–6 完成：Madmen - Simonrim 停用、NITHI Reach 補丁外觀轉送修正、xEdit 0 錯誤、主選單正常；下一步是第 11 節測試路線，由使用者玩，通過後做第 12 節 EN-baseline）
+最後更新：2026-10-10
+目前階段：6（cloud-notes 129121b 步驟 1–6 完成：EN-baseline-未測試 備份、ZH 整組與 DSD 佔位、`sLanguage=CHINESE`、字型、Nexus 繁中 6 個＋DBReV、DSD 1.4.3、STPP 1.10；SIRENROOT 與 AHO 記錄數不符沒裝；第 7 步等使用者下載蘇禾的包，coverage 的 DSD index 誤判等雲端修正）
 
 | 階段 | 狀態 | 完成日期 | 結論／待決問題 |
 |---|---|---|---|
@@ -9,8 +9,8 @@
 | 2 安裝 M&V 並擷取 | 完成 | 2026-09-26 | 雲端 e53c04c 判讀通過；`D:\WJ-Downloads` 已由使用者刪除；`D:\MV` 依雲端保留到第 4 階段 `manifest` |
 | 3 安裝 Nolvus | 完成 | 2026-09-26 | 6.0.20 Ultimate（Nudity Yes）18:08 裝完（41 個網路錯誤經 Retry 補齊）；主選單 OK、SKSE 174 外掛無錯；Profile 已備份；inventory 通過、harvest 注意（缺 12）；`D:\PM` 3565 個 mod＋STOCK GAME 1.5.97 |
 | 4 組合清單 | 完成（雲端 4a9f006 接受） | 2026-09-27 | `_ResourcePack` 硬連結、Frescoes 改 Complete NL ESL；sync-order 移動 136 個；prune 停用 27 個插件、18 個資料夾；**check_plugins 全部通過**、audit_skse 通過；verify 缺 43（捨棄 15＋修剪 27＋Dibella 1）；Dibella Frescoes 補丁等雲端決定（見 local-report） |
-| 5 重建輸出與英文基準 | 進行中 | | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；LOTD 5.6 補丁換成 V6 版（官方 6.10.9 ×5、Lux 7.2、Lux Orbis 4.7、BS Synergy 1.13.2），室內 2 筆用 `--drop-unresolved-base`；未解析引用 0、覆寫掃描只剩接受的 16 個；Synthesis（LAND 7,675 全有 VCLR）與 PGPatcher（20,425 檔）重跑；**DynDOLOD 完成**（High＋Ultra 樹 LOD，25 分鐘，2,431 檔，完整 253／254，Occlusion 輕量，billboard 上限警告 0）；audit_skse 通過；第一次 CS 啟動到主選單、無當機；xEdit 檢查 294 個：Madmen - Simonrim（505，對應完整版 Adamant）、NITHI AI Overhaul 補丁（20 個 WNAM 類型錯）、DBM_JKBluePalace（1）待雲端決定；下一步第 11 節測試路線（使用者玩） |
-| 6 繁中化 | 未開始 | | |
+| 5 重建輸出與英文基準 | 完成（雲端 129121b 接受；測試路線改到第 6 階段最後玩） | 2026-09-28 | Pandora 41 檔、FNIS.esp 加 ESL；BodySlide 5,825 nif＋2,929 tri；主選單正常（RaySense 1.2.0 後 OAR 錯誤 4 行，DataLoaded 171 秒）；Synthesis.esp（LAND 7,675 全有 VCLR、前置 47、ESL）；PGPatcher 20,432 檔；草地快取 15,340 個；xLODGen 48,852 檔；TexGen 5,292 檔；check_plugins 全過（完整 251、預估 253、輕量 4012）；版本不符修正：`strip_refs --drop-missing` 處理 59 個插件、683 筆；HoF 2.4.26 的 3 個補丁與 3 個 TCC 已停用（雲端選 B）；主選單 166 秒；LOTD 5.6 補丁換成 V6 版（官方 6.10.9 ×5、Lux 7.2、Lux Orbis 4.7、BS Synergy 1.13.2），室內 2 筆用 `--drop-unresolved-base`；未解析引用 0、覆寫掃描只剩接受的 16 個；Synthesis（LAND 7,675 全有 VCLR）與 PGPatcher（20,425 檔）重跑；**DynDOLOD 完成**（High＋Ultra 樹 LOD，25 分鐘，2,431 檔，完整 253／254，Occlusion 輕量，billboard 上限警告 0）；audit_skse 通過；第一次 CS 啟動到主選單、無當機；xEdit 檢查 294 個：Madmen - Simonrim（505，對應完整版 Adamant）、NITHI AI Overhaul 補丁（20 個 WNAM 類型錯）、DBM_JKBluePalace（1）待雲端決定；下一步第 11 節測試路線（使用者玩） |
+| 6 繁中化 | 進行中 | | EN-baseline-未測試-2026-10-10.7z（C 槽，12.9 GB，測試通過）；create 佔位 18、prune 26、完整 253、輕量 4012；`sLanguage=CHINESE`（英文語音）；fontconfig 由 `ZH Overrides` 勝出；Nexus 繁中裝 6 個（VIGILANT、Unslaad、Bruma、3DNPC、Wyrmstooth、DBReV），SIRENROOT、AHO 記錄數不符沒裝；DSD 1.4.3、STPP 1.10；audit_skse 通過；MCM 英文備援 127 檔；名詞對照 16,843；coverage 基準 47.9%（DSD index 誤判待修）；等使用者下載蘇禾的包、設定 `ANTHROPIC_API_KEY` |
 | 7 效能調校 | 未開始 | | |
 | 8 凍結備份 | 未開始 | | |
 
@@ -284,6 +284,25 @@
   - Lastendell：Nolvus 用現成 DynDOLOD 輸出、沒有記錄；Lastendell 的 LOD 檔 Nolvus 47、我們 52。
   - 主選單 176 秒，沒有當機。
   - 下一步：使用者照 `docs/測試路線.md` 玩第 11 節（馬卡斯多看 NPC 臉和身體），通過後做第 12 節 EN-baseline 備份。
+
+## 第 6 階段進行紀錄
+- 2026-10-10 雲端 129121b 的步驟 1–6（細節與報告全文在 local-report）：
+  - pytest 228 全過、沒有略過（OpenCC、anthropic 已安裝）。
+  - 英文版備份 `C:\PagesBackup\EN-baseline-未測試-2026-10-10.7z`：101,344 個檔、25.9 GB → 12.9 GB，`7z t` 通過。
+  - create（佔位 18）→ MO2 開關 → restore-states → prune 26（和已接受的相同）→ check_plugins 253／4012 → verify 缺 41。
+  - set-language：CHINESE，英文語音通過。fontconfig：Sanguis＋官方 22 個對應，`ZH Overrides` 勝出。
+  - manifest 下載 8、重裝 1 → nexus_fetch 9 個。
+  - 替換插件先用 esl_check 比對：3DNPC、Bruma 3 個、Wyrmstooth 相同 → 安裝。
+    - SIRENROOT（19,738 對 19,834）不同 → 不裝。
+    - AHO：我們是 Clean Patch 版（48,762），繁中 88523 是未清理版（48,798）→ 不裝。
+  - install_archives `--only` 裝 6 個＋STPP 重裝；DBReV 人工看過後 `--accept`。
+  - audit_skse 通過；check_plugins 253／4012。
+  - 先做不依賴蘇禾包的部分：
+    - MCM 英文備援 127 檔。
+    - 名詞對照 16,843 筆。
+    - Descriptions 2.6.1 下載、解壓；diff_pack 不索引根目錄的 `*_DESC.ini`，改用唯讀分析，沒有複製。
+    - coverage 基準 47.9%、待翻 265,473 條。
+  - 下一步：推送後等雲端修正 coverage 的 DSD index 判斷、決定 SIRENROOT／AHO／Descriptions；使用者下載蘇禾的包並設定 `ANTHROPIC_API_KEY` 後做第 7 步。
 
 ## 最近一次工具結果摘要（第 3 階段）
 - inventory-nolvus：通過 1、資訊 7、失敗 0（3684 個 mod、392.3 GB；exe 數字欄位 1.0.0.0，字串版本 1.5.97.0）。
