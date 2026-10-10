@@ -41,7 +41,7 @@ LATIN_RE = re.compile(r"[A-Za-z]")
 # Tokens that must survive translation unchanged.
 PLACEHOLDER_RE = re.compile(
     r"<[^<>\n]{1,80}>"                 # <Alias=Player>, <Global=X>, <font ...>, <br>
-    r"|%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[sdifuxXc%]"   # printf
+    r"|%(?:\d+\$)?[-+#0]*\d*(?:\.\d+)?[sdifuxXc%]"    # printf (no space flag: "25% chance" is prose)
     r"|\{\d+\}"                          # {0}
     r"|\$[A-Za-z_][A-Za-z0-9_]*"       # $MCM_Key references
     r"|\[PageBreak\]|\[pagebreak\]"
@@ -135,7 +135,7 @@ def write_dsd_file(path: Path, entries: list[dict]) -> None:
     clean = []
     for e in entries:
         d = {"form_id": e["form_id"], "type": e["type"], "string": e["string"]}
-        if uses_index(e["type"]) and e.get("index") is not None and e.get("index") != -1:
+        if (uses_index(e["type"]) or e.get("keep_index")) and e.get("index") is not None and e.get("index") != -1:
             d["index"] = int(e["index"])
         if e.get("editor_id") and e["type"].upper() == "GMST DATA":
             d["editor_id"] = e["editor_id"]

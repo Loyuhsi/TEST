@@ -18,6 +18,9 @@ opencc = pytest.importorskip("opencc")
 def test_placeholders_and_keys():
     s = "Deal <Global=Dmg> damage to %s for {0} seconds. $SKI_Key [PageBreak]"
     assert common.placeholders(s) == sorted(["<Global=Dmg>", "%s", "{0}", "$SKI_Key", "[PageBreak]"])
+    assert common.placeholders("25% chance, 10% faster, 50% damage") == []          # prose, not printf
+    assert common.placeholders("25% 機率") == common.placeholders("25% chance")
+    assert common.placeholders("%d%% %.1f") == sorted(["%d", "%%", "%.1f"])
     assert common.needs_translation("Iron Sword") and not common.needs_translation("鐵劍")
     assert not common.needs_translation("<Alias=Player> 123")
     a = common.string_key("0x0176CD|Skyrim.esm", "WEAP FULL", None)
@@ -463,22 +466,31 @@ def write_dsd(mod: Path, plugin: str, name: str, entries: list) -> Path:
 
 
 def test_dsd_normalize_strips_single_field_index(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")                          # bare form_ids are checked in the plugin
     from zh import dsd_normalize
     entries = [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "index": 1, "string": "霜凍之刃",
                 "status": "TranslationComplete"},
                {"form_id": "0x000900|Blade.esp", "type": "INFO NAM1", "index": 2, "string": "你好"},
-               {"form_id": "0x000801", "type": "WEAP DESC", "string": "描述"}]
+               {"form_id": "0x000800", "type": "WEAP DESC", "string": "描述"},       # Blade.esp's own record
+               {"form_id": "0x00012EB7", "type": "WEAP FULL", "string": "鐵劍"},     # master byte 00: Skyrim.esm
+               {"form_id": "0x000999", "type": "WEAP FULL", "string": "不存在"}]
     f = write_dsd(pm / "mods" / "ZH Pack", "Blade.esp", "b.json", entries)
+    ai = write_dsd(pm / "mods" / "ZH Pack", "Blade.esp", "Rename~ai.json",
+                   [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "index": 0, "string": "霜之烙印"}])
+    ai_before = ai.read_bytes()
     before = f.read_bytes()
-    args = ["--pm", str(pm), "--out", str(tmp_path / "r")]
+    args = ["--pm", str(pm), "--work", str(tmp_path / "work"), "--out", str(tmp_path / "r")]
     assert dsd_normalize.main(args) == 0
     assert f.read_bytes() == before                                       # dry run
     assert dsd_normalize.main(args + ["--apply"]) == 0
     data = json.loads(f.read_text(encoding="utf-8"))
     assert "index" not in data[0] and data[0]["status"] == "TranslationComplete"   # other keys kept
     assert data[1]["index"] == 2                                          # NAM1 needs its index
-    assert data[2]["form_id"] == "0x000801|Blade.esp"                      # plugin name added
+    assert [d["form_id"] for d in data[2:]] == ["0x000800|Blade.esp", "0x012EB7|Skyrim.esm", "0x000999"]
     assert (f.parent / "b.json.bak").read_bytes() == before
+    assert ai.read_bytes() == ai_before                                   # deliberate index of the AI output
+    text = (tmp_path / "r" / "zh_dsd_normalize.txt").read_text(encoding="utf-8")
+    assert "判斷不出插件的 form_id" in text and "1 條" in text
     f.write_text(json.dumps(entries, ensure_ascii=False), encoding="utf-8")
     assert dsd_normalize.main(args + ["--apply"]) == 0
     assert (f.parent / "b.json.bak").read_bytes() == before               # first original kept
@@ -554,7 +566,61 @@ def test_esp_to_dsd_converts_only_matching_records(pm, tmp_path):
     got = {(e["type"], e["string"]) for e in json.loads(dest.read_text(encoding="utf-8"))}
     assert got == {("WEAP FULL", "霜凍之刃"), ("WEAP DESC", "造成 <Global=X> 點冰霜傷害。")}
     reasons = {r["editor_id"]: r["reason"] for r in read_csv(tmp_path / "r" / "zh_esp_to_dsd.csv")}
-    assert reasons == {"OtherSword": "editor_id_differs", "NewBlade": "no_counterpart"}
+    assert reasons == {"OtherSword": "master_record", "NewBlade": "no_counterpart"}
+
+    # a differently named translated file, and a later patch that rewrites the description
+    renamed = tmp_path / "pack" / "Blade_CHT.esp"
+    renamed.write_bytes(tes4.build_header("Blade_CHT.esp", masters=["Skyrim.esm"]) + grup(b"WEAP", weap))
+    patch = record(b"WEAP", 0x01000800, [(b"EDID", b"MyBlade\x00"), (b"FULL", b"Frost Blade\x00"),
+                                         (b"DESC", b"Deals <Global=X> frost and shock damage.\x00")])
+    (pm / "mods" / "Patch Mod").mkdir()
+    (pm / "mods" / "Patch Mod" / "Patch.esp").write_bytes(
+        tes4.build_header("Patch.esp", masters=["Skyrim.esm", "Blade.esp"]) + grup(b"WEAP", patch))
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH Pack\n+Patch Mod\n+Blade Mod\n")
+    (pm / "profiles" / "Pages-ZH" / "plugins.txt").write_text("*Blade.esp\n*Patch.esp\n")
+    args = ["--pm", str(pm), "--translated", str(renamed), "--plugin", "Blade.esp", "--out-mod", str(out),
+            "--file-name", "b.json", "--work", str(tmp_path / "work"), "--out", str(tmp_path / "r"), "--apply"]
+    assert esp_to_dsd.main(args) == 0
+    got = json.loads((dest.parent / "b.json").read_text(encoding="utf-8"))
+    assert [(e["form_id"].split("|")[1], e["type"]) for e in got] == [("Blade.esp", "WEAP FULL")]
+    reasons = {r["type"]: r["reason"] for r in read_csv(tmp_path / "r" / "zh_esp_to_dsd.csv")}
+    assert reasons == {"WEAP DESC": "overridden"}
+    assert "Patch.esp" in (tmp_path / "r" / "zh_esp_to_dsd.txt").read_text(encoding="utf-8")
+
+
+def test_esp_to_dsd_convert_guards():
+    from zh import esp_to_dsd as e2d
+
+    def row(fid, typ, text, ed=None, idx=None):
+        return {"form_id": f"{fid}|Blade.esp", "type": typ, "index": idx, "editor_id": ed, "string": text}
+
+    ours = [row("01000845", "WEAP FULL", "Frost Blade"),
+            row("01000900", "MESG ITXT", "Yes", "Menu", 0), row("01000900", "MESG ITXT", "Maybe later", "Menu", 1),
+            row("01000900", "MESG ITXT", "No", "Menu", 2),
+            row("01000A00", "INFO NAM1", "Hello there.", None, 0),
+            row("01000B00", "WEAP FULL", "Old Name", "Thing"),
+            row("01000C00", "BOOK FULL", "Journal", "Book1")]
+    tr = [row("01001845", "WEAP FULL", "別的東西"),                      # another record: no 0xFFF mask on this side
+          row("01000900", "MESG ITXT", "是", "Menu", 0), row("01000900", "MESG ITXT", "否", "Menu", 1),
+          row("01000A00", "INFO NAM1", "你好。", None, 0),
+          row("01000B00", "WEAP FULL", "舊名"),
+          row("01000C00", "BOOK FULL", "日誌", "Book1")]
+    later = {common.string_key("01000C00|Blade.esp", "BOOK FULL", None, None, {"blade.esp"}): "Patched Journal"}
+    entries, rows = e2d.convert(ours, tr, "Blade.esp", light_ours=True, later=later)
+    assert entries == []
+    got = {(r["form_id"][:8], r["index"]): r["reason"] for r in rows}
+    assert got == {("01001845", None): "no_counterpart", ("01000900", 0): "count_differs",
+                   ("01000900", 1): "count_differs", ("01000A00", 0): "no_editor_id",
+                   ("01000B00", None): "editor_id_differs", ("01000C00", None): "overridden"}
+    # same flags: dialogue without EditorIDs converts by FormID, and an English original catches edited lines
+    ours2 = [row("01000A00", "INFO NAM1", "Hello there.", None, 0), row("01000A01", "INFO NAM1", "Go away!", None, 0)]
+    tr2 = [row("01000A00", "INFO NAM1", "你好。", None, 0), row("01000A01", "INFO NAM1", "走開！", None, 0)]
+    entries, rows = e2d.convert(ours2, tr2, "Blade.esp")
+    assert len(entries) == 2 and {r["checked"] for r in rows} == {"form_id"}
+    orig = [row("01000A00", "INFO NAM1", "Hello there.", None, 0), row("01000A01", "INFO NAM1", "Leave me.", None, 0)]
+    entries, rows = e2d.convert(ours2, tr2, "Blade.esp", original=orig)
+    assert [e["string"] for e in entries] == ["你好。"]
+    assert [r["reason"] for r in rows] == ["converted", "source_changed"] and rows[0]["checked"] == "original"
 
 
 # ---------------------------------------------------------------- Description Framework files
@@ -615,3 +681,47 @@ def test_english_dsd_text_is_translated_and_out_ranked(pm, tmp_path):
     low = json.loads((dsd_dir / "Skyrim.esm" / "!ai_Blade.esp.json").read_text(encoding="utf-8"))
     assert [e["type"] for e in low] == ["WEAP DESC"]
     assert stats["dsd_over_english"] == 1 and stats["dsd_files"] == 2
+
+
+
+def test_later_apply_keeps_earlier_ai_dsd_entries(pm, tmp_path):
+    def item(fid, typ, en):
+        return {"kind": "dsd", "plugin": "Blade.esp", "form_id": fid, "type": typ, "index": None,
+                "editor_id": None, "source": en, "extra": {}}
+
+    a, b = item("01000800|Blade.esp", "WEAP FULL", "Frost Blade"), item("01000800|Blade.esp", "WEAP DESC", "Cold.")
+    key = llm_translate.cache_key
+    out = pm / "mods" / "ZH - AI"
+    llm_translate.apply_results([a, b], {key(llm_translate.context_of(a), "Frost Blade"): {"zh": "霜凍之刃"}},
+                                pm, "Pages-ZH", out)                       # DESC failed the first time
+    # coverage drops FULL (now Chinese) from the worklist; the next apply only has DESC
+    llm_translate.apply_results([b], {key(llm_translate.context_of(b), "Cold."): {"zh": "冰冷。"}}, pm, "Pages-ZH", out)
+    low = json.loads((out / "SKSE/Plugins/DynamicStringDistributor/Skyrim.esm/!ai_Blade.esp.json")
+                     .read_text(encoding="utf-8"))
+    assert {(e["type"], e["string"]) for e in low} == {("WEAP FULL", "霜凍之刃"), ("WEAP DESC", "冰冷。")}
+
+
+def test_indexed_english_dsd_entry_is_matched_with_the_same_index(pm, tmp_path):
+    pytest.importorskip("sse_plugin_interface")
+    from zh import coverage
+    write_dsd(pm / "mods" / "Rename Mod", "Blade.esp", "Rename.json",
+              [{"form_id": "0x000800|Blade.esp", "type": "WEAP FULL", "index": 0, "string": "Frost Brand"}])
+    (pm / "profiles" / "Pages-ZH" / "modlist.txt").write_text("+ZH - AI\n+ZH Pack\n+Rename Mod\n+Blade Mod\n")
+    work = tmp_path / "work"
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(tmp_path / "r")]) == 0
+    full = next(i for i in common.read_jsonl(work / "zh_worklist.jsonl") if i["type"] == "WEAP FULL"
+                and i["form_id"].endswith("|Blade.esp"))
+    assert full["extra"] == {"dsd_over": "Blade.esp/Rename.json", "dsd_index": 0}
+    assert "非 ZH mod 的英文 DSD 在單一欄位帶 index" in (tmp_path / "r" / "zh_coverage.txt").read_text(encoding="utf-8")
+    cache = {llm_translate.cache_key(llm_translate.context_of(full), "Frost Brand"): {"zh": "霜之烙印"}}
+    out = pm / "mods" / "ZH - AI"
+    for _ in range(2):                                                    # a re-run keeps the borrowed index
+        llm_translate.apply_results([full], cache, pm, "Pages-ZH", out)
+        over = json.loads((out / "SKSE/Plugins/DynamicStringDistributor/Blade.esp/Rename~ai.json")
+                          .read_text(encoding="utf-8"))
+        assert over == [{"form_id": full["form_id"], "type": "WEAP FULL", "string": "霜之烙印", "index": 0}]
+    # coverage now sees the translation, and the AI entries are checked against their own plugin
+    assert coverage.main(["--pm", str(pm), "--work", str(work), "--out", str(tmp_path / "r")]) == 0
+    assert "Frost Brand" not in {i["source"] for i in common.read_jsonl(work / "zh_worklist.jsonl")}
+    rows = {r["mod"]: r for r in read_csv(tmp_path / "r" / "zh_dsd_unmatched.csv")}
+    assert rows["ZH - AI"]["entries"] == "1" and rows["ZH - AI"]["matched"] == "1"

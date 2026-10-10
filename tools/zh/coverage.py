@@ -33,7 +33,8 @@ from pm import bsa, fsutil, strings as st, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report, write_csv  # noqa: E402
 from zh import mcm_txt  # noqa: E402
 from zh.common import (PRICES, WorkItem, has_cjk, is_official_plugin, items_to_rows, iter_dsd,  # noqa: E402
-                       merge_translation, needs_translation, read_dsd_file, string_key, write_jsonl)
+                       merge_translation, needs_translation, norm_form, read_dsd_file, string_key, uses_index,
+                       write_jsonl)
 
 UNMATCHED_FIELDS = ["mod", "entries", "matched", "unmatched", "inactive_plugin", "localized_unchecked", "examples"]
 
@@ -66,24 +67,24 @@ def winning_dsd_files(prof: vfs.Profile) -> dict[str, tuple[str, Path]]:
     return files
 
 
-def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, tuple[str, str]]:
-    """Effective DSD strings -> (string, "<DSD folder>/<file name>" it comes from). Later plugin folders win,
-    then later file names inside a folder (byte order, case-sensitive), then later entries in a file."""
-    files = {rel: path for rel, (_folder, path) in winning_dsd_files(prof).items()}
+def dsd_map(prof: vfs.Profile, active: list[str], light: set[str]) -> dict[tuple, dict]:
+    """Effective DSD strings -> {string, where ("<DSD folder>/<file name>"), index, mod}. Later plugin folders
+    win, then later file names inside a folder (byte order, case-sensitive), then later entries in a file."""
+    files = winning_dsd_files(prof)
     order = {p.lower(): i for i, p in enumerate(active)}
     order["overwrite"] = 10 ** 9
-    result: dict[tuple, tuple[str, str]] = {}
-    for rel in sorted(files, key=lambda r: (order.get(r.split("/")[0], -1), files[r].name)):
+    result: dict[tuple, dict] = {}
+    for rel in sorted(files, key=lambda r: (order.get(r.split("/")[0], -1), files[r][1].name)):
         if rel.split("/")[0] not in order:
             continue                          # DSD only loads folders of active plugins
-        path = files[rel]
+        mod, path = files[rel]
         where = f"{path.parent.name}/{path.name}"
         for e in read_dsd_file(path):
             try:
                 k = string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"), light)
             except (KeyError, ValueError):
                 continue
-            result[k] = (e["string"], where)
+            result[k] = {"string": e["string"], "where": where, "index": e.get("index"), "mod": mod}
     return result
 
 
@@ -143,23 +144,26 @@ def dsd_unmatched(prof: vfs.Profile, active: list[str], light: set[str], localiz
     for rel, (folder, path) in winning_dsd_files(prof).items():
         s = stats.setdefault(folder, {"mod": folder, "entries": 0, "matched": 0, "unmatched": 0,
                                       "inactive_plugin": 0, "localized_unchecked": 0, "examples": []})
-        plugin = rel.split("/")[0]
         entries = read_dsd_file(path)
-        if plugin not in active_low:
-            s["inactive_plugin"] += len(entries)
-            continue
-        if plugin in localized:
-            s["localized_unchecked"] += len(entries)
+        if rel.split("/")[0] not in active_low and rel.split("/")[0] != "overwrite":
+            s["inactive_plugin"] += len(entries)          # DSD does not load the folder at all
             continue
         for e in entries:
             try:
+                owner = norm_form(e["form_id"])[1]        # the folder only sets priority
                 k = string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"), light)
-            except (KeyError, ValueError):
-                k = None
-            s["entries"] += 1
+            except (KeyError, ValueError, AttributeError):
+                owner, k = "", None
+            if owner and owner not in active_low:
+                s["inactive_plugin"] += 1
+                continue
             if k is not None and k in effective:
+                s["entries"] += 1
                 s["matched"] += 1
+            elif owner in localized:                      # text in string tables: not in `effective`
+                s["localized_unchecked"] += 1
             else:
+                s["entries"] += 1
                 s["unmatched"] += 1
                 if len(s["examples"]) < 3:
                     s["examples"].append(f"{e.get('form_id', '?')} {e.get('type', '?')}")
@@ -210,6 +214,7 @@ def main(argv=None) -> int:
     work: list[WorkItem] = []
     official_todo = 0
     dsd_english = 0
+    indexed_english: list[str] = []
     effective: dict[tuple, tuple[str, dict]] = {}     # key -> (plugin, entry): last override wins
     if not args.skip_plugins:
         cache_dir = args.work / "plugin_cache"
@@ -254,17 +259,24 @@ def main(argv=None) -> int:
             c = per_plugin[plugin]
             c[0] += 1
             # a DSD entry replaces the plugin's text in game; an English one must be out-ranked, not undercut
-            text, over = dsd.get(k) or (e["string"], "")
+            won = dsd.get(k)
+            text = won["string"] if won else e["string"]
             if has_cjk(text) or not needs_translation(text):
                 c[1] += 1
                 continue
             c[2] += 1
             c[3] += len(text)
-            if over:
+            extra = {}
+            if won:
                 dsd_english += 1
+                extra["dsd_over"] = won["where"]
+                if not uses_index(e["type"]) and won["index"] is not None:
+                    # DSD does not merge an indexed single-field entry with plain ones: repeat its index
+                    extra["dsd_index"] = won["index"]
+                    if not won["mod"].upper().startswith("ZH"):
+                        indexed_english.append(f"{won['mod']}：{won['where']}")
             work.append(WorkItem(WorkItem.make_id(*k), "dsd", text, e["type"], plugin=plugin, form_id=e["form_id"],
-                                 type=e["type"], index=e["index"], editor_id=e.get("editor_id"),
-                                 extra={"dsd_over": over} if over else {}))
+                                 type=e["type"], index=e["index"], editor_id=e.get("editor_id"), extra=extra))
         for plugin, (total, done, todo, chars) in sorted(per_plugin.items()):
             rows.append({"kind": "plugin", "name": plugin, "total": total, "translated": done,
                          "untranslated": todo, "chars": chars, "note": ""})
@@ -297,6 +309,11 @@ def main(argv=None) -> int:
     if dsd_english:
         rep.add("dsd_english", "INFO", "生效的是英文 DSD 的字串",
                 f"{dsd_english} 條（照遊戲裡看到的英文翻；AI 譯文會寫在同一個 DSD 資料夾、檔名排在它後面，才蓋得過）")
+    if indexed_english:
+        files = sorted(set(indexed_english))
+        rep.add("dsd_indexed", "WARN", "非 ZH mod 的英文 DSD 在單一欄位帶 index",
+                f"{len(indexed_english)} 條，{len(files)} 個檔（AI 譯文會帶同一個 index；遊戲裡仍是英文就回報）："
+                + "；".join(files[:5]))
     if not args.skip_plugins:
         localized = {n for n, h in headers.items() if h.is_localized}
         unmatched = dsd_unmatched(prof, active, light, localized, effective)

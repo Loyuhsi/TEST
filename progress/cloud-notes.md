@@ -23,7 +23,8 @@
        - 只取同一筆記錄、同一欄位、EditorID 相同、我們的是英文、翻譯版是中文、標記一致的字串。
        - 我們多的 96 筆維持英文，之後由 AI 補。包裡 CC 067 的字串表不要用。
     3. **AHO：一樣用 `esp_to_dsd.py`**，翻譯版用 downloads 裡的 88523。
-       - 另外加上 **Serana Dialogue Add-On**（687528，4.2.2hotfix 對我們的 4.3.2）：只轉 4.3.2 還有、EditorID 相同的記錄。檔名用 `!` 開頭，蘇禾的同版本翻譯優先。
+       - 另外加上 **Serana Dialogue Add-On**（687528，4.2.2hotfix 對我們的 4.3.2）：只轉 4.3.2 還有、核對得上的記錄。對話沒有 EditorID，只能靠 FormID 和回應條數，報告的「核對方式」會分開算。檔名用 `!` 開頭，蘇禾的同版本翻譯優先。
+       - 工具不轉覆寫前置的記錄（交給 AI），也不轉被後面的修正插件改掉的文字。
        - 目標清單加了 `ZH - Nexus 繁中 - Serana`。`decisions.csv` 和 `zh_archives.csv` 已經更新。
     4. **Descriptions：同名的 2 個，加上鍵全部找得到的 16 個。**
        - `diff_pack` 現在會索引 mod 根目錄的檔。`*_DESC.ini` 同名而且鍵包含我們全部的鍵 → accept；沒有對應 → review。
@@ -47,7 +48,7 @@
      - 有 `[失敗]`（硬連結）就停下。
   3. **`esp_to_dsd`**（`docs/06` 第 3 節第 4 點）：
      - 對象是 SIRENROOT、AHO、Serana；Serana 先用 `nexus_fetch --manifest data\zh_archives.csv --apply` 下載。
-     - 每個先試跑，回報「結果」和「涵蓋」兩行，再 `--apply`。
+     - 每個先試跑，回報「結果」、「轉換的核對方式」和「涵蓋」三行，再 `--apply`。
      - Serana 加 `--file-name "!nexus_cht_old.json"`。
      - 做完重跑第 1 節那一組（`create` → 開關 MO2 → restore-states＋prune → `check_plugins`），讓 Serana 的資料夾進設定檔。完整插件仍要 253、輕量 4012。
   4. **Descriptions**（`docs/06` 第 3 節第 5 點）：

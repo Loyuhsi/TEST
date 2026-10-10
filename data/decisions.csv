@@ -144,4 +144,4 @@ ZH - 蘇禾 Nolvus DSD,keep,蘇禾 Nolvus 6.0.20 Ultimate DSD 包（使用者從
 ZH - 蘇禾 MV DSD,keep,蘇禾 M&V DSD 包（使用者從夸克下載）用 MO2 安裝後轉繁體,,,
 ZH - MCM 英文備援,keep,第 6 階段本地產生：mcm_txt.py make-chinese 的英文備援（放在 ZH 最低，任何翻譯都會蓋過它）,,,
 ZH - 官方繁中字串,keep,第 2 階段 extract_official.py 產生,,,
-ZH - Nexus 繁中 - Serana,keep,Serana Dialogue Add-On 4.2.2hotfix 繁中（Nexus 32324 的 687528）比我們的 4.3.2 舊：不安裝插件，用 tools/zh/esp_to_dsd.py 只轉 4.3.2 還有、EditorID 相同的記錄（檔名用 ! 開頭，讓同版本的蘇禾翻譯優先）,,,
+ZH - Nexus 繁中 - Serana,keep,Serana Dialogue Add-On 4.2.2hotfix 繁中（Nexus 32324 的 687528）比我們的 4.3.2 舊：不安裝插件，用 tools/zh/esp_to_dsd.py 只轉 4.3.2 還有、核對得上的記錄（對話沒有 EditorID，靠 FormID 與回應條數）；檔名用 ! 開頭，讓同版本的蘇禾翻譯優先,,,

@@ -35,7 +35,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pm import fsutil, strings as st, tes4, vfs  # noqa: E402
 from pm.report import DEFAULT_REPORT_DIR, Report  # noqa: E402
 from zh.common import (DSD_DIR, PRICES, has_cjk, is_official_plugin, merge_translation,  # noqa: E402
-                       placeholders, read_jsonl, source_hash, write_dsd_file, write_translation_txt)
+                       placeholders, read_dsd_file, read_jsonl, source_hash, string_key, write_dsd_file,
+                       write_translation_txt)
 from zh.coverage import localized_table, loose_strings_index  # noqa: E402
 
 DEFAULT_MODEL = "claude-opus-5"
@@ -431,17 +432,28 @@ def apply_results(items: list[dict], cache: dict, pm: Path, profile: str, out_mo
             continue
         zh = hit["zh"]
         if it["kind"] == "dsd":
-            over = (it.get("extra") or {}).get("dsd_over", "")
+            extra = it.get("extra") or {}
+            over = extra.get("dsd_over", "")
             over_english += bool(over)
-            dsd[ai_dsd_path(out_mod, it["plugin"], over)].append(
-                {"form_id": it["form_id"], "type": it["type"], "index": it.get("index"),
-                 "editor_id": it.get("editor_id"), "string": zh})
+            entry = {"form_id": it["form_id"], "type": it["type"], "index": it.get("index"),
+                     "editor_id": it.get("editor_id"), "string": zh}
+            if extra.get("dsd_index") is not None:          # same key as the indexed English entry it beats
+                entry.update(index=extra["dsd_index"], keep_index=True)
+            dsd[ai_dsd_path(out_mod, it["plugin"], over)].append(entry)
         elif it["kind"] == "mcm":
             mcm[it["file"]][it["key"]] = zh
         elif it["kind"] == "strings":
             tables[(it["plugin"], it["file"])][int(it["key"])] = zh
     for dest, entries in dsd.items():
-        write_dsd_file(dest, entries)
+        # keep what earlier runs wrote: coverage drops strings that are already Chinese from the worklist
+        merged = {}
+        earlier = [dict(e, keep_index=True) if "index" in e else e for e in read_dsd_file(dest)]   # we wrote it
+        for e in earlier + entries:
+            try:
+                merged[string_key(e["form_id"], e["type"], e.get("index"), e.get("editor_id"))] = e
+            except (KeyError, ValueError, AttributeError):
+                continue
+        write_dsd_file(dest, list(merged.values()))
     if mcm:
         from zh import mcm_txt
         found = mcm_txt.collect(pm, profile)
