@@ -1,6 +1,7 @@
 (function(){
 "use strict";
 const DATA=window.SF_DATA;
+const Exo=window.StarforgeExoV3;
 const $=id=>document.getElementById(id);
 const list=s=>Array.from(document.querySelectorAll(s));
 const allowedModes=["galaxy","system","solar","deep","ssd","sync"];
@@ -17,7 +18,7 @@ const deep=DATA.deep.map(x=>({...x}));
 const solar=DATA.solar.map(x=>({...x}));
 const solarMap=Object.fromEntries(solar.map(x=>[x.id,x]));
 let mode="galaxy",starRadius=15,showHosts=true,showDeep=true,selectedStar=null,selectedPlanet=null,selectedSolar="earth",selectedSmall="ssd:1",selectedDeep="M42",solarScale="inner",smallFilter="ALL",deepFilter="ALL",deepProjection="sky";
-let importedSSE=null;let simulated=[];try{let x=JSON.parse(localStorage.getItem("sf_v2_simulated")||"[]");if(Array.isArray(x))simulated=x.slice(0,500)}catch{}
+let importedSSE=null;let generatedSystems=new Map(),syntheticDeepMap=new Map(),deepSynthetic=true,deepSeed="fictional-mw-v1";let simulated=[];try{let x=JSON.parse(localStorage.getItem("sf_v2_simulated")||"[]");if(Array.isArray(x))simulated=x.slice(0,500)}catch{}
 let yaw=.35,pitch=.45,zoom=1,paused=false,day=0,speed=8,last=0,frame=0,hit=[],pointers=new Map(),moved=false,firstPointer=null,pinchStart=0;
 let bridge="",writeKey="",autoSync=false,syncTimer=null,nasaRetrieved="2026-11-21",currentSSD=null;
 const canvas=$("sky"),ctx=canvas.getContext("2d",{alpha:false});let W=1,H=1,dpr=1;
@@ -27,6 +28,48 @@ function on(id,type,fn){const e=$(id);if(e)e.addEventListener(type,fn)}
 function normalizeName(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
 const aliases={"proximacentauri":"proximacen","pollux":"hd62509","ran":"eps eri","rigilkentaurus":"alphacen","toliman":"alphacen","sirius":"sirius"};
 function relatedPlanets(star){if(!star)return[];const raw=normalizeName(star.n),k=aliases[raw]||raw;return planets.filter(p=>normalizeName(p.h)===k || normalizeName(p.h)===raw)}
+
+function generateEnvironment(force=false){
+ if(!selectedStar||!Exo)return null;
+ const id=String(selectedStar.id||selectedStar.n),found=generatedSystems.get(id);
+ if(found&&!force)return found;
+ const known=relatedPlanets(selectedStar);
+ const opts={seed:($("exoSeed")?.value||"story-01")+"|"+id,diskMass:Number($("exoDisk")?.value||.5),
+   metallicity:Number($("exoMet")?.value||0),dynamicalHistory:Number($("exoDyn")?.value||.35)};
+ const model=Exo.generate(selectedStar,known,opts);
+ generatedSystems.set(id,model);
+ // Limit persisted per-star models; original NASA data is never modified.
+ if(generatedSystems.size>18){const oldest=generatedSystems.keys().next().value;generatedSystems.delete(oldest)}
+ return model;
+}
+function renderEnvironment(){
+ const model=generateEnvironment(),box=$("exoStats"),out=$("exoRegions");
+ if(!model||!box||!out)return;
+ const p=model.priors,giants=model.simulatedPlanets.filter(p=>["gas_giant","ice_giant"].includes(p.kind)).length;
+ const moons=model.simulatedPlanets.reduce((n,p)=>n+(p.moons?.length||0),0);
+ box.innerHTML='<div class="griddata"><div>恆星質量：<b>'+fmt(model.physicalStar.massSolar,3)+' M☉</b><small>'+esc(model.physicalStar.massSource)+'</small></div>'+
+ '<div>宜居帶先驗：<b>'+p.habitableZoneAU.map(x=>fmt(x,3)).join("～")+' AU</b></div>'+
+ '<div>雪線估計：<b>'+fmt(p.snowLineAU,3)+' AU</b></div>'+
+ '<div>星系年齡先驗：<b>'+fmt(p.ageGyr,2)+' Gyr</b></div>'+
+ '<div>本次模擬：<b>'+model.planetCount+' 行星 / '+moons+' 衛星</b></div>'+
+ '<div>外圍環境：<b>'+model.regions.length+' 帶狀區 + '+(model.outerCometCloud?"雲層":"無雲層")+'</b></div></div>'+
+ '<p class="hint">依序列種子 '+esc(model.seed)+'，金屬量 '+fmt(p.metallicity,2)+'，盤質量 '+fmt(p.diskMass,2)+'，巨行星 '+giants+'；結果可重現。並非完整 SSE 物理模擬。</p>';
+ const regions=model.regions.map(r=>'<div class="detailbox"><b>◌ '+esc(r.name)+'</b>　<span class="tag sim">SIMULATED</span>'+
+ '<p>'+esc(r.type)+' · '+fmt(r.startAU,3)+'～'+fmt(r.endAU,2)+' AU</p>'+
+ '<small>'+esc(r.formationRationale)+'</small></div>').join("");
+ const cloud=model.outerCometCloud;
+ out.innerHTML=regions+(cloud?'<div class="detailbox"><b>☄ '+esc(cloud.name)+'</b> <span class="tag sim">虛構彗星雲</span><p>'+
+ fmt(cloud.innerAU,0)+'～'+fmt(cloud.outerAU,0)+' AU，非直接觀測</p><small>'+esc(cloud.uncertainty)+'</small></div>':
+ '<div class="detailbox">本次模型沒有產生類歐特雲；不代表恆星系必然缺乏遠距彗星天體。</div>');
+}
+function imaginedDeep(o){
+ if(o?.ly!==null&&o?.ly!==undefined&&Number(o.ly)>0)return null;
+ if(!deepSynthetic||!Exo)return null;
+ const key=deepSeed+"|"+String(o?.id);
+ let found=syntheticDeepMap.get(key);
+ if(!found){found=Exo.imaginedDeepPosition(o,{seed:deepSeed});syntheticDeepMap.set(key,found)}
+ return found;
+}
 function allHosts(){const m=new Map();for(const p of planets){if(m.has(p.h)||!(p.d>0)||!Number.isFinite(p.ra)||!Number.isFinite(p.dec))continue;
 const a=rad(p.ra),b=rad(p.dec),d=p.d;m.set(p.h,{id:"nasa:"+p.h,n:p.h,h:"",d,x:d*Math.cos(b)*Math.cos(a),y:d*Math.cos(b)*Math.sin(a),z:d*Math.sin(b),lum:null,m:null,s:"",origin:"NASA_HOST"})}return [...m.values()].filter(h=>!stars.some(s=>normalizeName(s.n)===normalizeName(h.n)))}
 function allStars(){return [...stars,...allHosts()]}
@@ -97,8 +140,8 @@ circ(cx,cy,10,selectedStar?colorStar(selectedStar):"#ffd58e",18);hit.push({kind:
 let count=0;for(const [i,p] of arr.entries()){const r=maxR*(.15+.82*(Math.log1p((p.a??(i+1)*.15)*15)/Math.log1p(maxA*15)));ring(r,p.sim?"#a28ac044":"#6bcbd144");const phase=day*2*PI/Math.max(1,p.period||600)+(i*2.3),pos={x:cx+Math.cos(phase+yaw)*r,y:cy+Math.sin(phase+yaw)*r*Math.max(.26,.8*Math.cos(pitch)+.3)};const color=p.sim?"#c8a5ef":(p.r!=null&&p.r>7?"#d8aa92":"#7ee0cb");circ(pos.x,pos.y,p.id===selectedPlanet?5:4,color,p.id===selectedPlanet?13:5);hit.push({kind:"planet",ref:p,x:pos.x,y:pos.y,r:16});if(p.id===selectedPlanet||n<=3)textAt(p.name,pos.x+6,pos.y-5);count++}setText("draw-count",count+" 顆已載入行星 · 非即時軌道")}
 function draw(ts){requestAnimationFrame(draw);if(!last)last=ts;const dt=Math.min(.1,Math.max(0,(ts-last)/1000));last=ts;if(!paused)day+=dt*speed;if(ts-frame<36)return;frame=ts;drawBg();if(mode==="galaxy")drawGalaxy();else if(mode==="deep")drawDeep();else if(mode==="solar")drawSolar();else if(mode==="system")drawSystem();else{ctx.fillStyle="#a9c6d7";ctx.font="15px system-ui";ctx.fillText(mode==="ssd"?"JPL SSD · 選取右側資料查詢":"TypingMind · 安全資料匯出 / MCP",Math.max(15,W/2-160),H/2)}}
 function starInfo(star){if(!star)return"<p>請選擇恆星。</p>";return '<div class="griddata"><div>來源：<b>'+esc(star.origin)+'</b></div><div>距離：<b>'+fmt(star.d,3)+' pc</b></div><div>光譜：<b>'+esc(star.s||"未測")+'</b></div><div>光度：<b>'+fmt(star.lum,3)+' L☉</b></div></div><p class="muted">恆星在星圖中使用 HYG / NASA 的赤道座標，行星軌道另以 AU 顯示。</p>'}
-function updateSystem(){if(!selectedStar)return;setText("systemHeading",(selectedStar.zh?selectedStar.zh+" · ":"")+selectedStar.n);setText("systemOrigin",selectedStar.origin==="NASA_HOST"?"NASA Exoplanet Archive 母恆星":"HYG 衍生恆星資料");$("systemStar").innerHTML=starInfo(selectedStar);let known=relatedPlanets(selectedStar),fiction=simulated.filter(p=>p.hostId===selectedStar.id);
-$("systemPlanets").innerHTML=known.length+fiction.length?known.map(p=>'<div class="detailbox"><span class="tag real">NASA 已確認</span><b>'+esc(p.n)+'</b><div class="griddata"><div>週期 '+fmt(p.p,3)+' 日</div><div>半長軸 '+fmt(p.a,4)+' AU</div><div>半徑 '+fmt(p.r,3)+' 地球半徑</div><div>質量 '+fmt(p.m,3)+' 地球質量</div></div></div>').join("")+fiction.map(p=>'<div class="detailbox"><span class="tag sim">虛構生成</span><b>'+esc(p.name)+'</b><p>半長軸 '+fmt(p.a,3)+' AU · Kepler 近似週期 '+fmt(p.period,1)+' 日</p></div>').join(""):'<div class="detailbox">目前載入的 NASA 樣本中沒有這顆恆星的已確認行星；不等於實際不存在行星。</div>'}
+function updateSystem(){if(!selectedStar)return;const generated=generateEnvironment();setText("systemHeading",(selectedStar.zh?selectedStar.zh+" · ":"")+selectedStar.n);setText("systemOrigin",selectedStar.origin==="NASA_HOST"?"NASA Exoplanet Archive 母恆星":"HYG 衍生恆星資料");$("systemStar").innerHTML=starInfo(selectedStar);let known=relatedPlanets(selectedStar),fiction=simulated.filter(p=>p.hostId===selectedStar.id);
+$("systemPlanets").innerHTML=known.length+fiction.length?known.map(p=>'<div class="detailbox"><span class="tag real">NASA 已確認</span><b>'+esc(p.n)+'</b><div class="griddata"><div>週期 '+fmt(p.p,3)+' 日</div><div>半長軸 '+fmt(p.a,4)+' AU</div><div>半徑 '+fmt(p.r,3)+' 地球半徑</div><div>質量 '+fmt(p.m,3)+' 地球質量</div></div></div>').join("")+fiction.map(p=>'<div class="detailbox"><span class="tag sim">虛構生成</span><b>'+esc(p.name)+'</b><p>半長軸 '+fmt(p.a,3)+' AU · Kepler 近似週期 '+fmt(p.period,1)+' 日</p></div>').join(""):'<div class="detailbox">目前載入的 NASA 樣本中沒有這顆恆星的已確認行星；不等於實際不存在行星。</div>';renderEnvironment()}
 function updateSolar(){const b=solarMap[selectedSolar]||solarMap.earth;setText("solarSelName",b.n);let html='<b>'+esc(b.n)+' · '+esc(b.en)+'</b><p>'+esc(b.descr)+'</p><div class="griddata"><div>軌道半長軸：<b>'+fmt(b.a,3)+' AU</b></div><div>公轉週期：<b>'+fmt(b.period,1)+' 日</b></div><div>赤道直徑：<b>'+fmt(b.diameter,0)+' km</b></div><div>參考重力：<b>'+fmt(b.g,2)+' m/s²</b></div></div><p>環境：'+esc(b.temp)+" · "+esc(b.atm)+"</p>";
 if(selectedSolar==="earth")html+='<div class="hint">大氣：氮約 78%、氧約 21%；海洋覆蓋約 71%；地軸傾角約 23.4°；月球平均距離約 384,400 km。磁層與太陽風相互作用會隨太陽活動改變。</div>';
 $("solarDetails").innerHTML=html;
@@ -121,7 +164,7 @@ function updateDeep(){
 }
 function renderStarChips(){const container=$("quick-stars");container.innerHTML="";const names=["Proxima Centauri","Sirius","Vega","Pollux","TRAPPIST-1","GJ 876","51 Peg"];for(const name of names){const b=document.createElement("button");b.textContent=name;b.onclick=()=>{const s=findStar(name);if(s)selectStar(s,true);else toast("目前樣本未包含此恆星")};container.appendChild(b)}}
 function download(name,str,type){const obj=new Blob([str],{type:type||"application/json"}),url=URL.createObjectURL(obj),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},2000)}
-function snapshot(){return{schema_version:"starforge.unified.v2",exported_at:new Date().toISOString(),data_kind:"observations_plus_simulation",version:DATA.version,selection:{mode,star_id:selectedStar?.id,star_name:selectedStar?.n,solar:selectedSolar,small_body:selectedSmall,deep:selectedDeep,solar_view:solarScale},sources:DATA.metadata,stars,observed_planets:planets,solar_bodies:solar,solar_small_bodies:small,deep_sky:deep,simulated_planets:simulated,imported_sse:importedSSE,note:"CATALOG fields are observational/reference. SIMULATED are creative; orbit animations are illustrative and not Horizons ephemerides."}}
+function snapshot(){return{schema_version:"starforge.unified.v2",exported_at:new Date().toISOString(),data_kind:"observations_plus_simulation",version:DATA.version,selection:{mode,star_id:selectedStar?.id,star_name:selectedStar?.n,solar:selectedSolar,small_body:selectedSmall,deep:selectedDeep,solar_view:solarScale},sources:DATA.metadata,stars,observed_planets:planets,solar_bodies:solar,solar_small_bodies:small,deep_sky:deep,simulated_planets:simulated,generated_systems:[...generatedSystems.values()],simulated_deep_positions:[...syntheticDeepMap.values()].filter(x=>x.seed===deepSeed),imported_sse:importedSSE,note:"CATALOG fields are observational/reference. SIMULATED are creative; orbit animations are illustrative and not Horizons ephemerides."}}
 function changed(){if(autoSync&&bridge&&writeKey){clearTimeout(syncTimer);syncTimer=setTimeout(()=>sendSnapshot(true),1600)}}
 function saveFiction(){try{localStorage.setItem("sf_v2_simulated",JSON.stringify(simulated))}catch{}}
 function simulatePlanet(){if(!selectedStar)return;const i=simulated.filter(p=>p.hostId===selectedStar.id).length+1;if(i>30){toast("單顆恆星最多加入 30 顆示意行星");return}const a=Math.round((.15+hash(i+selectedStar.n.length)*6)*1000)/1000;const L=selectedStar.lum??1,M=Math.min(30,Math.max(.08,L**(1/3.5)));const p=365.25*Math.sqrt(a*a*a/M);simulated.push({id:"sf:sim:"+Date.now()+":"+i,hostId:selectedStar.id,name:selectedStar.n+" · 虛構行星 "+i,origin:"SIMULATED",a,period:p,estimatedMassSolar:M,method:"Kepler two-body approximate, stellar mass estimated from luminosity",created_at:new Date().toISOString()});saveFiction();updateSystem();changed();toast("已產生明確標示的虛構行星")}
