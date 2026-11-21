@@ -1,4 +1,4 @@
-# Starforge v3 Cloudflare Worker production deployment
+# Starforge v4 bidirectional TypingMind Worker production deployment
 # Cloudflare Workers Builds: Git repo Loyuhsi/TEST, production branch starforge-v3-exosystems-sse-full-ssd
 # Project root directory: unified; deployment command: npx wrangler deploy
 # Requires encrypted READ_TOKEN, WRITE_TOKEN and JPL_CONTACT secrets before private APIs work.
@@ -21,6 +21,15 @@ class_name = "SSDGate"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["SSDGate"]
+
+# Dedicated transactionally persisted AI edit overlay; preserves previous SSD_GATE
+[[durable_objects.bindings]]
+name = "EDIT_GATE"
+class_name = "EditGate"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["EditGate"]
 
 [vars]
 # raw.githack.com is convenient for testing ONLY. For production remove it
