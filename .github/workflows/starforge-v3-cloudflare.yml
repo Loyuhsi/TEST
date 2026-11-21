@@ -100,7 +100,7 @@ jobs:
       - name: Build original unmodified SSE 3.2 GPLv3 physics workbench for Cloudflare
         run: |
           npm ci
-          npm install --no-save --no-package-lock @sveltejs/adapter-cloudflare@^7
+          npm install --save-dev --legacy-peer-deps --no-audit @sveltejs/adapter-cloudflare@^7
           cp LICENSE COPYING-GPL-3.0
           sed -i 's|@sveltejs/adapter-auto|@sveltejs/adapter-cloudflare|' svelte.config.js
           CF_PAGES=1 npm run build
