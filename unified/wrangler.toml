@@ -1,4 +1,4 @@
-name = "starforge-unified-bridge-v2"
+name = "starforge-unified-bridge-v3"
 main = "bridge/worker.js"
 compatibility_date = "2026-11-21"
 workers_dev = true
@@ -21,4 +21,4 @@ new_sqlite_classes = ["SSDGate"]
 [vars]
 # raw.githack.com is convenient for testing ONLY. For production remove it
 # and set this to YOUR trusted self-hosted frontend origin.
-ALLOWED_ORIGINS = "https://replace-with-your-trusted-domain.example,https://typingmind.com,https://www.typingmind.com"
+ALLOWED_ORIGINS = "https://starforge-unified-v3-loyuhsi.pages.dev,https://typingmind.com,https://www.typingmind.com"
