@@ -31,7 +31,7 @@ async function getSnapshot(env){const raw=await env.STARFORGE_KV.get("snapshot:l
 function publicSummary(s){
  if(!s)return {available:false,message:"No snapshot has been synced yet"};
  const sel=s.selection||{};
- return {available:true,schema_version:s.schema_version,exported_at:s.exported_at,selection:sel,counts:{stars:s.stars?.length||0,confirmed_exoplanets:s.observed_planets?.length||0,solar_bodies:s.solar_bodies?.length||0,small_bodies:s.solar_small_bodies?.length||0,deep_sky:s.deep_sky?.length||0,simulated_planets:s.simulated_planets?.length||0},source_note:s.note}
+ return {available:true,schema_version:s.schema_version,exported_at:s.exported_at,selection:sel,counts:{stars:s.stars?.length||0,confirmed_exoplanets:s.observed_planets?.length||0,solar_bodies:s.solar_bodies?.length||0,small_bodies:s.solar_small_bodies?.length||0,deep_sky:s.deep_sky?.length||0,simulated_planets:s.simulated_planets?.length||0,generated_systems:s.generated_systems?.length||0,simulated_deep_positions:s.simulated_deep_positions?.length||0},source_note:s.note}
 }
 function byQuery(list,key,q){
  q=String(q||"").trim().toLowerCase();
@@ -46,6 +46,9 @@ const tools=[
  {name:"get_small_body",description:"取得已同步的小天體詳細參數、資料曆元與精度。",inputSchema:{type:"object",properties:{name:{type:"string"}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"list_deep_sky_objects",description:"列出銀河內的非恆星天體，如星雲、星團、脈衝星及黑洞。",inputSchema:{type:"object",properties:{type:{type:"string"},limit:{type:"integer",minimum:1,maximum:200}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_deep_sky_object",description:"查詢深空天體的估計距離、天球座標、來源。",inputSchema:{type:"object",properties:{name:{type:"string"}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"list_generated_systems",description:"取得依恆星物理先驗生成的系外環境清單。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:20}},additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"get_generated_system",description:"讀取指定恆星的種子、已確認行星、虛構行星、衛星、環、小天體帶和遠距彗星雲。",inputSchema:{type:"object",properties:{star_name:{type:"string"}},additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"list_simulated_deep_positions",description:"取得有資料來源與虛構標籤的深空天體 3D 場景座標。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:200}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_imported_sse_reference",description:"讀取使用者匯入的原版 SSE JSON 摘要；資料保持原樣，不會與真實星表混淆。",inputSchema:{type:"object",properties:{include_raw:{type:"boolean"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"lookup_jpl_sbdb",description:"透過具節流的 JPL SSD Bridge 查單一已知小天體真實資料，不會直接從聊天調用 NASA。",inputSchema:{type:"object",properties:{name:{type:"string",maxLength:64}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_horizons_vector",description:"取得指定太陽系天體的 Horizons 日心狀態向量文字資料，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}}
@@ -85,6 +88,9 @@ async function callTool(env,name,args){
  case "get_small_body":if(!s)return{available:false};return(s.solar_small_bodies||[]).find(x=>String(x.name||"").toLowerCase()===String(args.name||"").toLowerCase()||x.zh===args.name||x.id===args.name)||{found:false};
  case "list_deep_sky_objects":if(!s)return{available:false};return{results:(s.deep_sky||[]).filter(x=>!args.type||x.type===args.type).slice(0,asInt(args.limit,1,200,50))};
  case "get_deep_sky_object":if(!s)return{available:false};return(s.deep_sky||[]).find(x=>x.id===args.name||x.n===args.name||String(x.en||"").toLowerCase()===String(args.name||"").toLowerCase())||{found:false};
+ case "list_generated_systems":if(!s)return{available:false};return (s.generated_systems||[]).slice(0,asInt(args.limit,1,20,18)).map(g=>({starName:g.starName,starId:g.starId,seed:g.seed,observedCount:g.knownCount,simulatedCount:g.planetCount,regionCount:g.regions?.length||0,outerCloud:!!g.outerCometCloud,source:g.origin}));
+ case "get_generated_system":if(!s)return{available:false};{const q=String(args.star_name||selection.star_name||"").toLowerCase();return(s.generated_systems||[]).find(g=>String(g.starName||"").toLowerCase()===q)||{found:false,starName:q}}
+ case "list_simulated_deep_positions":if(!s)return{available:false};return{source:"SIMULATED_DISTANCE",warning:"Not observed or scientifically measured 3D positions",results:(s.simulated_deep_positions||[]).slice(0,asInt(args.limit,1,200,100))};
  case "get_imported_sse_reference":if(!s)return{available:false};{const j=s.imported_sse||null;if(!j)return{available:false};const text=JSON.stringify(j);return args.include_raw&&text.length<=150000?{available:true,data:j}:{available:true,topLevelKeys:Object.keys(j),bytes:text.length,raw_available:text.length<=150000,note:"Unmodified original SSE import; not validated as HYG or NASA observations."}}
  case "lookup_jpl_sbdb":return SBDB(env,args.name);
  case "get_horizons_vector":return Horizons(env,args.body,args.date);
@@ -129,8 +135,10 @@ async function route(request,env){
   const raw=await request.text();if(raw.length>MAX_BYTES)return err(413,"Snapshot exceeds 3 MB");
   let data;try{data=JSON.parse(raw)}catch{return err(400,"Invalid JSON snapshot")};
   if(data.schema_version!=="starforge.unified.v2")return err(422,"Unsupported schema");
-  for(const [k,max] of Object.entries({stars:8000,observed_planets:3000,solar_bodies:30,solar_small_bodies:500,deep_sky:1500,simulated_planets:500})){if(!Array.isArray(data[k])||data[k].length>max)return err(422,"Invalid size "+k)}
+  for(const [k,max] of Object.entries({stars:8000,observed_planets:3000,solar_bodies:30,solar_small_bodies:500,deep_sky:1500,simulated_planets:500,generated_systems:20,simulated_deep_positions:1500})){if(!Array.isArray(data[k])||data[k].length>max)return err(422,"Invalid size "+k)}
   if((data.simulated_planets||[]).some(p=>p.origin!=="SIMULATED"))return err(422,"Invalid simulation label");
+  if((data.simulated_deep_positions||[]).some(p=>p.source!=="SIMULATED_DISTANCE"||p.reality!=="FICTIONAL_SCENARIO"))return err(422,"Invalid fictional distance labels");
+  if((data.generated_systems||[]).some(p=>p.origin!=="CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT"||p.schema_version!=="starforge.exosystem.v3"))return err(422,"Invalid exosystem provenance");
   const updated_at=new Date().toISOString();
   await env.STARFORGE_KV.put("snapshot:latest",raw);
   await env.STARFORGE_KV.put("snapshot:meta",JSON.stringify({updated_at,version:data.version,bytes:raw.length}));
