@@ -1,12 +1,12 @@
 {
   "name": "starforge-unified-bridge-v4",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.0.1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node --check bridge/worker.js && node --check app.js && node --check data.js && node --check exo-engine.js && node tests/smoke.mjs && node tests/exo.mjs && node tests/browser.mjs && node tests/v4-write.mjs && node tests/v4-browser.mjs"
+    "check": "node --check bridge/worker.js && node --check bridge/edit-engine.js && node --check app.js && node --check data.js && node --check exo-engine.js && node tests/smoke.mjs && node tests/exo.mjs && node tests/browser.mjs && node tests/v4-write.mjs && node tests/v4-browser.mjs && node tests/ssd.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.45.0"

@@ -30,7 +30,11 @@ function pack(r,request,env){
 function err(status,detail){return okJSON({error:String(detail)},status)}
 function bounds(s,n=80){const v=String(s||"").trim();if(!v||v.length>n)throw Error("Invalid input");return v}
 function asInt(v,lo,hi,def){let n=Number(v);return Number.isInteger(n)&&n>=lo&&n<=hi?n:def}
-async function getBaseSnapshot(env){const raw=await env.STARFORGE_KV.get("snapshot:latest");return raw?JSON.parse(raw):null}
+function editStub(env){return env.EDIT_GATE.get(env.EDIT_GATE.idFromName("starforge-v4-user-edits"))}
+async function getBaseSnapshot(env){
+ if(env.EDIT_GATE){const r=await editStub(env).fetch("https://starforge-edit.internal/baseline");if(!r.ok)throw Error("Baseline unavailable");const base=await r.json();if(base)return base}
+ const raw=await env.STARFORGE_KV.get("snapshot:latest");return raw?JSON.parse(raw):null;
+}
 async function getOverlay(env){
  if(!env.EDIT_GATE)throw Error("EDIT_GATE Durable Object binding required for bidirectional editing");
  const stub=env.EDIT_GATE.get(env.EDIT_GATE.idFromName("starforge-v4-user-edits"));
@@ -39,11 +43,13 @@ async function getOverlay(env){
  return res.json();
 }
 async function getSnapshot(env){
- const base=await getBaseSnapshot(env);
- if(!env.EDIT_GATE)return base;
- return mergeOverlay(base,await getOverlay(env));
+ if(!env.EDIT_GATE)return getBaseSnapshot(env);
+ const r=await editStub(env).fetch("https://starforge-edit.internal/snapshot");
+ if(!r.ok)throw Error("Snapshot unavailable");return r.json();
 }
 function authorizationRole(request,env){
+ const configured=[env.READ_TOKEN,env.WRITE_TOKEN,env.ADMIN_TOKEN].filter(Boolean);
+ if(new Set(configured).size!==configured.length)return null;
  if(testAuth(request,env.ADMIN_TOKEN))return "admin";
  if(testAuth(request,env.WRITE_TOKEN))return "write";
  if(testAuth(request,env.READ_TOKEN))return "read";
@@ -95,6 +101,7 @@ function byQuery(list,key,q){
  if(!q)return list.slice(0,25);
  return list.filter(x=>String(x[key]||x.name||x.n||x.id||"").toLowerCase().includes(q)).slice(0,50)
 }
+function fictionalStars(s){return(s?.user_objects||[]).filter(x=>["star","star_system"].includes(x.kind)).map(x=>({id:x.id,n:x.name,origin:"SIMULATED",s:x.attributes.spectral_class,lum:x.attributes.luminosity_solar,massSolar:x.attributes.mass_solar,attributes:x.attributes}))}
 const tools=[
  {name:"get_latest_universe",description:"讀取星海工坊最新同步快照摘要，或返回所選天體與計數。",inputSchema:{type:"object",properties:{include_full:{type:"boolean",description:"是否回傳完整快照（最大 1.5 MB）"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"search_stars",description:"在已同步 HYG/NASA 恆星中搜尋名稱或 HIP ID。",inputSchema:{type:"object",properties:{query:{type:"string"},limit:{type:"integer",minimum:1,maximum:50}},required:["query"],additionalProperties:false},annotations:{readOnlyHint:true}},
@@ -108,7 +115,7 @@ const tools=[
  {name:"list_simulated_deep_positions",description:"取得有資料來源與虛構標籤的深空天體 3D 場景座標。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:200}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_imported_sse_reference",description:"讀取使用者匯入的原版 SSE JSON 摘要；資料保持原樣，不會與真實星表混淆。",inputSchema:{type:"object",properties:{include_raw:{type:"boolean"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"lookup_jpl_sbdb",description:"透過具節流的 JPL SSD Bridge 查單一已知小天體真實資料，不會直接從聊天調用 NASA。",inputSchema:{type:"object",properties:{name:{type:"string",maxLength:64}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
- {name:"get_horizons_vector",description:"取得指定太陽系天體的 Horizons 日心狀態向量文字資料，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"get_horizons_vector",description:"取得指定太陽系天體在太陽系質心、黃道 J2000 座標系的 Horizons 狀態向量；日期為 TDB，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD (00:00 TDB)"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"get_edit_state",description:"讀取雙向 AI 編輯版本與物件數量；每次修改前先取得 revision。",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"list_user_objects",description:"列出由 TypingMind/星海工坊建立的虛構天體，支援按種類、母星篩選；含 user: ID 供更新使用。",inputSchema:{type:"object",properties:{kind:{type:"string"},host_star_id:{type:"string"},limit:{type:"integer",minimum:1,maximum:100}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"get_change_history",description:"取得最近的 AI 編輯版本和動作紀錄，含可供版本復原的 revision。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:20}},additionalProperties:false},annotations:{readOnlyHint:true}},
@@ -122,15 +129,12 @@ const tools=[
 ];
 function cleanName(name){return bounds(name,64).replace(/[^\w \-+.'()/]/g,"").slice(0,64)}
 async function requestJPL(env,kind,params,cacheKey){
- const cached=await env.STARFORGE_KV.get(cacheKey);
- if(cached)return JSON.parse(cached);
  if(!env.SSD_GATE)throw Error("JPL Durable Object binding is missing. Configure wrangler first.");
  const id=env.SSD_GATE.idFromName("jpl-ssd-serialized-global");
  const stub=env.SSD_GATE.get(id);
  const resp=await stub.fetch(new Request("https://ssd-gate.internal/query",{method:"POST",body:JSON.stringify({kind,params})}));
  const result=await resp.json();
  if(!resp.ok||result.error)throw Error(result.error||"JPL returned "+resp.status);
- await env.STARFORGE_KV.put(cacheKey,JSON.stringify(result),{expirationTtl:kind==="horizons"?21600:86400});
  return result;
 }
 async function SBDB(env,name){
@@ -149,8 +153,8 @@ async function callTool(env,name,args){
  const s=await getSnapshot(env),selection=s?.selection||{};
  switch(name){
  case "get_latest_universe":return args.include_full?s?JSON.stringify(s).length<1500000?s:{...publicSummary(s),warning:"Too large for full response"}:{available:false}:publicSummary(s);
- case "search_stars":if(!s)return {available:false};{const q=String(args.query||"").toLowerCase(),limit=asInt(args.limit,1,50,20);return {query:q,results:(s.stars||[]).filter(x=>String(x.n||"").toLowerCase().includes(q)||String(x.h||"").toLowerCase().includes(q)||String(x.zh||"").includes(q)).slice(0,limit)}} 
- case "get_star_system":if(!s)return {available:false};{const q=String(args.name||selection.star_name||"").toLowerCase();const st=(s.stars||[]).find(x=>String(x.n||"").toLowerCase()===q)||null;const norm=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");const k=norm(q)==="proximacentauri"?"proximacen":norm(q)==="pollux"?"hd62509":norm(q);const planets=(s.observed_planets||[]).filter(p=>norm(p.h)===k);const sim=(s.simulated_planets||[]).filter(p=>p.hostId===st?.id);const user=(s.user_objects||[]).filter(o=>o.host_star_id===st?.id);return {star:st,confirmed_planets:planets,simulated_planets:sim,user_objects:user,note:"Confirmed planets from NASA; simulated planets are creative."}}
+ case "search_stars":if(!s)return {available:false};{const q=String(args.query||"").toLowerCase(),limit=asInt(args.limit,1,50,20);return {query:q,results:[...(s.stars||[]),...fictionalStars(s)].filter(x=>String(x.n||"").toLowerCase().includes(q)||String(x.h||"").toLowerCase().includes(q)||String(x.zh||"").includes(q)).slice(0,limit)}}
+ case "get_star_system":if(!s)return {available:false};{const q=String(args.name||selection.star_name||"").toLowerCase();const st=[...(s.stars||[]),...fictionalStars(s)].find(x=>String(x.n||"").toLowerCase()===q)||null;const norm=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");const k=norm(q)==="proximacentauri"?"proximacen":norm(q)==="pollux"?"hd62509":norm(q);const planets=(s.observed_planets||[]).filter(p=>norm(p.h)===k);const sim=(s.simulated_planets||[]).filter(p=>p.hostId===st?.id);const user=(s.user_objects||[]).filter(o=>o.host_star_id===st?.id);return {star:st,confirmed_planets:planets,simulated_planets:sim,user_objects:user,note:"Confirmed planets from NASA; simulated planets are creative."}}
  case "list_solar_small_bodies":if(!s)return {available:false};return{results:(s.solar_small_bodies||[]).filter(x=>!args.group||x.group===args.group).slice(0,asInt(args.limit,1,200,50))};
  case "get_small_body":if(!s)return{available:false};return(s.solar_small_bodies||[]).find(x=>String(x.name||"").toLowerCase()===String(args.name||"").toLowerCase()||x.zh===args.name||x.id===args.name)||{found:false};
  case "list_deep_sky_objects":if(!s)return{available:false};return{results:(s.deep_sky||[]).filter(x=>!args.type||x.type===args.type).slice(0,asInt(args.limit,1,200,50))};
@@ -184,24 +188,30 @@ async function callEditTool(env,name,args,role){
  }
  if(EDIT_WRITE_NAMES.has(name)&&!canWrite(role))throw Error("WRITE_TOKEN (or ADMIN_TOKEN) required");
  if(EDIT_ADMIN_NAMES.has(name)&&role!=="admin")throw Error("ADMIN_TOKEN required; destructive operation unavailable");
- const s=await getBaseSnapshot(env);
- if(!s)throw Error("No baseline star catalogue yet. Use trusted Starforge frontend to sync an initial snapshot first.");
+ const s=await getSnapshot(env);
+ if(!s||s.available===false)throw Error("No baseline star catalogue yet. Use trusted Starforge frontend to sync an initial snapshot first.");
  const revision=args.expected_revision;
  if(!Number.isInteger(revision)||revision<0)throw Error("Call get_edit_state first; expected_revision is required");
  if(name==="create_simulated_object"){
   const kind=safeString(args.kind,60),host=args.host_star_id;
-  if(!["deep_sky","civilization","star","star_system"].includes(kind)){
+  const fictionalHost=(s.user_objects||[]).some(x=>x.id===host&&["star","star_system"].includes(x.kind));
+  if(host||!["deep_sky","civilization","star","star_system"].includes(kind)){
    if(typeof host!=="string"||!(s.stars||[]).some(x=>String(x.id)===host)||(s.stars||[]).filter(x=>String(x.id)===host).length!==1){
     // NASA exoplanet host records may be stored only as planet host names in the base snapshot.
-    if(!String(host||"").startsWith("nasa:")||!(s.observed_planets||[]).some(x=>"nasa:"+x.h===host))throw Error("Host star must exist in HYG/NASA catalogue; inspect search_stars or get_latest_universe");
+    if(!fictionalHost&&(!String(host||"").startsWith("nasa:")||!(s.observed_planets||[]).some(x=>"nasa:"+x.h===host)))throw Error("Host star must exist in HYG/NASA catalogue or user-created stars; inspect search_stars or list_user_objects");
    }
   }
+  if(args.attributes?.parent_id){const parent=(s.user_objects||[]).find(x=>x.id===args.attributes.parent_id);if(!parent||parent.host_star_id!==host)throw Error("Parent must be a fictional object in the same host system")}
   return mutateEdit(env,"create",revision,{data:{kind,name:args.name,host_star_id:host,attributes:args.attributes||{}}});
  }
- if(name==="update_simulated_object")return mutateEdit(env,"update",revision,{id:args.id,data:{patch:args.patch}});
+ if(name==="update_simulated_object"){
+  if(args.patch?.attributes?.parent_id){const object=(s.user_objects||[]).find(x=>x.id===args.id),parent=(s.user_objects||[]).find(x=>x.id===args.patch.attributes.parent_id);if(!object||!parent||parent.id===object.id||parent.host_star_id!==object.host_star_id)throw Error("Parent must be another fictional object in the same host system")}
+  return mutateEdit(env,"update",revision,{id:args.id,data:{patch:args.patch}});
+ }
  if(name==="generate_system_environment"){
   const name=safeString(args.star_name,150),seed=safeString(args.seed,100);
   let star=(s.stars||[]).find(x=>x.n?.toLowerCase()===name.toLowerCase()||String(x.id)===name);
+  if(!star){const u=(s.user_objects||[]).find(x=>["star","star_system"].includes(x.kind)&&(x.id===name||x.name.toLowerCase()===name.toLowerCase()));if(u)star={id:u.id,n:u.name,s:u.attributes.spectral_class,lum:u.attributes.luminosity_solar,massSolar:u.attributes.mass_solar,origin:"SIMULATED"}}
   if(!star){
    const p=(s.observed_planets||[]).find(x=>x.h?.toLowerCase()===name.toLowerCase());
    if(p)star={id:"nasa:"+p.h,n:p.h,s:"",lum:null};
@@ -209,7 +219,7 @@ async function callEditTool(env,name,args,role){
   if(!star)throw Error("Star absent from synced HYG/NASA catalogue. Cannot invent a star's observed properties.");
   const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
   const match=norm(star.n)==="proximacentauri"?"proximacen":norm(star.n)==="pollux"?"hd62509":norm(star.n);
-  const real=(s.observed_planets||[]).filter(p=>norm(p.h)===match);
+  const real=star.origin==="SIMULATED"?[]:(s.observed_planets||[]).filter(p=>norm(p.h)===match);
   const engine=globalThis.StarforgeExoV3;
   if(!engine?.generate)throw Error("Starforge exosystem generator was not bundled");
   const model=engine.generate(star,real,{seed,diskMass:boundedNumber(args.disk_mass,.05,1,.5),
@@ -252,6 +262,7 @@ async function callEditTool(env,name,args,role){
  }
  if(name==="delete_simulated_object"){
   const id=safeString(args.id,180);
+  if(overlay.user_objects.some(x=>x.host_star_id===id||x.attributes?.parent_id===id))throw Error("Object has dependent fictional bodies; delete each explicitly first");
   if(args.confirmation_phrase!=="DELETE "+id)throw Error("Explicit DELETE <id> confirmation required");
   await verifyApproval(env,"delete",id,revision,args.expires_at,args.confirmation_token);
   return mutateEdit(env,"delete",revision,{id});
@@ -272,12 +283,12 @@ async function handleMCP(request,env){
  if(request.method==="GET")return no("POST, OPTIONS");
  if(request.method!=="POST")return no("POST, OPTIONS");
  let body;try{body=await request.json()}catch{return err(400,"Invalid JSON")};
- if(Array.isArray(body))return err(400,"MCP batch requests are not supported");
+ if(!body||typeof body!=="object"||Array.isArray(body))return err(400,"MCP expects a JSON-RPC object");
  const {id,method,params={}}=body;
  if(method==="notifications/initialized"||method?.startsWith("notifications/"))return new Response(null,{status:202});
  const success=result=>okJSON({jsonrpc:"2.0",id,result},200,{"mcp-protocol-version":"2025-06-18"});
  const failure=(code,message)=>okJSON({jsonrpc:"2.0",id,error:{code,message}},200);
- if(method==="initialize"){return success({protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"Starforge Unified Atlas MCP",version:"4.0.0"}})}
+ if(method==="initialize"){return success({protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"Starforge Unified Atlas MCP",version:"4.0.1"}})}
  if(method==="ping")return success({});
  if(method==="tools/list")return success({tools:toolsForRole(role)});
  if(method==="tools/call"){
@@ -295,7 +306,7 @@ async function route(request,env){
   const c=CORS(request,env);
   return Object.keys(c).length?new Response(null,{status:204,headers:c}):new Response(null,{status:403});
  }
- if(path==="/api/health")return okJSON({service:"Starforge Secure Bridge v4",status:"ok",mcp:"/mcp",ssd:!!env.SSD_GATE,editing:!!env.EDIT_GATE,write_configured:!!env.WRITE_TOKEN,admin_configured:!!env.ADMIN_TOKEN});
+ if(path==="/api/health")return okJSON({service:"Starforge Secure Bridge v4",status:"ok",version:"4.0.1",mcp:"/mcp",kv:!!env.STARFORGE_KV,ssd:!!env.SSD_GATE,editing:!!env.EDIT_GATE,read_configured:!!env.READ_TOKEN,write_configured:!!env.WRITE_TOKEN,admin_configured:!!env.ADMIN_TOKEN,jpl_configured:!!env.JPL_CONTACT});
  if(path==="/mcp"||path==="/api/mcp")return handleMCP(request,env);
  if(path==="/api/snapshot"){
   if(request.method==="GET"){if(!authorizationRole(request,env))return err(401,"Read token required");return okJSON(await getSnapshot(env)||{available:false})}
@@ -308,11 +319,9 @@ async function route(request,env){
   for(const [k,max] of Object.entries({stars:8000,observed_planets:3000,solar_bodies:30,solar_small_bodies:500,deep_sky:1500,simulated_planets:500,generated_systems:20,simulated_deep_positions:1500})){if(!Array.isArray(data[k])||data[k].length>max)return err(422,"Invalid size "+k)}
   if((data.simulated_planets||[]).some(p=>p.origin!=="SIMULATED"))return err(422,"Invalid simulation label");
   if((data.simulated_deep_positions||[]).some(p=>p.source!=="SIMULATED_DISTANCE"||p.reality!=="FICTIONAL_SCENARIO"))return err(422,"Invalid fictional distance labels");
-  if((data.generated_systems||[]).some(p=>p.origin!=="CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT"||p.schema_version!=="starforge.exosystem.v3"))return err(422,"Invalid exosystem provenance");
-  const updated_at=new Date().toISOString();
-  await env.STARFORGE_KV.put("snapshot:latest",raw);
-  await env.STARFORGE_KV.put("snapshot:meta",JSON.stringify({updated_at,version:data.version,bytes:raw.length}));
-  return okJSON({ok:true,updated_at,version:data.version});
+  if((data.generated_systems||[]).some(p=>!["CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT","SIMULATED_STAR_WITH_SIMULATED_ENVIRONMENT"].includes(p.origin)||p.schema_version!=="starforge.exosystem.v3"))return err(422,"Invalid exosystem provenance");
+  if(!env.EDIT_GATE)return err(503,"EDIT_GATE is required for safe snapshot uploads");
+  return editStub(env).fetch("https://starforge-edit.internal/sync",{method:"POST",body:raw});
  }
  if(path==="/api/ssd/body"){
   if(!authorizationRole(request,env))return err(401,"Bridge key required");
@@ -320,7 +329,8 @@ async function route(request,env){
   try{return okJSON(await SBDB(env,u.searchParams.get("name")))}catch(e){return err(502,e.message)}
  }
  if(path==="/api/ssd/horizons"){
-  if(!testAuth(request,env.READ_TOKEN)&&!testAuth(request,env.WRITE_TOKEN))return err(401,"Bridge key required");
+  if(!authorizationRole(request,env))return err(401,"Bridge key required");
+  if(request.method!=="GET")return no("GET, OPTIONS");
   try{return okJSON(await Horizons(env,u.searchParams.get("body"),u.searchParams.get("date")))}catch(e){return err(502,e.message)}
  }
  return err(404,"Not found");
@@ -330,13 +340,13 @@ export default {
 };
 // Single globally addressed Durable Object: serialized requests and 1600ms spacing.
 export class SSDGate {
- constructor(ctx,env){this.ctx=ctx;this.env=env;this.queue=Promise.resolve();this.lastSent=0}
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.queue=Promise.resolve();this.lastSent=0;this.hot=new Map()}
  async fetch(request){
   if(request.method!=="POST")return err(405,"POST only");
   let resolveNext;const next=new Promise(r=>{resolveNext=r}),prior=this.queue;this.queue=next;
   await prior.catch(()=>{});
   try{
-   const item=await request.json();const now=Date.now();const delay=Math.max(0,1600-(now-this.lastSent));if(delay)await new Promise(r=>setTimeout(r,delay));
+   const item=await request.json();
    let u;if(item.kind==="sbdb"){u=new URL("https://ssd-api.jpl.nasa.gov/sbdb.api");u.searchParams.set("sstr",cleanName(item.params.name));}
    else if(item.kind==="horizons"){
     const body=item.params.body,date=item.params.date,nextDate=new Date(Date.parse(date+"T00:00:00Z")+86400000).toISOString().slice(0,10);
@@ -344,14 +354,26 @@ export class SSDGate {
     const params={format:"json",COMMAND:"'"+body+"'",MAKE_EPHEM:"'YES'",EPHEM_TYPE:"'VECTORS'",CENTER:"'500@0'",START_TIME:"'"+date+"'",STOP_TIME:"'"+nextDate+"'",STEP_SIZE:"'1 d'",OUT_UNITS:"'AU-D'",REF_PLANE:"'ECLIPTIC'",VEC_TABLE:"'2'"};
     for(const [k,v] of Object.entries(params))u.searchParams.set(k,v);
    }else{return err(400,"Unknown kind")}
-   this.lastSent=Date.now();
+   const cacheKey=item.kind==="sbdb"?"ssd:body:"+cleanName(item.params.name).toLowerCase():"ssd:horizons:"+item.params.body+":"+item.params.date;
+   let entry=this.hot.get(cacheKey);
+   if(!entry){const saved=await this.env.STARFORGE_KV.get(cacheKey);if(saved){try{entry=JSON.parse(saved)}catch{}}}
+   const withMeta=(entry,cache)=>({...entry.data,starforge_jpl:{source_url:u.toString(),retrieved_at:entry.retrieved_at,expires_at:entry.expires_at,cache,not_for_navigation:true}});
+   if(entry?.format==="starforge.jpl.cache.v1"&&Date.parse(entry.expires_at)>Date.now())return okJSON(withMeta(entry,"HIT"));
+   this.lastSent=Math.max(this.lastSent,await this.ctx.storage.get("last_sent")||0);
+   const delay=Math.max(0,1600-(Date.now()-this.lastSent));if(delay)await new Promise(r=>setTimeout(r,delay));
+   this.lastSent=Date.now();await this.ctx.storage.put("last_sent",this.lastSent);
    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),13000);
    if(!this.env.JPL_CONTACT||String(this.env.JPL_CONTACT).length<5){clearTimeout(timeout);return err(503,"JPL_CONTACT is required for a compliant identifiable User-Agent")}
    const agent="StarforgeUnifiedAtlas/3.0 (+contact: "+String(this.env.JPL_CONTACT).slice(0,160)+")";
    try{const response=await fetch(u.toString(),{headers:{Accept:"application/json","User-Agent":agent},signal:controller.signal});const raw=await response.text();if(!response.ok)return err(502,"JPL "+response.status);if(raw.length>1200000)return err(502,"JPL response too large");
     let result;try{result=JSON.parse(raw)}catch{return err(502,"Invalid JPL payload")}
-    if(item.kind==="horizons"){if(typeof result.result!=="string"||!result.result.includes("$$SOE"))return err(502,"Horizons did not return vector data");const part=result.result.split("$$SOE")[1].split("$$EOE")[0].trim();result={source:"JPL Horizons",kind:"VECTORS",body:item.params.body,date:item.params.date,frame:"ECLIPTIC",center:"solar-system barycenter",units:"AU-D",vector_table_excerpt:part.slice(0,2500),not_for_navigation:true}}
-    return okJSON(result);
+    if(item.kind==="sbdb"&&(!result.object||!result.orbit))return err(502,"SBDB did not return a unique orbital record");
+    if(item.kind==="horizons"){if(typeof result.result!=="string"||!result.result.includes("$$SOE")||!result.result.includes("$$EOE"))return err(502,"Horizons did not return vector data");const part=result.result.split("$$SOE")[1].split("$$EOE")[0].trim();result={signature:result.signature,source:"JPL Horizons",kind:"VECTORS",body:item.params.body,date:item.params.date,timescale:"TDB",reference_epoch:"J2000",frame:"ECLIPTIC",center:"solar-system barycenter",units:"AU-D",vector_table_excerpt:part.slice(0,2500),not_for_navigation:true}}
+    const ttl=item.kind==="horizons"?21600:86400;
+    entry={format:"starforge.jpl.cache.v1",data:result,retrieved_at:new Date().toISOString(),expires_at:new Date(Date.now()+ttl*1000).toISOString()};
+    await this.env.STARFORGE_KV.put(cacheKey,JSON.stringify(entry),{expirationTtl:ttl});
+    this.hot.set(cacheKey,entry);if(this.hot.size>64)this.hot.delete(this.hot.keys().next().value);
+    return okJSON(withMeta(entry,"MISS"));
    }finally{clearTimeout(timeout)}
   }catch(e){return err(502,"SSD backend temporarily unavailable: "+String(e.message||e))}
   finally{resolveNext()}

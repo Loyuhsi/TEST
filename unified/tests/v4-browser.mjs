@@ -24,12 +24,15 @@ const doc={getElementById:el,body:el("body"),execCommand(){return true},
  }};
 const win={devicePixelRatio:2,location:{hostname:"starforge-unified-v3-loyuhsi.pages.dev",pathname:"/unified/",search:""},
  addEventListener(){},history:{replaceState(){}}};
-let api;
+let api;const uploads=[];
 async function fakeFetch(url,options={}){
+ if(String(url)==="https://worker-test.example/api/snapshot"&&options.method==="POST"){
+  uploads.push(JSON.parse(options.body));return{ok:false,status:409,json:async()=>({error:"Revision conflict"})};
+ }
  if(String(url)==="https://worker-test.example/api/snapshot"&&options.method==="GET"){
   const s=api.getSnapshot();
   return{ok:true,json:async()=>({
-   ...s,edit_revision:7,user_objects:[{id:"user:abc",kind:"planet",host_star_id:"hyg:70666",name:"AI 雲端行星",
+   ...s,edit_revision:7,snapshot_revision:3,user_objects:[{id:"user:abc",kind:"planet",host_star_id:"hyg:70666",name:"AI 雲端行星",
     origin:"SIMULATED",source:"TYPINGMIND_MCP_WRITE",attributes:{orbit_au:.14,mass_earth:1.25}}],
    simulated_deep_positions:[{id:"NGC_UNKNOWN",source:"SIMULATED_DISTANCE",reality:"FICTIONAL_SCENARIO",
     raDeg:22,decDeg:8,distanceLy:3000,xPc:100,yPc:200,zPc:34,seed:"test"}]
@@ -52,6 +55,11 @@ assert.equal(api.getSnapshot().edit_revision,7);
 assert(el("aiSystemObjects").innerHTML.includes("AI 雲端行星"));
 assert(el("aiAllObjects").innerHTML.includes("AI 雲端行星"));
 assert(el("remoteEdits").innerHTML.includes("revision 7"));
+await listeners.get("syncNow:click")();
+assert.equal(uploads[0].expected_revision,7);
+assert.equal(uploads[0].expected_snapshot_revision,3);
+assert(el("syncStatus").textContent.includes("版本衝突"));
+assert.equal(api.getSnapshot().user_objects[0].name,"AI 雲端行星","rejected uploads retain the downloaded overlay");
 api.setMode("system");frames.shift()?.(100);
 assert.equal(api.getSnapshot().stars.length,47,"real observations must remain intact");
 assert.equal(api.getSnapshot().observed_planets.length,17);

@@ -12,6 +12,12 @@ venv/
 # Secrets must never be committed
 .env
 *.key
+.local/
+node_modules/
+.wrangler/
+site-dist/
+.dev.vars*
+sse-upstream/
 
 # Personal local-agent notes
 CLAUDE.local.md

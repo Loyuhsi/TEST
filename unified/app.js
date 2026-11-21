@@ -18,7 +18,7 @@ const deep=DATA.deep.map(x=>({...x}));
 const solar=DATA.solar.map(x=>({...x}));
 const solarMap=Object.fromEntries(solar.map(x=>[x.id,x]));
 let mode="galaxy",starRadius=15,showHosts=true,showDeep=true,selectedStar=null,selectedPlanet=null,selectedSolar="earth",selectedSmall="ssd:1",selectedDeep="M42",solarScale="inner",smallFilter="ALL",deepFilter="ALL",deepProjection="sky";
-let userObjects=[],remoteSyntheticDeep=new Map(),remoteEditRevision=0;let importedSSE=null;let generatedSystems=new Map(),syntheticDeepMap=new Map(),deepSynthetic=true,deepSeed="fictional-mw-v1";let simulated=[];try{let x=JSON.parse(localStorage.getItem("sf_v2_simulated")||"[]");if(Array.isArray(x))simulated=x.slice(0,500)}catch{}
+let userObjects=[],remoteSyntheticDeep=new Map(),remoteEditRevision=null,remoteSnapshotRevision=null,remoteTarget="",remoteSystemIds=new Set(),syncInFlight=false,pullSequence=0,sseWindow=null;let importedSSE=null;let generatedSystems=new Map(),syntheticDeepMap=new Map(),deepSynthetic=true,deepSeed="fictional-mw-v1";let simulated=[];try{let x=JSON.parse(localStorage.getItem("sf_v2_simulated")||"[]");if(Array.isArray(x))simulated=x.slice(0,500)}catch{}
 let yaw=.35,pitch=.45,zoom=1,paused=false,day=0,speed=8,last=0,frame=0,hit=[],pointers=new Map(),moved=false,firstPointer=null,pinchStart=0;
 let bridge="",writeKey="",autoSync=false,syncTimer=null,nasaRetrieved="2026-11-21",currentSSD=null;
 const canvas=$("sky"),ctx=canvas.getContext("2d",{alpha:false});let W=1,H=1,dpr=1;
@@ -73,7 +73,12 @@ function imaginedDeep(o){
 }
 function allHosts(){const m=new Map();for(const p of planets){if(m.has(p.h)||!(p.d>0)||!Number.isFinite(p.ra)||!Number.isFinite(p.dec))continue;
 const a=rad(p.ra),b=rad(p.dec),d=p.d;m.set(p.h,{id:"nasa:"+p.h,n:p.h,h:"",d,x:d*Math.cos(b)*Math.cos(a),y:d*Math.cos(b)*Math.sin(a),z:d*Math.sin(b),lum:null,m:null,s:"",origin:"NASA_HOST"})}return [...m.values()].filter(h=>!stars.some(s=>normalizeName(s.n)===normalizeName(h.n)))}
-function allStars(){return [...stars,...allHosts()]}
+function fictionalStars(){return userObjects.filter(o=>["star","star_system"].includes(o.kind)).map(o=>{
+ const a=o.attributes||{},distance=a.distance_ly>0?pc(a.distance_ly):null,ra=rad(a.ra_deg||0),dec=rad(a.dec_deg||0);
+ const x=num(a.x_pc)??(distance===null?null:distance*Math.cos(dec)*Math.cos(ra)),y=num(a.y_pc)??(distance===null?null:distance*Math.cos(dec)*Math.sin(ra)),z=num(a.z_pc)??(distance===null?null:distance*Math.sin(dec));
+ return{id:o.id,n:o.name,origin:"SIMULATED",d:distance??(x===null||y===null||z===null?null:Math.hypot(x,y,z)),x,y,z,s:a.spectral_class||"",lum:num(a.luminosity_solar),massSolar:num(a.mass_solar),m:null};
+})}
+function allStars(){return [...stars,...allHosts(),...fictionalStars()]}
 function findStar(q){const v=normalizeName(q);let pool=allStars();let found=pool.find(s=>normalizeName(s.n)===v || String(s.h||"")===String(q).replace(/HIP\s*/i,""));if(!found)found=pool.find(s=>normalizeName(s.n).includes(v)||normalizeName(s.zh).includes(v));if(!found){let p=planets.find(p=>normalizeName(p.n).includes(v));if(p)found=pool.find(s=>normalizeName(s.n)===normalizeName(p.h))}return found}
 function selectStar(star,goSystem=true){if(!star)return;selectedStar=star;selectedPlanet=null;if(star.d>starRadius){starRadius=[6,15,50,150,500,1000,10000].find(v=>v>=star.d)||10000;$("starRadius").value=String(Math.min(1000,starRadius))}updateSystem();renderStarChips();if(goSystem)switchMode("system");changed()}
 function setText(id,value){const e=$(id);if(e)e.textContent=value}
@@ -90,7 +95,7 @@ function colorStar(s){const t=(s.s||"").toUpperCase();return t.startsWith("O")?"
 function drawGalaxy(){const R=starRadius;hit=[];ctx.strokeStyle="#345f7655";ctx.lineWidth=1;
 for(let rr=R/3;rr<=R;rr+=R/3){ctx.beginPath();for(let i=0;i<=80;i++){const a=i/80*2*PI,p=project({x:rr*Math.cos(a),y:rr*Math.sin(a),z:0},R);if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y)}ctx.stroke()}
 const sun=project({x:0,y:0,z:0},R);circ(sun.x,sun.y,4,"#ffd492",12);textAt("☀ 太陽（點此進入）",sun.x+8,sun.y-7,"#ffe4ad");hit.push({kind:"sun",x:sun.x,y:sun.y,r:20});
-const pool=(showHosts?allStars():stars).filter(s=>s.d<=R&&Number.isFinite(s.x));pool.sort((a,b)=>(a.m??20)-(b.m??20));const limited=pool.slice(0,3600);let count=0;
+const pool=(showHosts?allStars():[...stars,...fictionalStars()]).filter(s=>s.d<=R&&Number.isFinite(s.x));pool.sort((a,b)=>(a.m??20)-(b.m??20));const limited=pool.slice(0,3600);let count=0;
 for(const s of limited){const p=project(s,R);if(p.x<0||p.x>W||p.y<0||p.y>H)continue;count++;const selected=selectedStar?.id===s.id,col=s.origin==="NASA_HOST"?"#7ce7e0":colorStar(s);circ(p.x,p.y,selected?5:Math.max(1.2,3.7-(s.m??9)*.2),col,selected?15:1);if(selected||s.m!=null&&s.m<1.1)textAt(s.zh||s.n,p.x+7,p.y-7);hit.push({kind:"star",ref:s,x:p.x,y:p.y,r:Math.max(9,Math.min(16,4+(s.m??7)))});}
 if(showDeep){for(const o of deep){if(!o.ly || pc(o.ly)>R)continue;const d=pc(o.ly),ra=rad(o.ra),dec=rad(o.dec),p=project({x:d*Math.cos(dec)*Math.cos(ra),y:d*Math.cos(dec)*Math.sin(ra),z:d*Math.sin(dec)},R);if(p.x<0||p.x>W||p.y<0||p.y>H)continue;drawDeepGlyph(p.x,p.y,o);hit.push({kind:"deep",ref:o,x:p.x,y:p.y,r:12});count++}}
 setText("draw-count",fmt(count,0)+" 個可見節點");}
@@ -158,13 +163,13 @@ if($("showSmall").checked){for(const s of groupSolar()){if(s.a===null||s.a===und
 setText("draw-count",count+" 個天體節點（示意）")}
 function drawSystem(){
  hit=[];const model=generateEnvironment(),legacy=simulated.filter(p=>p.hostId===selectedStar?.id);
- const aiPlanets=userObjects.filter(p=>p.host_star_id===selectedStar?.id&&["planet","moon"].includes(p.kind)&&Number.isFinite(p.attributes?.orbit_au)).map(p=>({...p,sim:true,a:p.attributes.orbit_au,period:365.25*Math.sqrt(Math.pow(p.attributes.orbit_au,3)/Math.max(.03,model?.physicalStar?.massSolar||1)),radiusEarth:p.attributes?.radius_earth||1,kind:p.kind}));
+ const aiPlanets=userObjects.filter(p=>p.host_star_id===selectedStar?.id&&["planet","moon"].includes(p.kind)&&Number.isFinite(p.attributes?.orbit_au??p.attributes?.semi_major_axis_au)).map(p=>({...p,sim:true,a:p.attributes.orbit_au??p.attributes.semi_major_axis_au,parent_id:p.attributes.parent_id,period:365.25*Math.sqrt(Math.pow(p.attributes.orbit_au??p.attributes.semi_major_axis_au,3)/Math.max(.03,model?.physicalStar?.massSolar||1)),radiusEarth:p.attributes?.radius_earth||1,kind:p.kind})).sort((a,b)=>(a.kind==="moon")-(b.kind==="moon"));
  const arr=[...aiPlanets,...(model?.realConfirmedPlanets||[]).map(p=>({...p,sim:false,name:p.name,period:p.periodDays})),
            ...(model?.simulatedPlanets||[]).map(p=>({...p,sim:true,name:p.name,period:p.periodDays})),
            ...legacy.map(p=>({...p,sim:true,name:p.name,period:p.period}))].filter(p=>p.a&&p.a>0);
  const cx=W/2,cy=H*.54;
  const cloud=model?.outerCometCloud;
- const customRegions=userObjects.filter(o=>o.host_star_id===selectedStar?.id&&["asteroid_belt","debris_disk","trojan_cloud","kuiper_analogue","comet_cloud"].includes(o.kind)&&Number.isFinite(o.attributes?.orbit_au)).map(o=>({startAU:o.attributes.orbit_au*.85,endAU:o.attributes.orbit_au*1.15,type:o.kind==="trojan_cloud"?"TROJAN_CLOUD":o.kind==="kuiper_analogue"?"KUIPER_ANALOGUE":"CUSTOM_BELT",name:o.name,id:o.id}));
+ const customRegions=userObjects.filter(o=>o.host_star_id===selectedStar?.id&&["asteroid_belt","debris_disk","trojan_cloud","kuiper_analogue","comet_cloud"].includes(o.kind)&&Number.isFinite(o.attributes?.orbit_au??o.attributes?.semi_major_axis_au)).map(o=>({startAU:(o.attributes.orbit_au??o.attributes.semi_major_axis_au)*.85,endAU:(o.attributes.orbit_au??o.attributes.semi_major_axis_au)*1.15,type:o.kind==="trojan_cloud"?"TROJAN_CLOUD":o.kind==="kuiper_analogue"?"KUIPER_ANALOGUE":"CUSTOM_BELT",name:o.name,id:o.id}));
  const regions=[...(model?.regions||[]),...customRegions];
  const maxA=Math.max(.12,...arr.map(p=>p.a||.12),...regions.map(r=>r.endAU||0));
  const maxR=Math.min(W,H)*.42*zoom;
@@ -189,11 +194,15 @@ function drawSystem(){
  circ(cx,cy,10,selectedStar?colorStar(selectedStar):"#ffd58e",18);
  hit.push({kind:"selectedStar",x:cx,y:cy,r:20});
  textAt(selectedStar?.n||"恆星",cx+14,cy-10);
+ const positions=new Map();
  let count=0;for(const [i,p] of arr.entries()){
  const rr=screenR(p.a);
  ring(rr,p.sim?"#b48ac04e":"#6bcbd14b");
  const xy=Exo?.positionAt(p,day);const theta=xy?Math.atan2(xy.yAU,xy.xAU):day*2*PI/Math.max(1,p.period||600)+(i*2.3);
- const pos={x:cx+Math.cos(theta+yaw)*rr,y:cy+Math.sin(theta+yaw)*rr*Math.max(.26,.8*Math.cos(pitch)+.3)};
+ const parent=p.parent_id?positions.get(p.parent_id):null;
+ const moonR=Math.min(26,Math.max(12,rr*.12));
+ const pos=parent?{x:parent.x+Math.cos(theta+yaw)*moonR,y:parent.y+Math.sin(theta+yaw)*moonR*.6}:{x:cx+Math.cos(theta+yaw)*rr,y:cy+Math.sin(theta+yaw)*rr*Math.max(.26,.8*Math.cos(pitch)+.3)};
+ positions.set(p.id,pos);
  const color=p.sim?(p.kind==="gas_giant"?"#ddc09e":p.kind==="ice_giant"?"#93d9e5":"#c6a6ec"):(p.radiusEarth!=null&&p.radiusEarth>7?"#d8aa92":"#7ee0cb");
  circ(pos.x,pos.y,p.id===selectedPlanet?6:4,color,p.id===selectedPlanet?13:5);
  if(p.rings){ctx.beginPath();ctx.strokeStyle="#9dc5e4ba";ctx.ellipse(pos.x,pos.y,8,3,.35,0,2*PI);ctx.stroke()}
@@ -201,13 +210,20 @@ function drawSystem(){
  if(p.id===selectedPlanet||arr.length<5)textAt(p.name,pos.x+6,pos.y-5);
  count++;
  }
+ for(const o of userObjects.filter(o=>o.host_star_id===selectedStar?.id&&["ring","station","civilization"].includes(o.kind))){
+  const a=o.attributes||{},parent=a.parent_id?positions.get(a.parent_id):null,r=screenR(a.orbit_au??a.semi_major_axis_au??.1);
+  const p=parent||{x:cx+Math.cos(yaw+.8)*r,y:cy+Math.sin(yaw+.8)*r*.6};
+  if(o.kind==="ring"){ctx.beginPath();ctx.strokeStyle="#e6c2ed";ctx.ellipse(p.x,p.y,13,5,.35,0,2*PI);ctx.stroke()}
+  else circ(p.x,p.y,3,"#f0c773",7);
+  textAt(o.name,p.x+14,p.y-7,"#e6c2ed");hit.push({kind:"fictional_deep",ref:o,x:p.x,y:p.y,r:17});
+ }
  if(cloud)textAt("☄ "+cloud.name+" • "+fmt(cloud.innerAU,0)+"～"+fmt(cloud.outerAU,0)+" AU（虛構）",8,H-28,"#cfb0e7");
  setText("draw-count",count+" 顆行星 / "+regions.length+" 種帶狀環境 · 非即時軌道");
 }
 
 function draw(ts){requestAnimationFrame(draw);if(!last)last=ts;const dt=Math.min(.1,Math.max(0,(ts-last)/1000));last=ts;if(!paused)day+=dt*speed;if(ts-frame<36)return;frame=ts;drawBg();if(mode==="galaxy")drawGalaxy();else if(mode==="deep")drawDeep();else if(mode==="solar")drawSolar();else if(mode==="system")drawSystem();else{ctx.fillStyle="#a9c6d7";ctx.font="15px system-ui";ctx.fillText(mode==="ssd"?"JPL SSD · 選取右側資料查詢":"TypingMind · 安全資料匯出 / MCP",Math.max(15,W/2-160),H/2)}}
-function starInfo(star){if(!star)return"<p>請選擇恆星。</p>";return '<div class="griddata"><div>來源：<b>'+esc(star.origin)+'</b></div><div>距離：<b>'+fmt(star.d,3)+' pc</b></div><div>光譜：<b>'+esc(star.s||"未測")+'</b></div><div>光度：<b>'+fmt(star.lum,3)+' L☉</b></div></div><p class="muted">恆星在星圖中使用 HYG / NASA 的赤道座標，行星軌道另以 AU 顯示。</p>'}
-function updateSystem(){if(!selectedStar)return;const generated=generateEnvironment();setText("systemHeading",(selectedStar.zh?selectedStar.zh+" · ":"")+selectedStar.n);setText("systemOrigin",selectedStar.origin==="NASA_HOST"?"NASA Exoplanet Archive 母恆星":"HYG 衍生恆星資料");$("systemStar").innerHTML=starInfo(selectedStar);let known=relatedPlanets(selectedStar),fiction=simulated.filter(p=>p.hostId===selectedStar.id);
+function starInfo(star){if(!star)return"<p>請選擇恆星。</p>";return '<div class="griddata"><div>來源：<b>'+esc(star.origin)+'</b></div><div>距離：<b>'+fmt(star.d,3)+' pc</b></div><div>光譜：<b>'+esc(star.s||"未測")+'</b></div><div>光度：<b>'+fmt(star.lum,3)+' L☉</b></div></div><p class="muted">恆星來源與距離依上方標示；SIMULATED 為虛構設定，行星軌道以 AU 示意。</p>'}
+function updateSystem(){if(!selectedStar)return;const generated=generateEnvironment();setText("systemHeading",(selectedStar.zh?selectedStar.zh+" · ":"")+selectedStar.n);setText("systemOrigin",selectedStar.origin==="SIMULATED"?"SIMULATED · AI 虛構恆星":selectedStar.origin==="NASA_HOST"?"NASA Exoplanet Archive 母恆星":"HYG 衍生恆星資料");$("systemStar").innerHTML=starInfo(selectedStar);let known=relatedPlanets(selectedStar),fiction=simulated.filter(p=>p.hostId===selectedStar.id);
 $("systemPlanets").innerHTML=known.length+fiction.length?known.map(p=>'<div class="detailbox"><span class="tag real">NASA 已確認</span><b>'+esc(p.n)+'</b><div class="griddata"><div>週期 '+fmt(p.p,3)+' 日</div><div>半長軸 '+fmt(p.a,4)+' AU</div><div>半徑 '+fmt(p.r,3)+' 地球半徑</div><div>質量 '+fmt(p.m,3)+' 地球質量</div></div></div>').join("")+fiction.map(p=>'<div class="detailbox"><span class="tag sim">虛構生成</span><b>'+esc(p.name)+'</b><p>半長軸 '+fmt(p.a,3)+' AU · Kepler 近似週期 '+fmt(p.period,1)+' 日</p></div>').join(""):'<div class="detailbox">目前載入的 NASA 樣本中沒有這顆恆星的已確認行星；不等於實際不存在行星。</div>';
 if(generated&&generated.simulatedPlanets.length){
  $("systemPlanets").innerHTML+=generated.simulatedPlanets.map(p=>
@@ -262,37 +278,73 @@ function updateAIDeepObjects(){
 async function refreshFromTypingMind(){
  const base=normalizedBridge(),key=$("writeKey").value.trim();
  if(!base||!key){toast("請先輸入可信 Worker 網址與 WRITE_TOKEN，再讀取 AI 修改");return}
- const btn=$("pullAI");btn.disabled=true;
+ const btn=$("pullAI"),sequence=++pullSequence;btn.disabled=true;
  try{
   const resp=await fetch(base+"/api/snapshot",{method:"GET",headers:{"Authorization":"Bearer "+key},mode:"cors",cache:"no-store"});
   if(!resp.ok)throw Error("HTTP "+resp.status+"：請確認 Worker 已上線與 WRITE_TOKEN 權限");
   const data=await resp.json();
+  if(sequence!==pullSequence||base!==normalizedBridge())return;
   if(data.schema_version!=="starforge.unified.v2")throw Error("Worker 尚無有效星圖快照；請先按「上傳本地星圖」");
   userObjects=(data.user_objects||[]).filter(o=>o.origin==="SIMULATED"&&String(o.id).startsWith("user:")).slice(0,500);
   remoteEditRevision=Number(data.edit_revision)||0;
+  remoteSnapshotRevision=Number(data.snapshot_revision)||0;remoteTarget=base;
+  const union=(remote,local,id)=>[...new Map([...local.map(x=>[String(x[id]),x]),...remote.map(x=>[String(x[id]),x])]).values()];
+  if(Array.isArray(data.stars))stars=union(data.stars,stars,"id");
+  if(Array.isArray(data.observed_planets))planets=union(data.observed_planets,planets,"n");
+  if(Array.isArray(data.deep_sky)){const merged=union(data.deep_sky,deep,"id");deep.splice(0,deep.length,...merged)}
+  if(Array.isArray(data.solar_small_bodies))small=union(data.solar_small_bodies,small,"id");
+  if(Array.isArray(data.simulated_planets))simulated=data.simulated_planets.filter(x=>x.origin==="SIMULATED");
+  if(data.imported_sse)importedSSE=data.imported_sse;
+  for(const id of remoteSystemIds)generatedSystems.delete(id);
+  remoteSystemIds=new Set((data.generated_systems||[]).map(g=>String(g.starId)));
   for(const g of data.generated_systems||[])if(g.schema_version==="starforge.exosystem.v3")generatedSystems.set(String(g.starId),g);
   remoteSyntheticDeep=new Map((data.simulated_deep_positions||[]).filter(x=>x.source==="SIMULATED_DISTANCE").map(x=>[String(x.id),x]));
-  updateSystem();updateDeep();updateAIDeepObjects();
+  if(selectedStar?.origin==="SIMULATED")selectedStar=fictionalStars().find(x=>x.id===selectedStar.id)||stars[0];
+  updateSystem();updateDeep();updateAIDeepObjects();setText("starTotal",stars.length);setText("exoTotal",planets.length);
   const full=$("aiAllObjects");
   if(full)full.innerHTML=userObjects.length?userObjects.slice(0,80).map(o=>'<div class="detailbox"><span class="tag sim">'+esc(o.kind)+'</span><b>'+esc(o.name)+'</b><small>'+esc(o.id)+'</small><p>'+esc(o.attributes?.description||o.attributes?.notes||"虛構物件")+'</p></div>').join(""):'<p class="hint">還沒有遠端 AI 物件。可從 TypingMind WRITE MCP 建立。</p>';
   $("remoteEdits").innerHTML='<b>已更新遠端 AI 修改（revision '+remoteEditRevision+'）</b><p>虛構天體：'+userObjects.length+'；系外環境：'+(data.generated_systems||[]).length+'；虛構深空座標：'+remoteSyntheticDeep.size+'。</p><small>NASA/HYG/JPL 觀測資料沒有被 AI 覆寫。管理刪除和版本還原需要 ADMIN_TOKEN。</small>';
   renderSyncStatus("已從 Cloudflare Worker 取得 revision "+remoteEditRevision+"，時間："+new Date().toLocaleString("zh-TW"));
   toast("已載入 TypingMind 的 AI 修改");
  }catch(e){renderSyncStatus("讀取失敗："+String(e.message||e));toast("讀取 AI 修改失敗")}
- finally{btn.disabled=false}
+ finally{if(sequence===pullSequence)btn.disabled=false}
 }
 function renderStarChips(){const container=$("quick-stars");container.innerHTML="";const names=["Proxima Centauri","Sirius","Vega","Pollux","TRAPPIST-1","GJ 876","51 Peg"];for(const name of names){const b=document.createElement("button");b.textContent=name;b.onclick=()=>{const s=findStar(name);if(s)selectStar(s,true);else toast("目前樣本未包含此恆星")};container.appendChild(b)}}
 function download(name,str,type){const obj=new Blob([str],{type:type||"application/json"}),url=URL.createObjectURL(obj),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},2000)}
-function snapshot(){return{schema_version:"starforge.unified.v2",exported_at:new Date().toISOString(),data_kind:"observations_plus_simulation",version:DATA.version,selection:{mode,star_id:selectedStar?.id,star_name:selectedStar?.n,solar:selectedSolar,small_body:selectedSmall,deep:selectedDeep,solar_view:solarScale},sources:DATA.metadata,stars,observed_planets:planets,solar_bodies:solar,solar_small_bodies:small,deep_sky:deep,simulated_planets:simulated,user_objects:userObjects,edit_revision:remoteEditRevision,generated_systems:[...generatedSystems.values()],simulated_deep_positions:[...syntheticDeepMap.values()].filter(x=>x.seed===deepSeed),imported_sse:importedSSE,note:"CATALOG fields are observational/reference. SIMULATED are creative; orbit animations are illustrative and not Horizons ephemerides."}}
+function snapshot(){return{schema_version:"starforge.unified.v2",exported_at:new Date().toISOString(),data_kind:"observations_plus_simulation",version:DATA.version,selection:{mode,star_id:selectedStar?.id,star_name:selectedStar?.n,solar:selectedSolar,small_body:selectedSmall,deep:selectedDeep,solar_view:solarScale},sources:DATA.metadata,stars,observed_planets:planets,solar_bodies:solar,solar_small_bodies:small,deep_sky:deep,simulated_planets:simulated,user_objects:userObjects,edit_revision:remoteEditRevision??0,snapshot_revision:remoteSnapshotRevision??0,generated_systems:[...generatedSystems.values()],simulated_deep_positions:[...new Map([...syntheticDeepMap.values()].filter(x=>x.seed===deepSeed).concat([...remoteSyntheticDeep.values()]).map(x=>[String(x.id),x])).values()],imported_sse:importedSSE,note:"CATALOG fields are observational/reference. SIMULATED are creative; orbit animations are illustrative and not Horizons ephemerides."}}
 function changed(){if(autoSync&&bridge&&writeKey){clearTimeout(syncTimer);syncTimer=setTimeout(()=>sendSnapshot(true),1600)}}
 function saveFiction(){try{localStorage.setItem("sf_v2_simulated",JSON.stringify(simulated))}catch{}}
 function simulatePlanet(){if(!selectedStar)return;const i=simulated.filter(p=>p.hostId===selectedStar.id).length+1;if(i>30){toast("單顆恆星最多加入 30 顆示意行星");return}const a=Math.round((.15+hash(i+selectedStar.n.length)*6)*1000)/1000;const L=selectedStar.lum??1,M=Math.min(30,Math.max(.08,L**(1/3.5)));const p=365.25*Math.sqrt(a*a*a/M);simulated.push({id:"sf:sim:"+Date.now()+":"+i,hostId:selectedStar.id,name:selectedStar.n+" · 虛構行星 "+i,origin:"SIMULATED",a,period:p,estimatedMassSolar:M,method:"Kepler two-body approximate, stellar mass estimated from luminosity",created_at:new Date().toISOString()});saveFiction();updateSystem();changed();toast("已產生明確標示的虛構行星")}
 function summary(){const p=relatedPlanets(selectedStar),b=solarMap[selectedSolar],o=deep.find(x=>x.id===selectedDeep),f=simulated.filter(x=>x.hostId===selectedStar?.id);return"【星海工坊 v4｜"+new Date().toISOString()+"】\n目前模式："+mode+"\n恆星："+(selectedStar?.n||"未選")+", 距離 "+fmt(selectedStar?.d,3)+" pc, HYG / NASA 來源 "+(selectedStar?.origin||"")+"\n已確認行星："+(p.map(x=>x.n+"（週期 "+fmt(x.p,3)+" 日，a "+fmt(x.a,3)+" AU）").join("；")||"載入資料中未發現")+"\n虛構行星："+(f.map(x=>x.name).join("、")||"無")+"\n太陽系選取："+(b?.n||"")+", 小天體："+(small.find(x=>x.id===selectedSmall)?.name||"")+"\n深空："+(o?.n||"")+", 約 "+fmt(o?.ly,0)+" 光年\n資料來源：HYG / NASA Exoplanet Archive / JPL SBDB 快照 / NASA Hubble / OpenNGC。示意軌道不是即時 NASA Horizons 星曆；區分已觀測與模擬資料。"}
 async function copy(str){try{await navigator.clipboard.writeText(str);toast("已複製到剪貼簿")}catch{const el=document.createElement("textarea");el.value=str;document.body.appendChild(el);el.select();const ok=document.execCommand("copy");el.remove();toast(ok?"已複製":"請改用匯出 JSON")}}
 function renderSyncStatus(msg){if(msg)setText("syncStatus",msg);else setText("syncStatus",bridge?"已設定 Bridge URL，尚未驗證服務。":"尚未配置 Bridge；離線匯出與複製摘要可用。")}
-function normalizedBridge(){const raw=$("bridgeURL").value.trim().replace(/\/+$/,"");if(!raw)return"";try{const u=new URL(raw);if(u.protocol!=="https:")return"";return u.origin+(u.pathname==="/"? "":u.pathname)}catch{return""}}
+function normalizedBridge(){const raw=$("bridgeURL").value.trim().replace(/\/+$/,"");if(!raw)return"";try{const u=new URL(raw);if(u.protocol!=="https:"||u.username||u.password||u.search||u.hash||u.pathname!=="/")return"";return u.origin}catch{return""}}
 async function testBridge(){bridge=normalizedBridge();if(!bridge){toast("請先填寫有效的 HTTPS Bridge 網址");return}try{let r=await fetch(bridge+"/api/health",{cache:"no-store",mode:"cors"});if(!r.ok)throw Error("HTTP "+r.status);let data=await r.json();renderSyncStatus("Bridge 已回應："+(data.service||"Starforge")+". 若要同步請填寫寫入金鑰。");toast("Bridge 連線成功")}catch(e){renderSyncStatus("Bridge 未連線："+String(e.message||e));toast("Bridge 無法連線，離線資料仍可使用")}}
-async function sendSnapshot(silent=false){bridge=normalizedBridge();writeKey=$("writeKey").value.trim();if(!bridge||!writeKey){if(!silent)toast("需要 Bridge HTTPS URL 和獨立寫入金鑰");return}try{const r=await fetch(bridge+"/api/snapshot",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+writeKey},body:JSON.stringify(snapshot()),mode:"cors"});if(!r.ok)throw Error("HTTP "+r.status);const d=await r.json();renderSyncStatus("已同步到 Bridge，時間："+(d.updated_at||new Date().toLocaleString("zh-TW"))+"，版本："+(d.version||"2"));if(!silent)toast("成功同步，可由 TypingMind MCP 讀取")}catch(e){renderSyncStatus("同步失敗："+String(e.message||e));if(!silent)toast("同步失敗；本地資料仍保留")}}
+async function sendSnapshot(silent=false){
+ bridge=normalizedBridge();writeKey=$("writeKey").value.trim();
+ if(!bridge||!writeKey){if(!silent)toast("需要 Bridge HTTPS 基址和獨立寫入金鑰");return}
+ if(syncInFlight)return;syncInFlight=true;
+ const target=bridge,key=writeKey;
+ try{
+  if(remoteTarget!==target||remoteEditRevision===null){
+   const r=await fetch(target+"/api/snapshot",{headers:{Authorization:"Bearer "+key},mode:"cors",cache:"no-store"});
+   if(!r.ok)throw Error("HTTP "+r.status);
+   const current=await r.json();
+   if(current.schema_version==="starforge.unified.v2")throw Error("雲端已有星圖，請先按「讀取 TypingMind 的修改」後再上傳，避免覆寫新資料");
+   remoteEditRevision=current.revision||0;remoteSnapshotRevision=0;remoteTarget=target;
+  }
+  if(target!==normalizedBridge())return;
+  const body={...snapshot(),expected_revision:remoteEditRevision,expected_snapshot_revision:remoteSnapshotRevision};
+  const r=await fetch(target+"/api/snapshot",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify(body),mode:"cors"});
+  const d=await r.json();
+  if(!r.ok)throw Error(r.status===409?"版本衝突：請先讀取 TypingMind 的修改，再重新上傳":d.error||"HTTP "+r.status);
+  if(target!==normalizedBridge())return;
+  remoteSnapshotRevision=d.snapshot_revision;remoteEditRevision=d.edit_revision;
+  renderSyncStatus("已同步到 Bridge，時間："+d.updated_at+"，星圖版本："+d.snapshot_revision+"，AI revision："+d.edit_revision);
+  if(!silent)toast("成功同步，可由 TypingMind MCP 讀取");
+ }catch(e){renderSyncStatus("同步失敗："+String(e.message||e));if(!silent)toast("同步失敗；請查看同步狀態")}
+ finally{syncInFlight=false}
+}
 async function requestSSD(){const q=$("ssdSearch").value.trim().slice(0,60);if(!q){toast("請輸入小天體名稱或編號");return}const cached=small.find(s=>s.name.toLowerCase()===q.toLowerCase()||s.zh===q||s.id==="ssd:"+q);if(cached){selectedSmall=cached.id;currentSSD=cached;updateSSD()}const base=normalizedBridge(),key=$("writeKey").value.trim();if(!base||!key){toast("已顯示離線快照；即時 JPL 查詢需設定 Bridge");return}try{setText("syncStatus","正在由 Bridge 依 JPL 限速查詢……");let r=await fetch(base+"/api/ssd/body?name="+encodeURIComponent(q),{headers:{"Authorization":"Bearer "+key}});if(!r.ok)throw Error("HTTP "+r.status);let j=await r.json();if(!j.object||!j.orbit)throw Error("不是有效 SBDB 物件");const parts=Object.fromEntries((j.orbit.elements||[]).map(v=>[v.name,num(v.value)]));currentSSD={id:"ssd:"+j.object.des,name:j.object.shortname||q,zh:q,group:j.object.orbit_class?.code||"OTHER",a:parts.a,e:parts.e,i:parts.i,ma:parts.ma,period:parts.per,epoch:num(j.orbit.epoch),source:"JPL_SBDB_LIVE_VIA_BRIDGE",precision:"JPL supplied",date:new Date().toISOString().slice(0,10)};updateSSD();toast("已透過 Bridge 取得 SBDB")}catch(e){toast("SSD 即時查詢失敗："+String(e.message||e))}}
 function findSolar(q){const s=solar.find(b=>b.n===q||b.en.toLowerCase()===q.toLowerCase());if(s){selectedSolar=s.id;switchMode("solar");changed()}}
 function clickSearch(id){const e=$(id),s=findStar(e.value.trim());if(s)selectStar(s,true);else{if(e.value.includes("太陽")||e.value.includes("地球")){selectedSolar=e.value.includes("地球")?"earth":"sun";switchMode("solar")}else toast("樣本中沒有找到該恆星；可嘗試下載命名星表")}}
@@ -309,6 +361,7 @@ on("solarBodySelect","change",e=>{selectedSolar=e.target.value;updateSolar();cha
 on("ssdGo","click",requestSSD);on("ssdSearch","keydown",e=>{if(e.key==="Enter")requestSSD()});on("ssdCached","click",()=>{currentSSD=small.find(x=>x.id===selectedSmall)||small[0];updateSSD();toast("顯示本地 SBDB 快照")});
 on("bridgeURL","change",e=>{bridge=normalizedBridge();try{localStorage.setItem("sf_v2_bridge_url",bridge)}catch{}});
 on("writeKey","input",e=>{writeKey=e.target.value.trim()});on("autoSync","change",e=>{autoSync=e.target.checked;if(autoSync)changed()});on("syncNow","click",()=>sendSnapshot());on("pullAI","click",refreshFromTypingMind);on("testBridge","click",testBridge);on("copyMCP","click",()=>{let b=normalizedBridge();if(!b){toast("請先填入 Bridge 基址");return}copy(b+"/mcp")});on("exportJSON","click",()=>{download("Starforge_Unified_Atlas_v4_"+new Date().toISOString().slice(0,10)+".json",JSON.stringify(snapshot(),null,2));toast("JSON 已啟動下載")});on("copySummary","click",()=>copy(summary()));on("importJSON","click",()=>$("importFile").click());on("importFile","change",async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>12e6)throw Error("請先使用小於 12MB 的 JSON");const data=JSON.parse(await file.text());if(data.schema_version!=="starforge.unified.v2"&&data.schema_version!=="starforge.real_milky_way.v1"){if(data&&typeof data==="object"&&("nodes" in data||"starSystems" in data||"system" in data||Array.isArray(data.systems))){importedSSE=data;changed();toast("已安全保留原始 SSE JSON；不會當作真實觀測資料");e.target.value="";return}throw Error("不支援的資料 schema")}if(Array.isArray(data.stars)&&data.stars.length<=8000)stars=data.stars.map(s=>({...s,origin:s.origin||"HYG"})).filter(s=>Number.isFinite(s.x)&&Number.isFinite(s.y)&&Number.isFinite(s.z));if(Array.isArray(data.observed_planets))planets=data.observed_planets.slice(0,1000);if(Array.isArray(data.simulated_planets))simulated=data.simulated_planets.filter(s=>s.origin==="SIMULATED").slice(0,500);if(data.imported_sse&&typeof data.imported_sse==="object")importedSSE=data.imported_sse;saveFiction();setText("starTotal",stars.length);setText("exoTotal",planets.length);updateSystem();toast("星圖 JSON 匯入成功；未替你上傳到遠端");changed()}catch(err){toast("匯入失敗："+String(err.message||err))}e.target.value=""});
+on("localSSE","click",e=>{e.preventDefault();sseWindow=window.open("https://starforge-sse-full-loyuhsi.pages.dev/","StarforgeSSE")});
 on("zoomin","click",()=>zoom=Math.min(3.2,zoom*1.22));on("zoomout","click",()=>zoom=Math.max(.3,zoom/1.22));on("reset","click",()=>{yaw=.35;pitch=.45;zoom=1;day=0});on("run","click",()=>{paused=!paused;$("run").textContent=paused?"▶":"Ⅱ"});
 canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);const p=point(e);pointers.set(e.pointerId,p);firstPointer=p;moved=false;if(pointers.size===2){const a=[...pointers.values()];pinchStart=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});
 canvas.addEventListener("pointermove",e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId),p=point(e);pointers.set(e.pointerId,p);if(pointers.size>=2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinchStart>0)zoom=Math.max(.3,Math.min(3.2,zoom*d/pinchStart));pinchStart=d;moved=true}else{yaw+=(p.x-old.x)*.008;pitch=Math.max(-1.2,Math.min(1.2,pitch-(p.y-old.y)*.005));if(firstPointer&&Math.hypot(firstPointer.x-p.x,firstPointer.y-p.y)>5)moved=true}});
@@ -377,7 +430,7 @@ async function loadNASA(){const btn=$("loadNASA");btn.disabled=true;const sql="s
 function installSSEBridge(){
  const trustedSSE="https://starforge-sse-full-loyuhsi.pages.dev";
  window.addEventListener("message",event=>{
-   if(event.origin!==trustedSSE)return;
+   if(event.origin!==trustedSSE||!sseWindow||event.source!==sseWindow)return;
    const m=event.data;
    if(m?.type!=="STARFORGE_SSE_NATIVE"||m.schema_version!=="sse.starmap.v3.2")return;
    if(!m.payload||!Array.isArray(m.payload.systems))return;
@@ -390,6 +443,6 @@ function installSSEBridge(){
    }catch(e){toast("SSE 星圖接收失敗："+String(e))}
  });
 }
-function initialize(){for(const b of solar){const op=document.createElement("option");op.value=b.id;op.textContent=b.n;$("solarBodySelect").appendChild(op)}$("solarBodySelect").value="earth";try{$("bridgeURL").value=localStorage.getItem("sf_v2_bridge_url")||""}catch{}bridge=normalizedBridge();selectedStar=stars.find(x=>x.n==="Proxima Centauri")||stars[0];installSSEBridge();bindUI();renderStarChips();updateDeep();updateSolar();updateSSD();updateSystem();resize();deepSynthetic=$("deepSynthetic").checked;deepSeed=$("deepSeed").value;const qp=new URLSearchParams(location.search),requestedMode=qp.get("mode"),name=qp.get("star");if(name){const s=findStar(name);if(s)selectedStar=s}switchMode(allowedModes.includes(requestedMode)?requestedMode:"galaxy");if(location.hostname==="raw.githack.com"){const key=$("writeKey"),t=$("autoSync"),btn=$("syncNow");key.disabled=true;t.disabled=true;btn.disabled=true;renderSyncStatus("安全預覽限制：目前使用第三方 raw.githack.com 網頁，禁止輸入與傳送私人寫入金鑰。需要自動同步時，請先部署到自己控制的 HTTPS 網域。");}window.SF_API=Object.freeze({getSnapshot:snapshot,getSummary:summary,selectStarByName:name=>{const s=findStar(name);if(s){selectStar(s);return true}return false},setMode:switchMode,version:"4.0.0-beta"});requestAnimationFrame(draw);setText("health","● 資料已載入")}
+function initialize(){for(const b of solar){const op=document.createElement("option");op.value=b.id;op.textContent=b.n;$("solarBodySelect").appendChild(op)}$("solarBodySelect").value="earth";try{$("bridgeURL").value=localStorage.getItem("sf_v2_bridge_url")||""}catch{}bridge=normalizedBridge();selectedStar=stars.find(x=>x.n==="Proxima Centauri")||stars[0];installSSEBridge();bindUI();renderStarChips();updateDeep();updateSolar();updateSSD();updateSystem();resize();deepSynthetic=$("deepSynthetic").checked;deepSeed=$("deepSeed").value;const qp=new URLSearchParams(location.search),requestedMode=qp.get("mode"),name=qp.get("star");if(name){const s=findStar(name);if(s)selectedStar=s}switchMode(allowedModes.includes(requestedMode)?requestedMode:"galaxy");if(location.hostname==="raw.githack.com"){const key=$("writeKey"),t=$("autoSync"),btn=$("syncNow");key.disabled=true;t.disabled=true;btn.disabled=true;renderSyncStatus("安全預覽限制：目前使用第三方 raw.githack.com 網頁，禁止輸入與傳送私人寫入金鑰。需要自動同步時，請先部署到自己控制的 HTTPS 網域。");}window.SF_API=Object.freeze({getSnapshot:snapshot,getSummary:summary,selectStarByName:name=>{const s=findStar(name);if(s){selectStar(s);return true}return false},setMode:switchMode,version:"4.0.1"});requestAnimationFrame(draw);setText("health","● 資料已載入")}
 initialize();
 })();

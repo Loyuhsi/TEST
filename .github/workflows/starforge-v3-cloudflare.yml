@@ -1,4 +1,4 @@
-name: Deploy Starforge v3 Cloudflare Pages + Worker + SSE
+name: Starforge v4 validation and optional Cloudflare deployment
 on:
   push:
     branches: [starforge-v3-exosystems-sse-full-ssd]
@@ -6,8 +6,21 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: starforge-production-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Check READ, WRITE, ADMIN, sync, provenance and JPL serialization
+        working-directory: unified
+        run: npm run check
   credential-gate:
+    needs: validate
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.gate.outputs.ready }}
@@ -16,16 +29,13 @@ jobs:
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          SF_READ: ${{ secrets.STARFORGE_READ_TOKEN }}
-          SF_WRITE: ${{ secrets.STARFORGE_WRITE_TOKEN }}
-          JPL_CONTACT: ${{ secrets.STARFORGE_JPL_CONTACT }}
         run: |
-          if [[ -n "$CF_TOKEN" && -n "$CF_ACCOUNT" && -n "$SF_READ" && -n "$SF_WRITE" && -n "$JPL_CONTACT" ]]; then
-            if [[ "$SF_READ" == "$SF_WRITE" ]]; then echo "::error::Read and write secrets must be different"; exit 1; fi
+          if [[ -n "$CF_TOKEN" && -n "$CF_ACCOUNT" ]]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::NOT DEPLOYED. Missing Cloudflare credentials and/or Starforge private keys. Configure GitHub Actions repository secrets (see unified/DEPLOY-v3.md)."
             echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Actions deployment not run: Cloudflare credentials are absent. Cloudflare Git builds are separate; a green validation run is not deployment evidence."
+            echo "Deployment jobs skipped. Confirm the Cloudflare Git deployment checks and production health separately." >> "$GITHUB_STEP_SUMMARY"
           fi
   deploy-atlas-pages:
     needs: credential-gate
@@ -36,21 +46,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Assemble public assets only
-        run: |
-          mkdir -p site-dist/unified site-dist/solar-system site-dist/real-milky-way
-          cp unified/index.html unified/offline.html unified/style.css unified/data.js unified/exo-engine.js unified/app.js site-dist/unified/
-          cp solar-system/index.html site-dist/solar-system/index.html
-          cp real-milky-way/index.html site-dist/real-milky-way/index.html
-          cp unified/offline.html site-dist/index.html
-          test ! -e site-dist/unified/bridge
-      - name: Provision Cloudflare Pages site
+      - name: Build public assets only
+        run: node unified/scripts/build-pages.mjs
+      - name: Deploy existing mobile Pages project
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          npx --yes wrangler@4 pages project create starforge-unified-v3-loyuhsi --production-branch=main || true
-          npx --yes wrangler@4 pages deploy site-dist --project-name=starforge-unified-v3-loyuhsi --branch=main
+        run: npx --yes wrangler@4 pages deploy site-dist --project-name=starforge-unified-v3-loyuhsi --branch=starforge-v3-exosystems-sse-full-ssd
   deploy-secure-worker:
     needs: credential-gate
     if: needs.credential-gate.outputs.ready == 'true'
@@ -60,31 +62,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Test model and 13+ TypingMind MCP tools
-        working-directory: unified
-        run: npm run check
-      - name: Configure actual trusted Cloudflare origin
-        run: |
-          sed -i 's|https://replace-with-your-trusted-domain.example|https://starforge-unified-v3-loyuhsi.pages.dev|' unified/wrangler.toml
-          sed -i 's|starforge-unified-bridge-v2|starforge-unified-bridge-v3|g' unified/wrangler.toml
-      - name: Deploy Cloudflare Worker with KV + serialized SSD Durable Object
+      # Runtime secrets are managed in Cloudflare, never copied into GitHub.
+      # Wrangler preserves existing secrets and the v1/v2 migration history.
+      - name: Deploy existing bridge with its actual KV and SQLite bindings
         working-directory: unified
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@4 deploy
-      - name: Install read, write and JPL User-Agent secrets
-        working-directory: unified
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          READ: ${{ secrets.STARFORGE_READ_TOKEN }}
-          WRITE: ${{ secrets.STARFORGE_WRITE_TOKEN }}
-          JPL: ${{ secrets.STARFORGE_JPL_CONTACT }}
+      - name: Require ready production bindings and credentials
         run: |
-          printf '%s' "$READ" | npx --yes wrangler@4 secret put READ_TOKEN --name starforge-unified-bridge-v3
-          printf '%s' "$WRITE" | npx --yes wrangler@4 secret put WRITE_TOKEN --name starforge-unified-bridge-v3
-          printf '%s' "$JPL" | npx --yes wrangler@4 secret put JPL_CONTACT --name starforge-unified-bridge-v3
+          node --input-type=module -e 'const r=await fetch("https://starforge-unified-bridge-v3.loyuhsi930821.workers.dev/api/health");const h=await r.json();if(!r.ok||h.status!=="ok"||![h.kv,h.editing,h.ssd,h.read_configured,h.write_configured,h.admin_configured,h.jpl_configured].every(Boolean))throw Error("Production health is not ready");console.log(JSON.stringify(h));'
   deploy-full-sse:
     needs: credential-gate
     if: needs.credential-gate.outputs.ready == 'true'
@@ -92,30 +80,13 @@ jobs:
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
-        with:
-          repository: FrunkQ/star-system-generator
-          ref: f2459feb3a275ce0f7d5f8ad8115c1231eb6a9dd
-          path: sse-upstream
-      - uses: actions/checkout@v4
-        with:
-          repository: Loyuhsi/TEST
-          ref: starforge-v3-exosystems-sse-full-ssd
-          path: starforge-shell
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Build full SSE 3.2 GPLv3 workbench with explicit Starforge transfer button
-        working-directory: sse-upstream
-        run: |
-          npm ci
-          npm install --save-dev --legacy-peer-deps --no-audit @sveltejs/adapter-cloudflare@^7 wrangler@^4
-          cp LICENSE COPYING-GPL-3.0
-          sed -i 's|@sveltejs/adapter-auto|@sveltejs/adapter-cloudflare|' svelte.config.js
-          node ../starforge-shell/unified/sse-interop-patch.mjs
-          CF_PAGES=1 npm run build
-      - name: Deploy complete SSE 3.2 application as separate Cloudflare Pages site
+      - name: Build pinned original SSE with opt-in handoff and GPL source notice
+        working-directory: unified
+        run: bash scripts/build-sse-cloudflare.sh
+      - name: Deploy existing SSE Pages project
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          npx --yes wrangler@4 pages project create starforge-sse-full-loyuhsi --production-branch=main || true
-          npx --yes wrangler@4 pages deploy sse-upstream/.svelte-kit/cloudflare --project-name=starforge-sse-full-loyuhsi --branch=main
+        run: npx --yes wrangler@4 pages deploy unified/sse-upstream/.svelte-kit/cloudflare --project-name=starforge-sse-full-loyuhsi --branch=starforge-v3-exosystems-sse-full-ssd

@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {dirname,join} from "node:path";
 import vm from "node:vm";
-import worker from "../bridge/worker.js";
+import worker,{EditGate} from "../bridge/worker.js";
 const root=dirname(dirname(fileURLToPath(import.meta.url)));
 const source=readFileSync(join(root,"data.js"),"utf8");
 const sandbox={window:{}};vm.runInNewContext(source,sandbox);
@@ -41,6 +41,9 @@ const env={
  READ_TOKEN:"read-"+("r".repeat(45)),WRITE_TOKEN:"write-"+("w".repeat(45)),ALLOWED_ORIGINS:"https://atlas.example.com",
  STARFORGE_KV:{async get(k){return storage.get(k)||null},async put(k,v){storage.set(k,v)}}
 };
+const editStorage=new Map();
+const edit=new EditGate({storage:{async get(k){return structuredClone(editStorage.get(k))},async put(k,v){editStorage.set(k,structuredClone(v))},async transaction(fn){return fn(this)}}},env);
+env.EDIT_GATE={idFromName:x=>x,get:()=>({fetch:(url,opts)=>edit.fetch(new Request(url,opts))})};
 const uri="https://worker.example.com";
 const request=(path,method="GET",token=null,payload=null)=>{
  const headers={"content-type":"application/json"};if(token)headers.authorization="Bearer "+token;

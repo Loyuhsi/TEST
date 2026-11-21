@@ -4,7 +4,7 @@
  * License: MIT for Starforge-authored integration code; upstream SSE remains GPLv3.
  */
 export const KINDS=Object.freeze(["planet","moon","asteroid_belt","trojan_cloud","kuiper_analogue","comet_cloud","deep_sky","civilization","station","ring","debris_disk","star","star_system"]);
-const ALLOWED_FIELDS=new Set(["name","description","host_star_id","parent_id","orbit_au","eccentricity","inclination_deg","mass_earth","radius_earth","temperature_k","density","seed","notes","color","moon_count","age_gyr","metallicity","disk_mass","dynamical_history","semi_major_axis_au","ra_deg","dec_deg","distance_ly","x_pc","y_pc","z_pc","spectral_class","luminosity_solar"]);
+const ALLOWED_FIELDS=new Set(["name","description","parent_id","orbit_au","eccentricity","inclination_deg","mass_earth","mass_solar","radius_earth","temperature_k","density","seed","notes","color","moon_count","age_gyr","metallicity","disk_mass","dynamical_history","semi_major_axis_au","ra_deg","dec_deg","distance_ly","x_pc","y_pc","z_pc","spectral_class","luminosity_solar"]);
 const NUMERIC={orbit_au:[.00001,1000000],semi_major_axis_au:[.00001,1000000],eccentricity:[0,.98],inclination_deg:[0,180],mass_earth:[0,1000000],radius_earth:[0,100000],temperature_k:[0,100000],density:[0,1],moon_count:[0,200],age_gyr:[0,14],metallicity:[-3,1],disk_mass:[0,1],dynamical_history:[0,1],ra_deg:[0,360],dec_deg:[-90,90],distance_ly:[.00001,1000000000],x_pc:[-100000000,100000000],y_pc:[-100000000,100000000],z_pc:[-100000000,100000000],luminosity_solar:[0,100000000]};
 const LIMIT_OBJECTS=500,MAX_JSON=1800000,MAX_HISTORY=20;
 const fail=(status,message,extra={})=>Object.assign(new Error(message),{status,...extra});
@@ -16,8 +16,9 @@ function cleanAttributes(raw){
  for(const [k,v] of Object.entries(obj)){
   if(!ALLOWED_FIELDS.has(k))throw fail(422,"Field not editable: "+k);
   if(v===null){out[k]=null;continue}
-  if(NUMERIC[k]){
-   if(typeof v!=="number"||!Number.isFinite(v)||v<NUMERIC[k][0]||v>NUMERIC[k][1])throw fail(422,"Invalid "+k);
+  if(NUMERIC[k]||k==="mass_solar"){
+   const range=NUMERIC[k]||[.001,300];
+   if(typeof v!=="number"||!Number.isFinite(v)||v<range[0]||v>range[1])throw fail(422,"Invalid "+k);
    if(k==="moon_count"&&!Number.isInteger(v))throw fail(422,"moon_count must be an integer");
    out[k]=v;
   }else out[k]=text(v,k,k==="description"||k==="notes"?1000:160);
@@ -74,7 +75,7 @@ function updateState(input,payload){
   const removed=s.user_objects.splice(pos,1)[0];result={deleted:id,previous:removed};
  }else if(action==="generate"){
   const m=safeRecord(p.data);
-  if(m.origin!=="CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT"||m.schema_version!=="starforge.exosystem.v3"||!Array.isArray(m.realConfirmedPlanets)||!Array.isArray(m.simulatedPlanets)||!Array.isArray(m.regions))throw fail(422,"Invalid generator provenance");
+  if(!["CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT","SIMULATED_STAR_WITH_SIMULATED_ENVIRONMENT"].includes(m.origin)||m.schema_version!=="starforge.exosystem.v3"||!Array.isArray(m.realConfirmedPlanets)||!Array.isArray(m.simulatedPlanets)||!Array.isArray(m.regions))throw fail(422,"Invalid generator provenance");
   if(JSON.stringify(m).length>220000)throw fail(422,"System model too large");
   if(m.simulatedPlanets.some(x=>x.source!=="SIMULATED")||m.regions.some(x=>x.source!=="SIMULATED"))throw fail(422,"Generator attempted to modify observations");
   const at=s.generated_systems.findIndex(x=>x.starId===m.starId);
@@ -105,10 +106,63 @@ function updateState(input,payload){
 }
 function response(body,status=200){return new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}})}
 export class EditGate {
- constructor(ctx,env){this.ctx=ctx;this.env=env}
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.syncQueue=Promise.resolve()}
+ async sync(data){
+  // Adopt an existing KV baseline without resetting its data. All later reads
+  // use the DO authority; KV is a mirror and may be eventually consistent.
+  const legacy=await this.env.STARFORGE_KV?.get("snapshot:latest");
+  const result=await this.ctx.storage.transaction(async tx=>{
+   const current=await tx.get("current")||initialOverlay();
+   const old=await tx.get("baseline")||(legacy?JSON.parse(legacy):null);
+   const expected=data.expected_revision??data.edit_revision??(old?undefined:0);
+   if(!Number.isInteger(expected)||expected!==current.revision)throw fail(409,"Revision conflict; read TypingMind changes before uploading",{current_revision:current.revision});
+   if(old&&data.expected_snapshot_revision!==(old.snapshot_revision||0))throw fail(409,"Snapshot revision conflict; read the current snapshot before uploading");
+   const next=structuredClone(data);
+   // Observation records can be added, never changed or dropped by an upload.
+   const catalogs={stars:["id",8000],observed_planets:["n",3000],solar_bodies:["id",30],solar_small_bodies:["id",500],deep_sky:["id",1500]};
+   const stable=x=>JSON.stringify(x,(_,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v);
+   for(const [key,[id,max]] of Object.entries(catalogs)){
+    const entries=new Map((old?.[key]||[]).map(x=>[String(x[id]),x]));
+    const seen=new Set();
+    for(const row of next[key]||[]){
+     const k=String(row[id]??"");if(!k||seen.has(k))throw fail(422,"Invalid catalogue identity: "+key);seen.add(k);
+     if(entries.has(k)&&stable(entries.get(k))!==stable(row))throw fail(409,"Observed catalogue is immutable: "+key+" "+k);
+     entries.set(k,row);
+    }
+    if(entries.size>max)throw fail(422,"Catalogue limit: "+key);
+    next[key]=[...entries.values()];
+   }
+   for(const [key,id] of [["generated_systems","starId"],["simulated_deep_positions","id"]]){
+    const authoritative=new Set((current[key]||[]).map(x=>String(x[id])));
+    next[key]=[...(old?.[key]||[]).filter(x=>authoritative.has(String(x[id]))),...(next[key]||[]).filter(x=>!authoritative.has(String(x[id])))];
+   }
+   next.user_objects=[];delete next.edit_revision;delete next.expected_revision;delete next.expected_snapshot_revision;
+   next.snapshot_revision=(old?.snapshot_revision||0)+1;
+   next.updated_at=new Date().toISOString();
+   if(JSON.stringify(next).length>3000000)throw fail(413,"Snapshot exceeds 3 MB");
+   await tx.put("baseline",next);
+   return {snapshot:next,edit_revision:current.revision};
+  });
+  const raw=JSON.stringify(result.snapshot);
+  // The committed DO state stays authoritative even if a mirror write fails.
+  let mirrored=true;
+  try{await this.env.STARFORGE_KV.put("snapshot:latest",raw);await this.env.STARFORGE_KV.put("snapshot:meta",JSON.stringify({updated_at:result.snapshot.updated_at,bytes:raw.length,snapshot_revision:result.snapshot.snapshot_revision}))}catch{mirrored=false}
+  return response({ok:true,updated_at:result.snapshot.updated_at,version:result.snapshot.version,snapshot_revision:result.snapshot.snapshot_revision,edit_revision:result.edit_revision,kv_mirrored:mirrored});
+ }
  async fetch(request){
   const url=new URL(request.url),path=url.pathname;
   try {
+   if(path==="/baseline"&&request.method==="GET")return response(await this.ctx.storage.get("baseline")||null);
+   if(path==="/snapshot"&&request.method==="GET"){
+    const legacy=await this.env.STARFORGE_KV?.get("snapshot:latest");
+    const snapshot=await this.ctx.storage.transaction(async tx=>mergeOverlay(await tx.get("baseline")||(legacy?JSON.parse(legacy):null),await tx.get("current")||initialOverlay()));
+    return response(snapshot);
+   }
+   if(path==="/sync"&&request.method==="POST"){
+    const data=await request.json();
+    const task=this.syncQueue.then(()=>this.sync(data));this.syncQueue=task.catch(()=>{});
+    return await task;
+   }
    if(path==="/state"&&request.method==="GET"){
     const state=await this.ctx.storage.get("current")||initialOverlay();
     return response(state);
@@ -147,8 +201,8 @@ export function mergeOverlay(snapshot,overlay){
  const o=overlay||initialOverlay();
  base.user_objects=structuredClone(o.user_objects||[]);
  const gen=new Map((base.generated_systems||[]).map(x=>[String(x.starId),x]));
- for(const x of o.generated_systems||[])gen.set(String(x.starId),structuredClone(x));
- base.generated_systems=[...gen.values()];
+ for(const x of o.generated_systems||[]){gen.delete(String(x.starId));gen.set(String(x.starId),structuredClone(x))}
+ base.generated_systems=[...gen.values()].slice(-20);
  const deep=new Map((base.simulated_deep_positions||[]).map(x=>[String(x.id),x]));
  for(const x of o.simulated_deep_positions||[])deep.set(String(x.id),structuredClone(x));
  base.simulated_deep_positions=[...deep.values()];

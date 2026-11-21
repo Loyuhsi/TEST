@@ -3,6 +3,7 @@
 # Project root directory: unified; deployment command: npx wrangler deploy
 # Requires encrypted READ_TOKEN, WRITE_TOKEN and JPL_CONTACT secrets before private APIs work.
 name = "starforge-unified-bridge-v3"
+account_id = "93c4c78a87dcaed04ea9ce1310a437bc"
 main = "bridge/worker.js"
 compatibility_date = "2026-11-21"
 workers_dev = true
@@ -12,6 +13,7 @@ workers_dev = true
 # and add: id = "<your-kv-namespace-id>"
 [[kv_namespaces]]
 binding = "STARFORGE_KV"
+id = "1654b20372624a09908536a7eef86c27"
 
 [[durable_objects.bindings]]
 name = "SSD_GATE"

@@ -25,14 +25,14 @@
     const fromL=lu>0?Math.pow(lu,1/(giant?5.3:3.5)):null;
     const nominal=fromL&&Number.isFinite(fromL)?clamp(fromL,base[0],base[1]):(base[0]+base[1])*.5;
     const mass=clamp(nominal*lin(r,.94,1.06),.018,55);
-    const massSource=finite(star.massSolar)>0?"OBSERVED":fromL?"DERIVED_FROM_LUMINOSITY":"SPECTRAL_PRIOR";
+    const massSource=finite(star.massSolar)>0?(star.origin==="SIMULATED"?"SIMULATED_INPUT":"OBSERVED"):fromL?"DERIVED_FROM_LUMINOSITY":"SPECTRAL_PRIOR";
     const M=finite(star.massSolar)>0?finite(star.massSolar):mass;
     const L=lu>0?lu:clamp(Math.pow(M,3.5),.00005,200000);
-    const luminositySource=lu>0?"CATALOG_VALUE":"INFERRED_MASS_LUMINOSITY";
+    const luminositySource=lu>0?(star.origin==="SIMULATED"?"SIMULATED_INPUT":"CATALOG_VALUE"):"INFERRED_MASS_LUMINOSITY";
     const life=clamp(10*Math.pow(M,-2.5),.04,100);
     return {massSolar:+M.toFixed(4),luminositySolar:+L.toPrecision(5),spectralType:spectral||"UNKNOWN",
       metallicityMeasured:finite(star.feh),massSource,luminositySource,agePriorGyr:[.1,Math.min(13.6,life)],
-      provenance:"STAR_OBSERVED_WITH_INFERRED_PHYSICS",uncertainty:massSource==="OBSERVED"?"other parameters may remain estimated":"stellar mass not measured; broad prior"};
+      provenance:star.origin==="SIMULATED"?"SIMULATED_STAR":"STAR_OBSERVED_WITH_INFERRED_PHYSICS",uncertainty:massSource==="OBSERVED"?"other parameters may remain estimated":"stellar mass not measured; broad prior"};
   }
   function planetMassEarth(p){
     const m=finite(p.m??p.massEarth);
@@ -177,7 +177,7 @@
     }
     const resonance=giants.map(g=>({host:g.name,possibleGaps:["1:2","2:3","3:5"],note:"potential resonance zones, not numerically integrated"}));
     return {schema_version:"starforge.exosystem.v3",generator:"StarforgeExoEnvironment",generatorVersion:"3.0.0",seed,starId:id,starName:String(star.n||star.name||id),
-      origin:"CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT",physicalStar:phys,
+      origin:star.origin==="SIMULATED"?"SIMULATED_STAR_WITH_SIMULATED_ENVIRONMENT":"CATALOG_STAR_WITH_SIMULATED_ENVIRONMENT",physicalStar:phys,
       priors:{metallicity,diskMass,dynamicalHistory:dynamic,ageGyr:age,habitableZoneAU:habitableZone.map(v=>+v.toFixed(4)),
         snowLineAU:+snowLine.toFixed(4),diskOuterAU:+diskOuter.toFixed(3),dataQuality:"star/planet measurements mixed with parameter priors"},
       realConfirmedPlanets:reported,simulatedPlanets:output,regions:belts,outerCometCloud:cloud,

@@ -1,7 +1,7 @@
 # 星海工坊 v4 · TypingMind 雙向 MCP 與 iPhone 同步
 
 ## 版本狀態
-這是 v4 雙向 MCP 開發分支。GitHub Actions 測試成功並不代表 Cloudflare Worker 已上線；正式服務須健康檢查 editing:true，且 EDIT_GATE、STARFORGE_KV、SSD_GATE 綁定就緒後才可使用。SSE 原版 3.2 物理工作台與 JPL 查詢功能仍保留。
+正式分支為 `starforge-v3-exosystems-sse-full-ssd`，版本 v4.0.1。GitHub Actions 測試成功並不代表 Cloudflare Worker 已上線；正式服務須健康檢查 editing:true，且 EDIT_GATE、STARFORGE_KV、SSD_GATE 與必要 Secret 就緒後才可使用。SSE 原版 3.2 物理工作台與 JPL 查詢功能仍保留。
 
 ## READ / WRITE / ADMIN 權限
 
@@ -66,6 +66,10 @@ C. ADMIN（可選，勿在一般聊天啟用）
 ## 防覆寫與還原
 每次寫入需提供 expected_revision。兩個裝置同時編輯時，較舊版本會被拒絕並回報最新 revision，而不會默默覆蓋資料。EDIT_GATE 保存近期歷史，管理員可在確認後還原有限的近期編輯狀態。還原只影響虛構資料層，不回滾 NASA、HYG、JPL 觀測紀錄。
 
+手機上傳另帶 `expected_snapshot_revision`，由伺服器同時檢查星圖版本及 AI revision。若雲端已有星圖，新裝置須先「讀取 TypingMind 的修改」再上傳。HTTP 409 表示版本衝突，應重新讀取後再操作；不會自行重試覆蓋。既有觀測紀錄不能透過上傳改寫或移除。
+
+建立新恆星時可使用 `kind:star` 或 `star_system`，並在 attributes 指定 `mass_solar`、`luminosity_solar`、`spectral_class`。指定 `ra_deg`、`dec_deg`、`distance_ly` 或 XYZ（pc）即可在銀河圖定位；這些座標仍標記為虛構。建立行星時將新 `user:` ID 作為 `host_star_id`。衛星、環與基地可用 `parent_id` 指向同一恆星系中的虛構行星。
+
 ## 常見錯誤
 - 401：金鑰錯誤
 - 404：Worker 未成功部署或 URL 不正確
@@ -74,5 +78,5 @@ C. ADMIN（可選，勿在一般聊天啟用）
 - Revision conflict：重新執行 get_edit_state 後再提交
 - JPL 即時查詢仍需 SSD_GATE、JPL_CONTACT 和官方服務可用，MCP 工具清單出現不代表 JPL 已連線
 
-原始碼：https://github.com/Loyuhsi/TEST/tree/starforge-v4-typingmind-bidirectional/unified
+原始碼：https://github.com/Loyuhsi/TEST/tree/starforge-v3-exosystems-sse-full-ssd/unified
 本功能不取代 SSE 原版 GPLv3 物理核心，SSE 程式仍須遵守其原有授權。

@@ -26,6 +26,7 @@ const env={
  EDIT_GATE:{idFromName:n=>n,get:id=>stub},
  SSD_GATE:{idFromName:n=>n,get:id=>{throw Error("JPL not tested")}}
 };
+edit.env=env;
 const uri="https://starforge-worker.test";
 function request(path,method="GET",token,body){
  const headers={"Content-Type":"application/json"};if(token)headers.Authorization="Bearer "+token;
@@ -149,4 +150,42 @@ const history=await call(env.READ_TOKEN,"get_change_history",{limit:20});
 assert(history.answer.history.length>=6);
 const health=await (await raw("/api/health")).json();
 assert.equal(health.editing,true);
+// Baseline uploads share the DO authority and cannot overwrite newer edits,
+// another device's upload, observational records, or an overlay via copies.
+const currentSnapshot=await(await raw("/api/snapshot","GET",env.READ_TOKEN)).json();
+const uploadBody={...currentSnapshot,expected_revision:6,expected_snapshot_revision:1};
+assert.equal((await raw("/api/snapshot","POST",env.WRITE_TOKEN,{...snapshot,expected_revision:0,expected_snapshot_revision:1})).status,409);
+const tampered=structuredClone(uploadBody);tampered.stars[0].n="forged observation";
+assert.equal((await raw("/api/snapshot","POST",env.WRITE_TOKEN,tampered)).status,409);
+assert.equal((await raw("/api/snapshot","POST",env.READ_TOKEN,uploadBody)).status,401);
+const uploaded=await(await raw("/api/snapshot","POST",env.WRITE_TOKEN,uploadBody)).json();
+assert.equal(uploaded.snapshot_revision,2);assert.equal(uploaded.edit_revision,6);assert.equal(uploaded.kv_mirrored,true);
+const nextUpload={...uploadBody,expected_snapshot_revision:2};
+const competing=await Promise.all([raw("/api/snapshot","POST",env.WRITE_TOKEN,nextUpload),raw("/api/snapshot","POST",env.WRITE_TOKEN,nextUpload)]);
+assert.deepEqual(competing.map(r=>r.status).sort(),[200,409]);
+assert.equal(JSON.stringify((await(await raw("/api/snapshot","GET",env.READ_TOKEN)).json()).stars),JSON.stringify(snapshot.stars));
+// Reading immediately must not depend on KV's eventual consistency.
+kvMap.set("snapshot:latest",JSON.stringify(snapshot));
+assert.equal((await(await raw("/api/snapshot","GET",env.READ_TOKEN)).json()).snapshot_revision,3);
+const newStar=await call(env.WRITE_TOKEN,"create_simulated_object",{expected_revision:6,kind:"star",name:"Fictional Ember",attributes:{mass_solar:.65,luminosity_solar:.2,spectral_class:"K5V",ra_deg:42,dec_deg:12,distance_ly:25}});
+assert.equal(newStar.error,false);const starId=newStar.answer.object.id;
+const child=await call(env.WRITE_TOKEN,"create_simulated_object",{expected_revision:7,kind:"planet",name:"Ember b",host_star_id:starId,attributes:{orbit_au:.4}});
+assert.equal(child.error,false);
+const childRing=await call(env.WRITE_TOKEN,"create_simulated_object",{expected_revision:8,kind:"ring",name:"Ember rings",host_star_id:starId,attributes:{parent_id:child.answer.object.id,orbit_au:.0001}});
+assert.equal(childRing.error,false);
+const customEnvironment=await call(env.WRITE_TOKEN,"generate_system_environment",{expected_revision:9,star_name:starId,seed:"fictional-star-test"});
+assert.equal(customEnvironment.error,false);
+const customSnapshot=await(await raw("/api/snapshot","GET",env.READ_TOKEN)).json();
+const generatedCustom=customSnapshot.generated_systems.find(x=>x.starId===starId);
+assert.equal(generatedCustom.origin,"SIMULATED_STAR_WITH_SIMULATED_ENVIRONMENT");
+assert.equal(generatedCustom.physicalStar.massSource,"SIMULATED_INPUT");
+assert.equal(generatedCustom.realConfirmedPlanets.length,0);
+const foundStar=await call(env.READ_TOKEN,"search_stars",{query:"Fictional Ember"});assert.equal(foundStar.answer.results[0].origin,"SIMULATED");
+assert.equal((await call(env.READ_TOKEN,"get_star_system",{name:"Fictional Ember"})).answer.user_objects.length,2);
+const deleteParent=await call(env.ADMIN_TOKEN,"delete_simulated_object",{expected_revision:10,id:starId});assert(deleteParent.error&&/dependent/.test(deleteParent.answer.error));
+assert.equal((await raw("/api/ssd/horizons","POST",env.ADMIN_TOKEN)).status,405);
+assert.equal((await raw("/mcp","POST",env.READ_TOKEN,null)).status,400);
+const savedWrite=env.WRITE_TOKEN;env.WRITE_TOKEN=env.READ_TOKEN;
+assert.equal((await raw("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:42,method:"tools/list"})).status,401);env.WRITE_TOKEN=savedWrite;
 console.log("PASS v4 bidirectional MCP: 16 READ / 20 WRITE / 23 ADMIN tools; 6 edits + restore, strict observational immutability, optimistic revision, HMAC deletion approval, merged UI snapshot.");
+console.log("PASS v4 sync: stale and competing uploads rejected; DO reads resist stale KV; catalogues immutable; fictional stars host planets/rings and retain simulated provenance.");

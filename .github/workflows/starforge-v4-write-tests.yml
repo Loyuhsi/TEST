@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - starforge-v4-typingmind-bidirectional
+      - starforge-v3-exosystems-sse-full-ssd
     paths:
       - "unified/**"
       - ".github/workflows/starforge-v4-write-tests.yml"
