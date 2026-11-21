@@ -117,6 +117,20 @@ function drawDeep(){
  hit.push({kind:"deep",ref:o,x:coord.x,y:coord.y,r:19});
  if(o.id===selectedDeep||o.id==="M42"||o.id==="SgrA*")textAt(o.n+(fake?" ✧":""),coord.x+10,coord.y-8);
  }
+ for(const item of userObjects.filter(x=>x.kind==="deep_sky")){
+  const a=item.attributes||{};
+  if(!Number.isFinite(a.ra_deg)||!Number.isFinite(a.dec_deg))continue;
+  const dist=Number.isFinite(a.distance_ly)?a.distance_ly/3.26156:null;
+  if(deepProjection==="distance"&&!(dist>0))continue;
+  const ra=rad(a.ra_deg),dec=rad(a.dec_deg);
+  const p=deepProjection==="sky"?{x:10+a.ra_deg/360*(W-20),y:10+(90-a.dec_deg)/180*(H-20)}:(()=>{
+    const r=Math.log10(1+20000),radius=Math.log10(1+dist);
+    return project({x:Math.cos(dec)*Math.cos(ra)*radius,y:Math.cos(dec)*Math.sin(ra)*radius,z:Math.sin(dec)*radius},r);
+  })();
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
+  circ(p.x,p.y,4,"#d6a5ff",9);ctx.beginPath();ctx.strokeStyle="#e0b7ff";ctx.arc(p.x,p.y,9,0,2*PI);ctx.stroke();
+  textAt(item.name+" ✧",p.x+10,p.y-7,"#d6bbff");hit.push({kind:"fictional_deep",ref:item,x:p.x,y:p.y,r:19});count++;
+ }
  setText("draw-count",count+" 個天體節點"+(total.length>objects.length?"（取樣顯示）":"")+
   (deepProjection==="distance"?(deepSynthetic?" · 紫環為虛構 3D 位置":" · 未知距離已隱藏"):""));
 }
@@ -259,6 +273,8 @@ async function refreshFromTypingMind(){
   for(const g of data.generated_systems||[])if(g.schema_version==="starforge.exosystem.v3")generatedSystems.set(String(g.starId),g);
   remoteSyntheticDeep=new Map((data.simulated_deep_positions||[]).filter(x=>x.source==="SIMULATED_DISTANCE").map(x=>[String(x.id),x]));
   updateSystem();updateDeep();updateAIDeepObjects();
+  const full=$("aiAllObjects");
+  if(full)full.innerHTML=userObjects.length?userObjects.slice(0,80).map(o=>'<div class="detailbox"><span class="tag sim">'+esc(o.kind)+'</span><b>'+esc(o.name)+'</b><small>'+esc(o.id)+'</small><p>'+esc(o.attributes?.description||o.attributes?.notes||"虛構物件")+'</p></div>').join(""):'<p class="hint">還沒有遠端 AI 物件。可從 TypingMind WRITE MCP 建立。</p>';
   $("remoteEdits").innerHTML='<b>已更新遠端 AI 修改（revision '+remoteEditRevision+'）</b><p>虛構天體：'+userObjects.length+'；系外環境：'+(data.generated_systems||[]).length+'；虛構深空座標：'+remoteSyntheticDeep.size+'。</p><small>NASA/HYG/JPL 觀測資料沒有被 AI 覆寫。管理刪除和版本還原需要 ADMIN_TOKEN。</small>';
   renderSyncStatus("已從 Cloudflare Worker 取得 revision "+remoteEditRevision+"，時間："+new Date().toLocaleString("zh-TW"));
   toast("已載入 TypingMind 的 AI 修改");
@@ -301,7 +317,7 @@ canvas.addEventListener("pointercancel",e=>pointers.delete(e.pointerId));canvas.
 on("loadNamed","click",loadNamed);on("loadNASA","click",loadNASA);
 }
 function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function handleHit(h){if(h.kind==="sun"){selectedSolar="earth";solarScale="inner";switchMode("solar")}else if(h.kind==="star"||h.kind==="selectedStar")selectStar(h.ref||selectedStar,true);else if(h.kind==="deep"){selectedDeep=h.ref.id;switchMode("deep")}else if(h.kind==="planet"){selectedPlanet=h.ref.id;toast(h.ref.name+": "+(h.ref.sim?"虛構行星":"NASA 已確認"))}else if(h.kind==="solar"){selectedSolar=h.ref.id;updateSolar();changed()}else if(h.kind==="small"){selectedSmall=h.ref.id;showSmallBody(h.ref);changed()}}
+function handleHit(h){if(h.kind==="sun"){selectedSolar="earth";solarScale="inner";switchMode("solar")}else if(h.kind==="star"||h.kind==="selectedStar")selectStar(h.ref||selectedStar,true);else if(h.kind==="deep"){selectedDeep=h.ref.id;switchMode("deep")}else if(h.kind==="fictional_deep"){switchMode("deep");toast(h.ref.name+"：使用者建立的虛構深空天體")}else if(h.kind==="planet"){selectedPlanet=h.ref.id;toast(h.ref.name+": "+(h.ref.sim?"虛構行星":"NASA 已確認"))}else if(h.kind==="solar"){selectedSolar=h.ref.id;updateSolar();changed()}else if(h.kind==="small"){selectedSmall=h.ref.id;showSmallBody(h.ref);changed()}}
 function parseNGCLine(row,sep){
  const a=[];let out="",q=false;
  for(let i=0;i<row.length;i++){const c=row[i];
