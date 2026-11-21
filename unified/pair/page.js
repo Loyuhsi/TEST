@@ -1,4 +1,4 @@
-import {newRecipient, openReply} from "./crypto.js";
+import {inboxBase, inboxId, newRecipient, openReply} from "./crypto.js";
 
 const element = id => document.getElementById(id);
 const now = () => Math.floor(Date.now() / 1000);
@@ -7,9 +7,8 @@ let db;
 let recipient;
 let writeKey = "";
 let replyExpires = 0;
-// Fragments stay in the browser. Scrub the link before rendering or following another link.
+// Keep the encrypted fragment until the matching browser has saved it.
 const incoming = location.hash.slice(1);
-if (incoming) history.replaceState(null, "", location.pathname);
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -53,40 +52,67 @@ function showCode() {
   element("request").hidden = false;
 }
 
+async function acceptReply(device, envelope) {
+  const secret = await openReply(device, envelope);
+  const saved = await deviceSlot(current => {
+    if (current?.code !== device.code || current.envelope === envelope) return current;
+    return {...current, envelope};
+  });
+  if (saved?.code !== device.code || recipient?.code !== device.code) throw Error("本機配對已更換。請重新開啟配對首頁。");
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  writeKey = secret;
+  replyExpires = Number(envelope.split(".")[1]);
+  element("request").hidden = true;
+  element("received").hidden = false;
+  setStatus("金鑰已在這支手機解開。請先存入「密碼」。");
+}
+
+async function checkInbox() {
+  const device = recipient;
+  const button = element("check-inbox");
+  if (!device || button.disabled) return;
+  button.disabled = true;
+  setStatus("正在查詢這個配對碼的加密回覆…");
+  try {
+    const id = await inboxId(device.code);
+    const response = await fetch(inboxBase + id, {credentials:"omit", cache:"no-store", referrerPolicy:"no-referrer", redirect:"error"});
+    if (recipient?.code !== device.code) return;
+    if (response.status === 404) {
+      setStatus("配對碼末八碼 " + device.code.slice(-8) + " 暫無可領取的回覆。可稍候再按「領取寫入金鑰」。");
+      return;
+    }
+    if (!response.ok) throw Error("暫時無法連線至領取服務，請稍後再試。");
+    const {envelope} = await response.json();
+    await acceptReply(device, envelope);
+  } catch (error) {
+    if (recipient?.code === device.code) setStatus(error.name === "Error" ? error.message : "領取服務連線中斷。請再按一次「領取寫入金鑰」。");
+  } finally { button.disabled = false; }
+}
+
 async function start() {
   if (!db) db = await openDatabase();
   recipient = await deviceSlot();
-  if (!recipient || recipient.expires <= now()) {
+  const existing = recipient && recipient.expires > now();
+  if (!existing) {
     if (incoming) throw Error("這個 Safari 找不到有效的配對。請在建立配對時使用的 Safari 開啟領取連結，或返回配對首頁重新開始。");
     const candidate = await newRecipient();
     recipient = await deviceSlot(current => current?.expires > now() ? current : candidate);
   }
   element("forget").hidden = false;
   const envelope = incoming || recipient.envelope;
-  if (!envelope) {
-    showCode();
-    setStatus("這支手機的配對碼已備妥，有效 24 小時。");
-    return;
+  if (envelope) {
+    try { await acceptReply(recipient, envelope); return; }
+    catch (error) {
+      clearSecret();
+      if (incoming) { showCode(); setStatus(error.message); return; }
+    }
   }
-  try {
-    const secret = await openReply(recipient, envelope);
-    const saved = await deviceSlot(current => {
-      if (current?.code !== recipient.code || current.envelope === envelope) return current;
-      return {...current, envelope};
-    });
-    if (saved?.code !== recipient.code) throw Error("本機配對已更換。請重新開啟配對首頁。");
-    writeKey = secret;
-    replyExpires = Number(envelope.split(".")[1]);
-    element("request").hidden = true;
-    element("received").hidden = false;
-    setStatus("金鑰已在這支手機解開。請先存入「密碼」。");
-  } catch (error) {
-    clearSecret();
-    showCode();
-    setStatus(error.message);
-  }
+  showCode();
+  if (existing) await checkInbox();
+  else setStatus("這支手機的配對碼已備妥，有效 24 小時。");
 }
 
+element("check-inbox").onclick = checkInbox;
 element("copy-code").onclick = async () => {
   try {
     await navigator.clipboard.writeText(recipient.code);

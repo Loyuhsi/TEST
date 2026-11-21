@@ -32,10 +32,10 @@ Worker wrangler.toml 必須包含 STARFORGE_KV（星圖快照）、SSD_GATE（JP
 ### 用 iPhone 領取既有寫入金鑰
 
 1. 用一般 Safari 分頁開啟[手機配對頁](https://starforge-unified-v3-loyuhsi.pages.dev/unified/pair/)，點「複製公開配對碼」，貼回原本已授權的私人對話。配對碼以 `SFPAIR1.` 開頭，有效 24 小時。
-2. 維護者確認傳送對象後，在可信電腦安全載入既有 `WRITE_TOKEN`，以 `node unified/scripts/seal-iphone-write.mjs <公開配對碼>` 產生加密領取連結，從同一私人對話交付。指令只輸出收件裝置可解開的連結。
-3. 用同一個 Safari 瀏覽器設定檔於 30 分鐘內開啟連結，點「複製 WRITE 金鑰」，存進 Apple「密碼」。在 TypingMind 的連線及手機星圖使用這筆項目。儲存完成後可點「結束並清除本機配對資料」。
+2. 維護者確認傳送對象後，在可信電腦安全載入既有 `WRITE_TOKEN`，以 `node unified/scripts/seal-iphone-write.mjs <公開配對碼> --publish` 加密交付。指令使用專案的 Wrangler 與維護者的 Cloudflare 權限，將密文存放在既有 KV，設定與領取期限相同的到期時間。省略選項時仍可產生加密領取連結。
+3. 維護者確認送出後，於 30 分鐘內重新整理原來的 Safari 配對分頁，或點「領取寫入金鑰」。看到「複製 WRITE 金鑰」後，點選並存進 Apple「密碼」。在 TypingMind 的連線及手機星圖使用這筆項目。儲存完成後可點「結束並清除本機配對資料」。
 
-裝置使用 Web Crypto 產生不可匯出的 RSA-OAEP 私鑰，保存於該網站的 IndexedDB。配對頁只在本機解密；領取資料位於網址片段，HTTP 請求不會帶上該片段。清除配對資料會移除本機私鑰及加密回覆。既有的 Worker 金鑰仍依原本的輪替方式管理。
+裝置使用 Web Crypto 產生不可匯出的 RSA-OAEP 私鑰，保存於該網站的 IndexedDB。配對頁用公開配對碼的 SHA-256 摘要取得密文，在本機解密。領取端點僅供讀取。清除配對資料會移除本機私鑰及加密回覆。既有的 Worker 金鑰仍依原本的輪替方式管理。
 
 ### 在 TypingMind 新增連線
 

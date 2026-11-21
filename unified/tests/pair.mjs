@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {randomBytes} from "node:crypto";
-import {newRecipient, openReply, requestLifetime, sealWriteKey} from "../pair/crypto.js";
+import {inboxBase, inboxId, newRecipient, openReply, requestLifetime, sealWriteKey} from "../pair/crypto.js";
+import worker from "../bridge/worker.js";
 
 const now = Math.floor(Date.now() / 1000);
 const [phone, other] = await Promise.all([newRecipient(now), newRecipient(now)]);
@@ -17,3 +18,24 @@ await assert.rejects(sealWriteKey(phone.code, testKey, now + requestLifetime));
 await assert.rejects(sealWriteKey("not a pairing request", testKey, now));
 await assert.rejects(sealWriteKey(phone.code, "", now));
 console.log("Phone pairing: recipient-only decryption, non-exportable key, expiry and tamper checks passed.");
+
+const id = await inboxId(phone.code);
+const otherId = await inboxId(other.code);
+assert.match(id, /^[a-f0-9]{64}$/);
+assert.notEqual(id, otherId);
+const entries = new Map([["pair:reply:v1:" + id, sealed], ["snapshot:latest", "private snapshot"]]);
+const origin = "https://starforge-unified-v3-loyuhsi.pages.dev";
+const env = {STARFORGE_KV:{get:k=>entries.get(k)}, ALLOWED_ORIGINS:origin};
+const read = (key, method="GET") => worker.fetch(new Request(inboxBase+key,{method,headers:{Origin:origin}}),env);
+const delivered = await read(id);
+assert.equal(delivered.status,200);
+assert.equal(delivered.headers.get("cache-control"),"no-store");
+assert.equal(delivered.headers.get("access-control-allow-origin"),origin);
+assert.equal(await openReply(phone,(await delivered.json()).envelope,now),testKey);
+assert.equal((await read(id,"POST")).status,405);
+for (const missing of [otherId,"snapshot:latest",""]) assert.equal((await read(missing)).status,404);
+entries.set("pair:reply:v1:" + id, testKey);
+assert.equal((await read(id)).status,404);
+entries.set("pair:reply:v1:" + id, sealed.replace(String(now+1800),String(now-60)));
+assert.equal((await read(id)).status,404);
+console.log("Phone inbox: ciphertext-only delivery, device binding, expiry and isolated read-only KV lookup passed.");

@@ -14,6 +14,6 @@ for (const asset of ["index.html", "pair.css", "page.js", "crypto.js"]) {
 }
 for(const kind of ["solar-system","real-milky-way"])copyFileSync(join(root,kind,"index.html"),join(out,kind,"index.html"));
 copyFileSync(join(out,"unified","offline.html"),join(out,"index.html"));
-writeFileSync(join(out,"_headers"),"/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n\n/unified/pair/*\n  Cache-Control: no-store\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'\n");
+writeFileSync(join(out,"_headers"),"/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n\n/unified/pair/*\n  Cache-Control: no-store\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://starforge-unified-bridge-v3.loyuhsi930821.workers.dev/api/pairing/replies/; frame-ancestors 'none'; form-action 'none'; base-uri 'none'\n");
 writeFileSync(join(out,"404.html"),'<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>找不到頁面</title><p>找不到頁面。<a href="/unified/">返回星海工坊</a></p></html>');
 console.log("Starforge mobile frontend ready:",out);

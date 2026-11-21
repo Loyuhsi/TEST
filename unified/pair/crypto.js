@@ -3,6 +3,11 @@ const encoder = new TextEncoder();
 const keyParams = {name: "RSA-OAEP", hash: "SHA-256"};
 const origin = "https://starforge-unified-v3-loyuhsi.pages.dev";
 export const pairingPage = origin + "/unified/pair/";
+export const inboxBase = "https://starforge-unified-bridge-v3.loyuhsi930821.workers.dev/api/pairing/replies/";
+export async function inboxId(code) {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(code));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
 export const requestLifetime = 24 * 60 * 60;
 const replyLifetime = 30 * 60;
 const seconds = () => Math.floor(Date.now() / 1000);

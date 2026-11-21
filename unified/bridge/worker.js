@@ -322,6 +322,15 @@ async function route(request,env){
  }
  if(path==="/api/health")return okJSON({service:"Starforge Secure Bridge v4",status:"ok",version:"4.0.1",mcp:"/mcp",kv:!!env.STARFORGE_KV,ssd:!!env.SSD_GATE,editing:!!env.EDIT_GATE,read_configured:!!env.READ_TOKEN,write_configured:!!env.WRITE_TOKEN,admin_configured:!!env.ADMIN_TOKEN,jpl_configured:!!env.JPL_CONTACT});
  if(path==="/mcp"||path==="/api/mcp")return handleMCP(request,env);
+ const pairingReply = /^\/api\/pairing\/replies\/([a-f0-9]{64})$/.exec(path);
+ if (pairingReply) {
+  if (request.method !== "GET") return no("GET, OPTIONS");
+  if (!env.STARFORGE_KV) return err(503, "Pairing inbox unavailable");
+  const envelope = await env.STARFORGE_KV.get("pair:reply:v1:" + pairingReply[1]);
+  const match = /^SFBOX1\.(\d{10})\.[A-Za-z0-9_-]{512}$/.exec(envelope || "");
+  if (!match || Number(match[1]) <= Math.floor(Date.now()/1000)) return err(404, "No current pairing reply");
+  return okJSON({envelope});
+ }
  if(path==="/api/snapshot"){
   if(request.method==="GET"){if(!authorizationRole(request,env))return err(401,"Read token required");return okJSON(await getSnapshot(env)||{available:false})}
   if(request.method!=="POST")return no("GET, POST, OPTIONS");
