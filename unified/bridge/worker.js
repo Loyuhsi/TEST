@@ -1,4 +1,7 @@
-// Starforge Secure Bridge v2 — Cloudflare Worker + KV + Durable Object.
+// Starforge Secure Bridge v4 — Cloudflare Worker + KV + two Durable Objects.
+import {EditGate,mergeOverlay} from "./edit-engine.js";
+import "../exo-engine.js";
+export {EditGate};
 // Deploy with Wrangler; NEVER place READ_TOKEN or WRITE_TOKEN in GitHub.
 // Single global Durable Object serializes JPL requests. JPL fair use:
 // https://ssd-api.jpl.nasa.gov/doc/
@@ -27,7 +30,61 @@ function pack(r,request,env){
 function err(status,detail){return okJSON({error:String(detail)},status)}
 function bounds(s,n=80){const v=String(s||"").trim();if(!v||v.length>n)throw Error("Invalid input");return v}
 function asInt(v,lo,hi,def){let n=Number(v);return Number.isInteger(n)&&n>=lo&&n<=hi?n:def}
-async function getSnapshot(env){const raw=await env.STARFORGE_KV.get("snapshot:latest");return raw?JSON.parse(raw):null}
+async function getBaseSnapshot(env){const raw=await env.STARFORGE_KV.get("snapshot:latest");return raw?JSON.parse(raw):null}
+async function getOverlay(env){
+ if(!env.EDIT_GATE)throw Error("EDIT_GATE Durable Object binding required for bidirectional editing");
+ const stub=env.EDIT_GATE.get(env.EDIT_GATE.idFromName("starforge-v4-user-edits"));
+ const res=await stub.fetch("https://starforge-edit.internal/state");
+ if(!res.ok)throw Error("Edit state not available");
+ return res.json();
+}
+async function getSnapshot(env){
+ const base=await getBaseSnapshot(env);
+ if(!env.EDIT_GATE)return base;
+ return mergeOverlay(base,await getOverlay(env));
+}
+function authorizationRole(request,env){
+ if(testAuth(request,env.ADMIN_TOKEN))return "admin";
+ if(testAuth(request,env.WRITE_TOKEN))return "write";
+ if(testAuth(request,env.READ_TOKEN))return "read";
+ return null;
+}
+const canWrite=role=>role==="write"||role==="admin";
+async function mutateEdit(env,action,expected_revision,payload){
+ if(!Number.isInteger(expected_revision)||expected_revision<0)throw Error("expected_revision must be an integer ≥ 0; call get_edit_state first");
+ if(!env.EDIT_GATE)throw Error("EDIT_GATE Durable Object is not deployed");
+ const stub=env.EDIT_GATE.get(env.EDIT_GATE.idFromName("starforge-v4-user-edits"));
+ const response=await stub.fetch("https://starforge-edit.internal/mutate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,expected_revision,...payload})});
+ const result=await response.json();
+ if(!response.ok)throw Error("Edit rejected (HTTP "+response.status+"): "+result.error+(result.current_revision===undefined?"":"; latest revision="+result.current_revision));
+ return result;
+}
+async function loadVersion(env,revision){
+ const stub=env.EDIT_GATE.get(env.EDIT_GATE.idFromName("starforge-v4-user-edits"));
+ const resp=await stub.fetch("https://starforge-edit.internal/version?revision="+encodeURIComponent(revision));
+ const j=await resp.json();if(!resp.ok)throw Error(j.error||"Revision not retained");return j;
+}
+function toolsForRole(role){
+ return tools.filter(t=>!t._role||t._role==="read"||t._role==="write"&&canWrite(role)||t._role==="admin"&&role==="admin")
+   .map(({_role,...tool})=>tool);
+}
+const EDIT_WRITE_NAMES=new Set(["create_simulated_object","update_simulated_object","generate_system_environment","create_fictional_deep_position"]);
+const EDIT_ADMIN_NAMES=new Set(["prepare_destructive_change","delete_simulated_object","restore_edit_revision"]);
+function safeString(v,limit=120){if(typeof v!=="string"||!v.trim()||v.length>limit)throw Error("Invalid string argument");return v.trim();}
+function boundedNumber(v,min,max,defaultValue){if(v===undefined||v===null)return defaultValue;const n=Number(v);if(!Number.isFinite(n)||n<min||n>max)throw Error("Number outside allowed range");return n}
+async function signApproval(env,action,target,revision,expiry){
+ const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(env.ADMIN_TOKEN),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ const data=new TextEncoder().encode("starforge-v4|"+action+"|"+target+"|"+revision+"|"+expiry);
+ const bytes=new Uint8Array(await crypto.subtle.sign("HMAC",key,data));
+ return [...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function verifyApproval(env,action,target,revision,expiry,token){
+ if(!env.ADMIN_TOKEN||Date.now()>expiry||expiry>Date.now()+180000||!Number.isSafeInteger(expiry))throw Error("Approval expired or invalid");
+ const expected=await signApproval(env,action,target,revision,expiry);
+ if(typeof token!=="string"||token.length!==expected.length)throw Error("Invalid approval token");
+ let mismatch=0;for(let i=0;i<token.length;i++)mismatch|=token.charCodeAt(i)^expected.charCodeAt(i);
+ if(mismatch!==0)throw Error("Approval token mismatch");
+}
 function publicSummary(s){
  if(!s)return {available:false,message:"No snapshot has been synced yet"};
  const sel=s.selection||{};
