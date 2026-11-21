@@ -95,14 +95,22 @@ jobs:
         with:
           repository: FrunkQ/star-system-generator
           ref: f2459feb3a275ce0f7d5f8ad8115c1231eb6a9dd
+          path: sse-upstream
+      - uses: actions/checkout@v4
+        with:
+          repository: Loyuhsi/TEST
+          ref: starforge-v3-exosystems-sse-full-ssd
+          path: starforge-shell
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Build original unmodified SSE 3.2 GPLv3 physics workbench for Cloudflare
+      - name: Build full SSE 3.2 GPLv3 workbench with explicit Starforge transfer button
+        working-directory: sse-upstream
         run: |
           npm ci
           npm install --save-dev --legacy-peer-deps --no-audit @sveltejs/adapter-cloudflare@^7 wrangler@^4
           cp LICENSE COPYING-GPL-3.0
           sed -i 's|@sveltejs/adapter-auto|@sveltejs/adapter-cloudflare|' svelte.config.js
+          node ../starforge-shell/unified/sse-interop-patch.mjs
           CF_PAGES=1 npm run build
       - name: Deploy complete SSE 3.2 application as separate Cloudflare Pages site
         env:
@@ -110,4 +118,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx --yes wrangler@4 pages project create starforge-sse-full-loyuhsi --production-branch=main || true
-          npx --yes wrangler@4 pages deploy .svelte-kit/cloudflare --project-name=starforge-sse-full-loyuhsi --branch=main
+          npx --yes wrangler@4 pages deploy sse-upstream/.svelte-kit/cloudflare --project-name=starforge-sse-full-loyuhsi --branch=main
