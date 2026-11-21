@@ -1,3 +1,7 @@
+# Starforge v3 Cloudflare Worker production deployment
+# Cloudflare Workers Builds: Git repo Loyuhsi/TEST, production branch starforge-v3-exosystems-sse-full-ssd
+# Project root directory: unified; deployment command: npx wrangler deploy
+# Requires encrypted READ_TOKEN, WRITE_TOKEN and JPL_CONTACT secrets before private APIs work.
 name = "starforge-unified-bridge-v3"
 main = "bridge/worker.js"
 compatibility_date = "2026-11-21"
