@@ -283,7 +283,7 @@ async function handleMCP(request,env){
  if(method==="tools/call"){
   const name=params.name;try{
   if(!toolsForRole(role).some(t=>t.name===name))return failure(-32601,"Unknown or unauthorized tool");
-  const ans=name==="get_edit_state"||name==="get_change_history"||EDIT_WRITE_NAMES.has(name)||EDIT_ADMIN_NAMES.has(name)?await callEditTool(env,name,params.arguments||{},role):await callTool(env,name,params.arguments||{});
+  const ans=name==="get_edit_state"||name==="get_change_history"||name==="list_user_objects"||EDIT_WRITE_NAMES.has(name)||EDIT_ADMIN_NAMES.has(name)?await callEditTool(env,name,params.arguments||{},role):await callTool(env,name,params.arguments||{});
   return success({content:[{type:"text",text:JSON.stringify(ans)}],isError:false});
   }catch(e){return success({content:[{type:"text",text:JSON.stringify({error:String(e.message||e)})}],isError:true})}
  }
