@@ -88,7 +88,7 @@ async function verifyApproval(env,action,target,revision,expiry,token){
 function publicSummary(s){
  if(!s||s.available===false)return {available:false,message:"No snapshot has been synced yet"};
  const sel=s.selection||{};
- return {available:true,schema_version:s.schema_version,exported_at:s.exported_at,selection:sel,counts:{stars:s.stars?.length||0,confirmed_exoplanets:s.observed_planets?.length||0,solar_bodies:s.solar_bodies?.length||0,small_bodies:s.solar_small_bodies?.length||0,deep_sky:s.deep_sky?.length||0,simulated_planets:s.simulated_planets?.length||0,generated_systems:s.generated_systems?.length||0,simulated_deep_positions:s.simulated_deep_positions?.length||0},source_note:s.note}
+ return {available:true,schema_version:s.schema_version,exported_at:s.exported_at,selection:sel,counts:{stars:s.stars?.length||0,confirmed_exoplanets:s.observed_planets?.length||0,solar_bodies:s.solar_bodies?.length||0,small_bodies:s.solar_small_bodies?.length||0,deep_sky:s.deep_sky?.length||0,simulated_planets:s.simulated_planets?.length||0,user_objects:s.user_objects?.length||0,generated_systems:s.generated_systems?.length||0,simulated_deep_positions:s.simulated_deep_positions?.length||0},source_note:s.note}
 }
 function byQuery(list,key,q){
  q=String(q||"").trim().toLowerCase();
@@ -110,6 +110,7 @@ const tools=[
  {name:"lookup_jpl_sbdb",description:"透過具節流的 JPL SSD Bridge 查單一已知小天體真實資料，不會直接從聊天調用 NASA。",inputSchema:{type:"object",properties:{name:{type:"string",maxLength:64}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_horizons_vector",description:"取得指定太陽系天體的 Horizons 日心狀態向量文字資料，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"get_edit_state",description:"讀取雙向 AI 編輯版本與物件數量；每次修改前先取得 revision。",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true}},
+ {_role:"read",name:"list_user_objects",description:"列出由 TypingMind/星海工坊建立的虛構天體，支援按種類、母星篩選；含 user: ID 供更新使用。",inputSchema:{type:"object",properties:{kind:{type:"string"},host_star_id:{type:"string"},limit:{type:"integer",minimum:1,maximum:100}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"get_change_history",description:"取得最近的 AI 編輯版本和動作紀錄，含可供版本復原的 revision。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:20}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"write",name:"create_simulated_object",description:"【寫入】建立虛構行星、衛星、行星環、小天體帶、特洛伊群、類柯伊伯帶、彗星雲、文明、基地或深空虛構天體。僅寫入 user_objects，不修改 NASA/HYG/JPL 觀測值。先執行 get_edit_state。",inputSchema:{type:"object",properties:{expected_revision:{type:"integer",minimum:0},kind:{type:"string",enum:["planet","moon","asteroid_belt","trojan_cloud","kuiper_analogue","comet_cloud","deep_sky","civilization","station","ring","debris_disk"]},name:{type:"string",minLength:1,maxLength:120},host_star_id:{type:"string",description:"例如 hyg:70666；deep_sky 可省略"},attributes:{type:"object",description:"只允許物理/描述欄位，例 {orbit_au:2.4,eccentricity:0.08,mass_earth:1,description:'...'}"}},required:["expected_revision","kind","name"],additionalProperties:false},annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false}},
  {_role:"write",name:"update_simulated_object",description:"【寫入】只修改先前建立的 user: 虛構天體的名稱或許可物理參數，無法更動 ID/來源/真實觀測值。先執行 get_edit_state。",inputSchema:{type:"object",properties:{expected_revision:{type:"integer",minimum:0},id:{type:"string"},patch:{type:"object",properties:{name:{type:"string"},attributes:{type:"object"}},additionalProperties:false}},required:["expected_revision","id","patch"],additionalProperties:false},annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:false}},
@@ -149,7 +150,7 @@ async function callTool(env,name,args){
  switch(name){
  case "get_latest_universe":return args.include_full?s?JSON.stringify(s).length<1500000?s:{...publicSummary(s),warning:"Too large for full response"}:{available:false}:publicSummary(s);
  case "search_stars":if(!s)return {available:false};{const q=String(args.query||"").toLowerCase(),limit=asInt(args.limit,1,50,20);return {query:q,results:(s.stars||[]).filter(x=>String(x.n||"").toLowerCase().includes(q)||String(x.h||"").toLowerCase().includes(q)||String(x.zh||"").includes(q)).slice(0,limit)}} 
- case "get_star_system":if(!s)return {available:false};{const q=String(args.name||selection.star_name||"").toLowerCase();const st=(s.stars||[]).find(x=>String(x.n||"").toLowerCase()===q)||null;const norm=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");const k=norm(q)==="proximacentauri"?"proximacen":norm(q)==="pollux"?"hd62509":norm(q);const planets=(s.observed_planets||[]).filter(p=>norm(p.h)===k);const sim=(s.simulated_planets||[]).filter(p=>p.hostId===st?.id);return {star:st,confirmed_planets:planets,simulated_planets:sim,note:"Confirmed planets from NASA; simulated planets are creative."}}
+ case "get_star_system":if(!s)return {available:false};{const q=String(args.name||selection.star_name||"").toLowerCase();const st=(s.stars||[]).find(x=>String(x.n||"").toLowerCase()===q)||null;const norm=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");const k=norm(q)==="proximacentauri"?"proximacen":norm(q)==="pollux"?"hd62509":norm(q);const planets=(s.observed_planets||[]).filter(p=>norm(p.h)===k);const sim=(s.simulated_planets||[]).filter(p=>p.hostId===st?.id);const user=(s.user_objects||[]).filter(o=>o.host_star_id===st?.id);return {star:st,confirmed_planets:planets,simulated_planets:sim,user_objects:user,note:"Confirmed planets from NASA; simulated planets are creative."}}
  case "list_solar_small_bodies":if(!s)return {available:false};return{results:(s.solar_small_bodies||[]).filter(x=>!args.group||x.group===args.group).slice(0,asInt(args.limit,1,200,50))};
  case "get_small_body":if(!s)return{available:false};return(s.solar_small_bodies||[]).find(x=>String(x.name||"").toLowerCase()===String(args.name||"").toLowerCase()||x.zh===args.name||x.id===args.name)||{found:false};
  case "list_deep_sky_objects":if(!s)return{available:false};return{results:(s.deep_sky||[]).filter(x=>!args.type||x.type===args.type).slice(0,asInt(args.limit,1,200,50))};
@@ -172,6 +173,10 @@ async function callEditTool(env,name,args,role){
     fictional_deep_positions:state.simulated_deep_positions?.length||0,
     permissions:{read:true,write:canWrite(role),admin:role==="admin"},
     note:"Observation records remain immutable through MCP. Supply expected_revision for every mutation."};
+ }
+ if(name==="list_user_objects"){
+  const state=await getOverlay(env),limit=asInt(args.limit,1,100,50);
+  return {revision:state.revision,results:(state.user_objects||[]).filter(x=>(!args.kind||x.kind===args.kind)&&(!args.host_star_id||x.host_star_id===args.host_star_id)).slice(0,limit)};
  }
  if(name==="get_change_history"){
   const state=await getOverlay(env);
