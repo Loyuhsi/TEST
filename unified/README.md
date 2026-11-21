@@ -1,34 +1,32 @@
-# 星海工坊 Unified Atlas v2
+# 星海工坊 Unified v3 — iPhone / SSE 3.2 / JPL SSD / TypingMind
 
-合併先前的 v1.3–v1.6 需求的 iPhone 優先星海工坊：真實銀河、恆星系、太陽系小天體、JPL SSD，以及非恆星深空天體。前端採 Canvas 2D，支援觸控與小型裝置。
+**[直接在 iPhone Safari 開啟整合星圖（單檔）](https://raw.githack.com/Loyuhsi/TEST/starforge-v3-exosystems-sse-full-ssd/unified/offline.html)**
 
-## 立即使用
-- **[統一星圖（推薦）](https://raw.githack.com/Loyuhsi/TEST/starforge-unified-v2-ssd-typingmind/unified/index.html)**
-- **[單一 HTML 備援／離線版](https://raw.githack.com/Loyuhsi/TEST/starforge-unified-v2-ssd-typingmind/unified/offline.html)**
-- [完整 iPhone + TypingMind 部署指南](https://github.com/Loyuhsi/TEST/blob/starforge-unified-v2-ssd-typingmind/unified/DEPLOY.md)
+[多檔版本](https://raw.githack.com/Loyuhsi/TEST/starforge-v3-exosystems-sse-full-ssd/unified/index.html) · [iPhone Cloudflare 部署與 TypingMind 指南](./DEPLOY-v3.md) · [SSE v3.2 上游原始碼](https://github.com/FrunkQ/star-system-generator)
 
-首次可能出現第三方 External Content Notice，點選 Open the page。請勿在第三方 HTML 預覽輸入任何金鑰；本版對該預覽來源的寫入金鑰控制已禁用。
+## v3 新功能
 
-## 六個模式
-| 模式 | 已交付內容 | 分類 |
-|---|---|---|
-| 銀河 | HYG 47 顆離線恆星，載入 3,151 顆命名恆星；NASA 系外行星母星 | 觀測／衍生資料 |
-| 恆星系 | 任意已載入母恆星、NASA 確認行星、虛構行星補完 | 真實和模擬分開 |
-| 太陽系 | 行星、地月、主帶、特洛伊群、柯伊伯帶、歐特雲模型 | 參考值 + 示意 |
-| 深空 | 13 筆內建星團／星雲／SNR／脈衝星／棕矮星／黑洞樣本，並可按需下載 OpenNGC、在手機最多額外載入 1,200 筆（僅 RA／Dec，不虛構距離） | 觀測參考與近似值 |
-| SSD | 6 筆 JPL SBDB 核對快照及 14 筆代表性近似半長軸 | 每筆有來源／精度 |
-| AI 同步 | JSON 匯出／匯入、聊天摘要、可信網域的 HTTPS Bridge 同步 | 需部署 Bridge |
+1. **非複製型系外環境**：從實際恆星光度、光譜、NASA 已確認系外行星及可修改的原行星盤/金屬量/動力參數出發，根據種子生成行星、衛星、環、碎屑帶、特洛伊候選群、類柯伊伯帶、散射盤與遠距彗星雲。輸出記錄物理估算方式、不確定性、SIMULATED 來源及種子。
+2. **未知距離天體的虛構 3D**：保留 OpenNGC 真實赤經、赤緯；為缺距離的物件按類型和可重現種子抽樣徑向距離，導出 xyz(pc)。使用獨立欄位 SIMULATED_DISTANCE 與 FICTIONAL_SCENARIO，不改動原始觀測欄位。
+3. **完整 SSE 工作台建置**：GitHub Actions 自原作者固定提交的 GPLv3 SSE v3.2.0 完整編譯含 GM、Newton、飛行、文明與 3D 系統；只改 Cloudflare adapter，附加使用者點擊確認才能回傳的 SSE 原生星圖通道。原版完整工作台與星海工坊快速近似引擎**不是相同物理模型**。
+4. **TypingMind MCP**：Cloudflare Worker 原始碼提供 13 項唯讀 MCP 工具、快照與資源類型查詢、原生 SSE JSON 保留、虛構深空座標和生成系統查詢。不同 READ / WRITE 權杖，JPL SSD/Horizons 由後端序列化並快取。
+5. **保留 v2**：真實銀河、太陽系、深空、SSD、AI／同步六種模式和原始 v1.2 太陽系地月頁面。
 
-## TypingMind MCP
-- Worker 程式：unified/bridge/worker.js
-- 設定：unified/wrangler.toml
-- 10 個只讀 MCP 工具，支援最新星圖、恆星系、太陽系小天體、深空及 JPL SSD/Horizons；用 Cloudflare Workers KV 與單一 Durable Object 節流。
-- **重要**：MCP Worker 原始碼已完成並測試，並沒有在此對話直接部署到你的 Cloudflare 帳戶。需依 DEPLOY.md 建立兩個私密密鑰（READ_TOKEN、WRITE_TOKEN）並自行部署才會生效。
+## 現有的部署限制
 
-## 維持舊版功能
-此 GitHub 分支亦保留原版 v1.2 的 solar-system、real-milky-way 頁面，且增加新整合版入口。原本的私人星海工坊網站及之前的 MCP 服務並未被修改。
+公開的 raw.githack 測試網站可操作但**已禁用私人寫入權杖**；它不是你的私人 Cloudflare 網域。Cloudflare Pages / Worker / 完整 SSE 正式部署 workflow 位於：
 
-## 科學性限制
-示意軌道及帶狀區域只供視覺化，**不是** JPL Horizons 的當日真實曆表。歐特雲沒有已觀測的完整天體分布圖；星雲和星團的距離及 RA/Dec 不是高精度 3D 實測體積。AI 與使用者應嚴格區分觀測、近似和創作資料。
+[GitHub Actions：Deploy Starforge v3 Cloudflare](https://github.com/Loyuhsi/TEST/actions/workflows/starforge-v3-cloudflare.yml)
 
-來源：NASA Exoplanet Archive、JPL SSD、HYG、NASA Hubble/Chandra、OpenNGC；適用授權與引用資訊詳見 DEPLOY.md。
+**如果五項 Cloudflare 機密尚未在 GitHub Actions Secrets 設定，workflow 會成功執行憑證檢查並跳過真正部署；這不是 Cloudflare 上線成功。**
+
+請依 [繁體中文手機部署說明](./DEPLOY-v3.md) 安全設定 CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_API_TOKEN、STARFORGE_READ_TOKEN、STARFORGE_WRITE_TOKEN、STARFORGE_JPL_CONTACT。不要在第三方測試頁或聊天公開私密權杖。
+
+## 可驗證測試
+
+- [GitHub Actions：完整 SSE 3.2 與 v3 回歸測試](https://github.com/Loyuhsi/TEST/actions/workflows/starforge-v3-build.yml)
+- Node tests：tests/smoke.mjs、tests/exo.mjs、tests/browser.mjs
+- Workflow 在 Cloudflare 授權到位之前只能驗證編譯結果、MCP mock 與近似模型，不能宣稱已完成實機 iPhone/TypingMind/JPL live 的端到端測試。
+
+### 資料授權與科學聲明
+HYG CC BY-SA 4.0、OpenNGC CC BY-SA 4.0，NASA Exoplanet Archive、JPL SSD 及 SSE GPLv3 來源需依各自授權保留歸屬。系外小天體群與遠距彗星雲僅為**物理啟發的程序式模型**，不是已觀測的帶狀天體，更不是完整 N-body 模擬；動畫位置也不代表即時 JPL 星曆。
