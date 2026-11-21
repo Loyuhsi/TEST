@@ -39,7 +39,7 @@ jobs:
         run: npm ci
       - name: Install Cloudflare adapter for SvelteKit 2 without rewriting upstream physics
         working-directory: sse-upstream
-        run: npm install --no-save --no-package-lock @sveltejs/adapter-cloudflare@^7
+        run: npm install --save-dev --legacy-peer-deps --no-audit @sveltejs/adapter-cloudflare@^7
       - name: Preserve original physics, UI and GPL; switch only SvelteKit adapter
         working-directory: sse-upstream
         run: |
