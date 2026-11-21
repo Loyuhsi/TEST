@@ -3,9 +3,9 @@
  * catalogues in KV are never writable through MCP mutation tools.
  * License: MIT for Starforge-authored integration code; upstream SSE remains GPLv3.
  */
-export const KINDS=Object.freeze(["planet","moon","asteroid_belt","trojan_cloud","kuiper_analogue","comet_cloud","deep_sky","civilization","station","ring","debris_disk"]);
-const ALLOWED_FIELDS=new Set(["name","description","host_star_id","parent_id","orbit_au","eccentricity","inclination_deg","mass_earth","radius_earth","temperature_k","density","seed","notes","color","moon_count","age_gyr","metallicity","disk_mass","dynamical_history","semi_major_axis_au"]);
-const NUMERIC={orbit_au:[.00001,1000000],semi_major_axis_au:[.00001,1000000],eccentricity:[0,.98],inclination_deg:[0,180],mass_earth:[0,1000000],radius_earth:[0,100000],temperature_k:[0,100000],density:[0,1],moon_count:[0,200],age_gyr:[0,14],metallicity:[-3,1],disk_mass:[0,1],dynamical_history:[0,1]};
+export const KINDS=Object.freeze(["planet","moon","asteroid_belt","trojan_cloud","kuiper_analogue","comet_cloud","deep_sky","civilization","station","ring","debris_disk","star","star_system"]);
+const ALLOWED_FIELDS=new Set(["name","description","host_star_id","parent_id","orbit_au","eccentricity","inclination_deg","mass_earth","radius_earth","temperature_k","density","seed","notes","color","moon_count","age_gyr","metallicity","disk_mass","dynamical_history","semi_major_axis_au","ra_deg","dec_deg","distance_ly","x_pc","y_pc","z_pc","spectral_class","luminosity_solar"]);
+const NUMERIC={orbit_au:[.00001,1000000],semi_major_axis_au:[.00001,1000000],eccentricity:[0,.98],inclination_deg:[0,180],mass_earth:[0,1000000],radius_earth:[0,100000],temperature_k:[0,100000],density:[0,1],moon_count:[0,200],age_gyr:[0,14],metallicity:[-3,1],disk_mass:[0,1],dynamical_history:[0,1],ra_deg:[0,360],dec_deg:[-90,90],distance_ly:[.00001,1000000000],x_pc:[-100000000,100000000],y_pc:[-100000000,100000000],z_pc:[-100000000,100000000],luminosity_solar:[0,100000000]};
 const LIMIT_OBJECTS=500,MAX_JSON=1800000,MAX_HISTORY=20;
 const fail=(status,message,extra={})=>Object.assign(new Error(message),{status,...extra});
 const text=(value,name,limit=150)=>{if(typeof value!=="string"||!value.trim()||value.length>limit)throw fail(422,"Invalid "+name);return value.trim()};
@@ -30,8 +30,8 @@ export function normalizeCreate(data){
  const name=text(a.name,"name",120);
  const attrs=cleanAttributes(a.attributes||{});
  let host=a.host_star_id==null?null:text(a.host_star_id,"host_star_id",150);
- if(kind!=="deep_sky"&&kind!=="civilization"&&!host)throw fail(422,"Host star ID required");
- if(kind==="deep_sky"&&host)throw fail(422,"deep_sky cannot be disguised as a catalog star");
+ if(!["deep_sky","civilization","star","star_system"].includes(kind)&&!host)throw fail(422,"Host star ID required");
+ if(["deep_sky","star","star_system"].includes(kind)&&host)throw fail(422,"deep_sky cannot be disguised as a catalog star");
  return {id:"user:"+crypto.randomUUID(),kind,name,host_star_id:host,
    attributes:attrs,origin:"SIMULATED",source:"TYPINGMIND_MCP_WRITE",schema_version:"starforge.user_object.v1",
    created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
