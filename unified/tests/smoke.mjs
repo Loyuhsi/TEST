@@ -51,7 +51,7 @@ assert.equal(init.status,200);
 assert.equal((await init.json()).result.serverInfo.name,"Starforge Unified Atlas MCP");
 let tools=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:2,method:"tools/list"});
 let t=(await tools.json()).result.tools;
-assert.equal(t.length,10);assert(t.some(x=>x.name==="get_imported_sse_reference"));
+assert.equal(t.length,13);assert(t.some(x=>x.name==="get_generated_system"));assert(t.some(x=>x.name==="list_simulated_deep_positions"));assert(t.some(x=>x.name==="get_imported_sse_reference"));
 const snapshot={schema_version:"starforge.unified.v2",version:"2-test",exported_at:new Date().toISOString(),selection:{mode:"system",star_name:"Proxima Centauri"},
  stars:C.stars.map(x=>({...x,id:"hyg:"+x.id})),observed_planets:C.exoplanets,solar_bodies:C.solar,
  solar_small_bodies:C.small,deep_sky:C.deep,simulated_planets:[],imported_sse:{nodes:[]}};
@@ -68,4 +68,4 @@ let imported=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:5,method:
 assert.equal(JSON.parse((await imported.json()).result.content[0].text).available,true);
 const deny=await call("/mcp","POST",env.WRITE_TOKEN,{jsonrpc:"2.0",id:6,method:"tools/list"});
 assert.equal(deny.status,401);
-console.log("PASS: 47 stars / 17 confirmed planets / 20 small bodies / 13 deep-sky objects, 10 MCP tools, protected read/write and original SSE import.");
+console.log("PASS: 47 stars / 17 confirmed planets / 20 small bodies / 13 deep-sky objects, 13 MCP tools, protected read/write and original SSE import.");
