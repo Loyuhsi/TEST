@@ -1,0 +1,23 @@
+name: Starforge v4 Two-way MCP Security Checks
+on:
+  push:
+    branches:
+      - starforge-v4-typingmind-bidirectional
+    paths:
+      - "unified/**"
+      - ".github/workflows/starforge-v4-write-tests.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  security-and-model-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Starforge v4 READ/WRITE/ADMIN MCP and exosystem
+        working-directory: unified
+        run: npm run check

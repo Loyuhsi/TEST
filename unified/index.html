@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#060e1b"><title>星海工坊 · 統一宇宙 v3</title><link rel="stylesheet" href="./style.css"></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#060e1b"><title>星海工坊 · 統一宇宙 v4</title><link rel="stylesheet" href="./style.css"></head>
 <body>
 <div id="app">
 <header>
- <div class="identity"><div class="logo">✦</div><div><span class="eyebrow">STELLAR FORGE · UNIFIED ATLAS</span><h1>星海工坊 <b>v3</b></h1></div></div>
+ <div class="identity"><div class="logo">✦</div><div><span class="eyebrow">STELLAR FORGE · UNIFIED ATLAS</span><h1>星海工坊 <b>v4</b></h1></div></div>
  <div class="header-side"><span id="health">● 已載入離線星表</span><a class="hdr-link" href="../real-milky-way/index.html" title="保留既有版本">原版地圖</a></div>
 </header>
 <nav id="modes" aria-label="切換星圖模式">
@@ -39,7 +39,7 @@
  <p class="eyebrow">STAR SYSTEM EXPLORER</p><h2 id="systemHeading">比鄰星系統</h2><p class="muted" id="systemOrigin">真實恆星 + NASA 已確認行星</p>
  <div class="search"><input id="systemSearch" placeholder="輸入恆星或行星名稱" aria-label="搜尋恆星系"><button id="systemGo">切換</button></div>
  <div id="systemStar" class="detailbox"></div>
- <h3>行星清單</h3><div id="systemPlanets"></div>
+ <h3>行星清單</h3><div id="systemPlanets"></div><h3>TypingMind AI 建立的虛構物件</h3><div id="aiSystemObjects" class="objectlist"><p class="hint">透過「AI／同步」取得遠端修改後顯示。</p></div>
  <div class="section">PROCEDURAL EXOSYSTEM ENGINE</div>
  <p class="muted">以恆星實測光度／光譜及 NASA 已確認行星作限制，依種子建立多樣化的原行星盤、行星、衛星、行星環、特洛伊群、小天體帶與彗星雲。</p>
  <div class="line"><label for="exoSeed">生成種子</label><input id="exoSeed" value="story-01" placeholder="任意文字種子" style="width:54%;padding:8px;color:white;background:#132638;border:1px solid #456278;border-radius:8px"></div>
@@ -88,7 +88,7 @@
  <button id="deepRegenerate">✦ 重算虛構 3D 位置</button>
  <p class="warning">僅保留原目錄的赤經／赤緯方向，隨機產生徑向距離；標示 SIMULATED_DISTANCE，可用種子重現並同步到 TypingMind。真實距離不覆寫。</p>
  <div id="deepList" class="objectlist"></div>
- <div id="deepDetails" class="detailbox"></div>
+ <div id="deepDetails" class="detailbox"></div><h3>AI 自訂深空天體</h3><div id="aiDeepObjects" class="objectlist"></div>
  <p class="hint">深空天體的尺寸遠大於恆星；這裡使用單獨尺度。某些距離僅為文獻近似值，不是 Gaia 級精確測距；黑洞本身不以光學亮度表示。</p>
 </div>
 
@@ -103,16 +103,16 @@
 </div>
 
 <div class="pane" id="pane-sync" hidden>
- <p class="eyebrow">TYPINGMIND + MCP</p><h2>資料匯出與 AI 同步</h2>
+ <p class="eyebrow">TYPINGMIND + MCP · BIDIRECTIONAL v4</p><h2>AI 雙向同步</h2>
  <p class="muted">TypingMind 使用遠端 MCP 讀取你的最新星圖。這個公開的 GitHub 測試頁<b>不包含任何私密權杖</b>；你需自行設定安全 Bridge。</p>
  <label class="formlbl">自有 Bridge HTTPS 基址</label><input id="bridgeURL" type="url" inputmode="url" placeholder="https://你的-worker.workers.dev">
  <label class="formlbl">星圖寫入金鑰（只存在本頁記憶體，不寫到 URL / GitHub）</label><input id="writeKey" type="password" placeholder="貼上獨立寫入權杖" autocomplete="off">
  <div class="line"><label>啟用變更後自動同步</label><input id="autoSync" type="checkbox"></div>
- <div class="chips"><button id="syncNow">立即同步</button><button id="testBridge">測試 Bridge</button><button id="copyMCP">複製 TypingMind MCP URL</button></div>
+ <div class="chips"><button id="syncNow">↑ 上傳本地星圖</button><button id="pullAI">↓ 讀取 TypingMind 的修改</button><button id="testBridge">測試 Bridge</button><button id="copyMCP">複製 TypingMind MCP URL</button></div><div id="remoteEdits" class="detailbox">尚未讀取遠端 AI 編輯。AI 工具只可修改獨立虛構資料層，NASA/HYG/JPL 觀測資料維持唯讀。</div><div id="aiAllObjects" class="objectlist"></div>
  <p class="hint" id="syncStatus">尚未連接 Bridge。你仍可以離線匯出或複製摘要。</p>
  <button class="primary" id="exportJSON">↓ 匯出完整星圖 JSON</button><button id="copySummary">⧉ 複製目前選取資料到聊天</button><button id="importJSON">↑ 匯入先前的星圖 JSON</button><input id="importFile" type="file" accept=".json,application/json" hidden>
  <div class="warning">注意：TypingMind 的 MCP「唯讀金鑰」與這裡的「寫入金鑰」應不同。不要將密鑰貼進公開聊天、GitHub、網址查詢參數，或向未知的網站提供。自動同步僅在 Bridge 已部署且認證成功時運作。</div>
- <div class="links"><a href="./DEPLOY.md" target="_blank" rel="noopener">Bridge 手機部署說明</a><a href="../real-milky-way/index.html" target="_blank">保留舊版地圖</a><a href="../solar-system/index.html" target="_blank">保留舊版太陽系</a></div>
+ <div class="links"><a href="./TYPINGMIND-v4.md" target="_blank" rel="noopener">雙向 MCP / 權限 / 管理員設定</a><a href="../real-milky-way/index.html" target="_blank">保留舊版地圖</a><a href="../solar-system/index.html" target="_blank">保留舊版太陽系</a></div>
 </div>
 <div class="bottomspace"></div>
 </aside></div>

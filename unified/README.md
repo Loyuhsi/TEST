@@ -1,32 +1,28 @@
-# 星海工坊 Unified v3 — iPhone / SSE 3.2 / JPL SSD / TypingMind
+# 星海工坊 Unified v4 — TypingMind 雙向 AI 控制
 
-**[直接在 iPhone Safari 開啟整合星圖（單檔）](https://raw.githack.com/Loyuhsi/TEST/starforge-v3-exosystems-sse-full-ssd/unified/offline.html)**
+## iPhone 星圖
+- [Cloudflare Pages 正式網站](https://starforge-unified-v3-loyuhsi.pages.dev/unified/)（GitHub v3 生產分支合併部署後才會呈現 v4）
+- [v4 單檔安全預覽](https://raw.githack.com/Loyuhsi/TEST/starforge-v4-typingmind-bidirectional/unified/offline.html)（第三方預覽禁止輸入私人金鑰）
+- [iPhone TypingMind v4 操作與 Cloudflare Secret 設定](./TYPINGMIND-v4.md)
+- [原版完整 SSE 3.2 物理工作台](https://starforge-sse-full-loyuhsi.pages.dev/)
 
-[多檔版本](https://raw.githack.com/Loyuhsi/TEST/starforge-v3-exosystems-sse-full-ssd/unified/index.html) · [iPhone Cloudflare 部署與 TypingMind 指南](./DEPLOY-v3.md) · [SSE v3.2 上游原始碼](https://github.com/FrunkQ/star-system-generator)
+## 雙向 AI 工具
+- READ（16 工具）：查詢真實恆星、NASA 確認行星、JPL 小天體、虛構世界、編輯版本與歷史紀錄。
+- WRITE（20 工具）：READ + 建立虛構恆星/恆星系/行星/衛星/環/小天體帶/文明/太空基地、修改虛構參數、依真實星表重新生成多元系外環境、為無真實距離天體建立虛構 3D XYZ。
+- ADMIN（23 工具）：WRITE + 管理員限時確認的刪除與版本還原。
+- NASA／HYG／JPL 觀測資料不可經 MCP 覆寫。AI 自訂內容單獨使用 user: ID、SIMULATED／SIMULATED_DISTANCE 標記。
+- 版本鎖定：每次寫入必須提供 get_edit_state 取得的 expected_revision；Cloudflare SQLite EditGate Durable Object 原子更新，保留近期版本紀錄，避免多裝置互相覆蓋。
 
-## v3 新功能
+## 基礎技術
+- Cloudflare Worker：unified/bridge/worker.js
+- Writable overlay：unified/bridge/edit-engine.js
+- 多元系外環境生成器：unified/exo-engine.js
+- 手機星圖：unified/index.html、app.js、style.css、data.js、offline.html
+- Worker 綁定：STARFORGE_KV、SSD_GATE（原 JPL）、EDIT_GATE（新增虛構資料編輯）
+- Secret（均不可寫入 GitHub）：READ_TOKEN、WRITE_TOKEN、ADMIN_TOKEN（可選）、JPL_CONTACT
 
-1. **非複製型系外環境**：從實際恆星光度、光譜、NASA 已確認系外行星及可修改的原行星盤/金屬量/動力參數出發，根據種子生成行星、衛星、環、碎屑帶、特洛伊候選群、類柯伊伯帶、散射盤與遠距彗星雲。輸出記錄物理估算方式、不確定性、SIMULATED 來源及種子。
-2. **未知距離天體的虛構 3D**：保留 OpenNGC 真實赤經、赤緯；為缺距離的物件按類型和可重現種子抽樣徑向距離，導出 xyz(pc)。使用獨立欄位 SIMULATED_DISTANCE 與 FICTIONAL_SCENARIO，不改動原始觀測欄位。
-3. **完整 SSE 工作台建置**：GitHub Actions 自原作者固定提交的 GPLv3 SSE v3.2.0 完整編譯含 GM、Newton、飛行、文明與 3D 系統；只改 Cloudflare adapter，附加使用者點擊確認才能回傳的 SSE 原生星圖通道。原版完整工作台與星海工坊快速近似引擎**不是相同物理模型**。
-4. **TypingMind MCP**：Cloudflare Worker 原始碼提供 13 項唯讀 MCP 工具、快照與資源類型查詢、原生 SSE JSON 保留、虛構深空座標和生成系統查詢。不同 READ / WRITE 權杖，JPL SSD/Horizons 由後端序列化並快取。
-5. **保留 v2**：真實銀河、太陽系、深空、SSD、AI／同步六種模式和原始 v1.2 太陽系地月頁面。
+## 完成及部署判定
+GitHub Actions 測試流程：[v4 寫入工具與資安測試](https://github.com/Loyuhsi/TEST/actions/workflows/starforge-v4-write-tests.yml)。
+通過測試僅代表程式可運作，**不代表 Cloudflare Worker 已上線**。Worker /api/health 必須顯示 status:ok、editing:true，WRITE_TOKEN 權限確認後才能使用。JPL 即時查詢仍需 SSD_GATE、JPL_CONTACT 和上游 JPL API 可用。
 
-## 現有的部署限制
-
-公開的 raw.githack 測試網站可操作但**已禁用私人寫入權杖**；它不是你的私人 Cloudflare 網域。Cloudflare Pages / Worker / 完整 SSE 正式部署 workflow 位於：
-
-[GitHub Actions：Deploy Starforge v3 Cloudflare](https://github.com/Loyuhsi/TEST/actions/workflows/starforge-v3-cloudflare.yml)
-
-**如果五項 Cloudflare 機密尚未在 GitHub Actions Secrets 設定，workflow 會成功執行憑證檢查並跳過真正部署；這不是 Cloudflare 上線成功。**
-
-請依 [繁體中文手機部署說明](./DEPLOY-v3.md) 安全設定 CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_API_TOKEN、STARFORGE_READ_TOKEN、STARFORGE_WRITE_TOKEN、STARFORGE_JPL_CONTACT。不要在第三方測試頁或聊天公開私密權杖。
-
-## 可驗證測試
-
-- [GitHub Actions：完整 SSE 3.2 與 v3 回歸測試](https://github.com/Loyuhsi/TEST/actions/workflows/starforge-v3-build.yml)
-- Node tests：tests/smoke.mjs、tests/exo.mjs、tests/browser.mjs
-- Workflow 在 Cloudflare 授權到位之前只能驗證編譯結果、MCP mock 與近似模型，不能宣稱已完成實機 iPhone/TypingMind/JPL live 的端到端測試。
-
-### 資料授權與科學聲明
-HYG CC BY-SA 4.0、OpenNGC CC BY-SA 4.0，NASA Exoplanet Archive、JPL SSD 及 SSE GPLv3 來源需依各自授權保留歸屬。系外小天體群與遠距彗星雲僅為**物理啟發的程序式模型**，不是已觀測的帶狀天體，更不是完整 N-body 模擬；動畫位置也不代表即時 JPL 星曆。
+v4 程式碼由 Starforge 開發，SSE 原版完整應用保留 GPLv3 授權；HYG / OpenNGC 資料依 CC BY-SA 引用，其他資料依 NASA / JPL 來源標示。完整星圖非精確航太導航軟體。

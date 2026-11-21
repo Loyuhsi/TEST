@@ -54,13 +54,13 @@ assert.equal(init.status,200);
 assert.equal((await init.json()).result.serverInfo.name,"Starforge Unified Atlas MCP");
 let tools=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:2,method:"tools/list"});
 let t=(await tools.json()).result.tools;
-assert.equal(t.length,13);assert(t.some(x=>x.name==="get_generated_system"));assert(t.some(x=>x.name==="list_simulated_deep_positions"));assert(t.some(x=>x.name==="get_imported_sse_reference"));
+assert.equal(t.length,16);assert(t.every(x=>x.annotations?.readOnlyHint!==false),"READ tools must not mutate data");assert(t.some(x=>x.name==="get_generated_system"));assert(t.some(x=>x.name==="list_simulated_deep_positions"));assert(t.some(x=>x.name==="get_imported_sse_reference"));
 const snapshot={schema_version:"starforge.unified.v2",version:"2-test",exported_at:new Date().toISOString(),selection:{mode:"system",star_name:"Proxima Centauri"},
  stars:C.stars.map(x=>({...x,id:"hyg:"+x.id})),observed_planets:C.exoplanets,solar_bodies:C.solar,
  solar_small_bodies:C.small,deep_sky:C.deep,simulated_planets:[],generated_systems:[model],simulated_deep_positions:[samplePosition],imported_sse:{nodes:[]}};
 const upload=await call("/api/snapshot","POST",env.WRITE_TOKEN,snapshot);
 assert.equal(upload.status,200);
-assert.equal((await call("/api/snapshot","GET",env.WRITE_TOKEN)).status,401);
+assert.equal((await call("/api/snapshot","GET",env.WRITE_TOKEN)).status,200);
 assert.equal((await call("/api/snapshot","GET",env.READ_TOKEN)).status,200);
 let latest=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:3,method:"tools/call",params:{name:"get_latest_universe",arguments:{}}});
 let info=JSON.parse((await latest.json()).result.content[0].text);
@@ -74,5 +74,5 @@ assert.equal(JSON.parse((await generated.json()).result.content[0].text).schema_
 const simulatedDistance=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:8,method:"tools/call",params:{name:"list_simulated_deep_positions",arguments:{}}});
 assert.equal(JSON.parse((await simulatedDistance.json()).result.content[0].text).results[0].source,"SIMULATED_DISTANCE");
 const deny=await call("/mcp","POST",env.WRITE_TOKEN,{jsonrpc:"2.0",id:6,method:"tools/list"});
-assert.equal(deny.status,401);
-console.log("PASS: 47 stars / 17 confirmed planets / 20 small bodies / 13 deep-sky objects, 13 MCP tools, protected read/write and original SSE import.");
+assert.equal(deny.status,200);assert.equal((await deny.json()).result.tools.length,20);
+console.log("PASS: 47 stars / 17 confirmed planets / 20 small bodies / 13 deep-sky objects, 16 READ MCP tools, 20 WRITE MCP tools, protected data and original SSE import.");
