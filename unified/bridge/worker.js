@@ -46,6 +46,7 @@ const tools=[
  {name:"get_small_body",description:"取得已同步的小天體詳細參數、資料曆元與精度。",inputSchema:{type:"object",properties:{name:{type:"string"}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"list_deep_sky_objects",description:"列出銀河內的非恆星天體，如星雲、星團、脈衝星及黑洞。",inputSchema:{type:"object",properties:{type:{type:"string"},limit:{type:"integer",minimum:1,maximum:200}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_deep_sky_object",description:"查詢深空天體的估計距離、天球座標、來源。",inputSchema:{type:"object",properties:{name:{type:"string"}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"get_imported_sse_reference",description:"讀取使用者匯入的原版 SSE JSON 摘要；資料保持原樣，不會與真實星表混淆。",inputSchema:{type:"object",properties:{include_raw:{type:"boolean"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"lookup_jpl_sbdb",description:"透過具節流的 JPL SSD Bridge 查單一已知小天體真實資料，不會直接從聊天調用 NASA。",inputSchema:{type:"object",properties:{name:{type:"string",maxLength:64}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_horizons_vector",description:"取得指定太陽系天體的 Horizons 日心狀態向量文字資料，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}}
 ];
@@ -84,6 +85,7 @@ async function callTool(env,name,args){
  case "get_small_body":if(!s)return{available:false};return(s.solar_small_bodies||[]).find(x=>String(x.name||"").toLowerCase()===String(args.name||"").toLowerCase()||x.zh===args.name||x.id===args.name)||{found:false};
  case "list_deep_sky_objects":if(!s)return{available:false};return{results:(s.deep_sky||[]).filter(x=>!args.type||x.type===args.type).slice(0,asInt(args.limit,1,200,50))};
  case "get_deep_sky_object":if(!s)return{available:false};return(s.deep_sky||[]).find(x=>x.id===args.name||x.n===args.name||String(x.en||"").toLowerCase()===String(args.name||"").toLowerCase())||{found:false};
+ case "get_imported_sse_reference":if(!s)return{available:false};{const j=s.imported_sse||null;if(!j)return{available:false};const text=JSON.stringify(j);return args.include_raw&&text.length<=150000?{available:true,data:j}:{available:true,topLevelKeys:Object.keys(j),bytes:text.length,raw_available:text.length<=150000,note:"Unmodified original SSE import; not validated as HYG or NASA observations."}}
  case "lookup_jpl_sbdb":return SBDB(env,args.name);
  case "get_horizons_vector":return Horizons(env,args.body,args.date);
  default:throw Error("Unknown tool "+name);
