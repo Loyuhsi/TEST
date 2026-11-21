@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node --check bridge/worker.js && node --check app.js && node --check data.js && node --check exo-engine.js && node tests/smoke.mjs && node tests/exo.mjs"
+    "check": "node --check bridge/worker.js && node --check app.js && node --check data.js && node --check exo-engine.js && node tests/smoke.mjs && node tests/exo.mjs && node tests/browser.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.45.0"
