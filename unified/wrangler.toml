@@ -1,0 +1,24 @@
+name = "starforge-unified-bridge-v2"
+main = "bridge/worker.js"
+compatibility_date = "2026-11-21"
+workers_dev = true
+
+# Cloudflare Wrangler 4.45+ supports automatic KV provisioning in its open beta.
+# If this does not work on your account, create a KV namespace manually
+# and add: id = "<your-kv-namespace-id>"
+[[kv_namespaces]]
+binding = "STARFORGE_KV"
+
+[[durable_objects.bindings]]
+name = "SSD_GATE"
+class_name = "SSDGate"
+
+# SQLite-backed Durable Objects are required for new classes in 2026.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SSDGate"]
+
+[vars]
+# raw.githack.com is convenient for testing ONLY. For production remove it
+# and set this to YOUR trusted self-hosted frontend origin.
+ALLOWED_ORIGINS = "https://raw.githack.com,https://typingmind.com,https://www.typingmind.com"
