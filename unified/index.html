@@ -69,7 +69,7 @@
  <p class="eyebrow">NON-STELLAR MILKY WAY OBJECTS</p><h2>銀河深空天體</h2><p class="muted">星雲、星團、超新星遺跡、脈衝星、黑洞與棕矮星。標示距離估計與觀測資料來源。</p>
  <div class="line"><label>分類篩選</label><select id="deepFilter"><option value="ALL">全部類型</option><option value="NEBULA">星雲</option><option value="OPEN_CLUSTER">疏散星團</option><option value="GLOBULAR_CLUSTER">球狀星團</option><option value="SNR">超新星遺跡</option><option value="PLANETARY_NEBULA">行星狀星雲</option><option value="PULSAR">脈衝星</option><option value="BLACK_HOLE">黑洞</option><option value="BROWN_DWARF">棕矮星</option></select></div>
  <div class="line"><label>視距投影</label><select id="deepProjection"><option value="sky">天球方向圖（RA／Dec）</option><option value="distance">3D 距離壓縮圖</option></select></div>
- <div id="deepList" class="objectlist"></div>
+ <button class="primary" id="loadOpenNGC">↓ 載入 OpenNGC 銀河深空目錄（網路，約 4MB）</button><p class="hint" id="deepCatalogStatus">目前為 13 筆離線代表天體；OpenNGC 多數天體沒有可靠距離，只能定位在天球方向圖。</p><div id="deepList" class="objectlist"></div>
  <div id="deepDetails" class="detailbox"></div>
  <p class="hint">深空天體的尺寸遠大於恆星；這裡使用單獨尺度。某些距離僅為文獻近似值，不是 Gaia 級精確測距；黑洞本身不以光學亮度表示。</p>
 </div>
