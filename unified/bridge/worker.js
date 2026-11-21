@@ -176,7 +176,9 @@ export class SSDGate {
    }else{return err(400,"Unknown kind")}
    this.lastSent=Date.now();
    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),13000);
-   try{const response=await fetch(u.toString(),{headers:{Accept:"application/json"},signal:controller.signal});const raw=await response.text();if(!response.ok)return err(502,"JPL "+response.status);if(raw.length>1200000)return err(502,"JPL response too large");
+   if(!this.env.JPL_CONTACT||String(this.env.JPL_CONTACT).length<5){clearTimeout(timeout);return err(503,"JPL_CONTACT is required for a compliant identifiable User-Agent")}
+   const agent="StarforgeUnifiedAtlas/3.0 (+contact: "+String(this.env.JPL_CONTACT).slice(0,160)+")";
+   try{const response=await fetch(u.toString(),{headers:{Accept:"application/json","User-Agent":agent},signal:controller.signal});const raw=await response.text();if(!response.ok)return err(502,"JPL "+response.status);if(raw.length>1200000)return err(502,"JPL response too large");
     let result;try{result=JSON.parse(raw)}catch{return err(502,"Invalid JPL payload")}
     if(item.kind==="horizons"){if(typeof result.result!=="string"||!result.result.includes("$$SOE"))return err(502,"Horizons did not return vector data");const part=result.result.split("$$SOE")[1].split("$$EOE")[0].trim();result={source:"JPL Horizons",kind:"VECTORS",body:item.params.body,date:item.params.date,frame:"ECLIPTIC",center:"solar-system barycenter",units:"AU-D",vector_table_excerpt:part.slice(0,2500),not_for_navigation:true}}
     return okJSON(result);
