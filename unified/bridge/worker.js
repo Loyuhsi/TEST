@@ -86,7 +86,7 @@ async function verifyApproval(env,action,target,revision,expiry,token){
  if(mismatch!==0)throw Error("Approval token mismatch");
 }
 function publicSummary(s){
- if(!s)return {available:false,message:"No snapshot has been synced yet"};
+ if(!s||s.available===false)return {available:false,message:"No snapshot has been synced yet"};
  const sel=s.selection||{};
  return {available:true,schema_version:s.schema_version,exported_at:s.exported_at,selection:sel,counts:{stars:s.stars?.length||0,confirmed_exoplanets:s.observed_planets?.length||0,solar_bodies:s.solar_bodies?.length||0,small_bodies:s.solar_small_bodies?.length||0,deep_sky:s.deep_sky?.length||0,simulated_planets:s.simulated_planets?.length||0,generated_systems:s.generated_systems?.length||0,simulated_deep_positions:s.simulated_deep_positions?.length||0},source_note:s.note}
 }
@@ -163,8 +163,107 @@ async function callTool(env,name,args){
  default:throw Error("Unknown tool "+name);
  }
 }
+async function callEditTool(env,name,args,role){
+ if(!role)throw Error("Authentication required");
+ if(name==="get_edit_state"){
+  const state=await getOverlay(env);
+  return {revision:state.revision,updated_at:state.updated_at,last_action:state.last_action,
+    fictional_objects:state.user_objects?.length||0,generated_systems:state.generated_systems?.length||0,
+    fictional_deep_positions:state.simulated_deep_positions?.length||0,
+    permissions:{read:true,write:canWrite(role),admin:role==="admin"},
+    note:"Observation records remain immutable through MCP. Supply expected_revision for every mutation."};
+ }
+ if(name==="get_change_history"){
+  const state=await getOverlay(env);
+  return {revision:state.revision,history:(state.history||[]).slice(-asInt(args.limit,1,20,15))};
+ }
+ if(EDIT_WRITE_NAMES.has(name)&&!canWrite(role))throw Error("WRITE_TOKEN (or ADMIN_TOKEN) required");
+ if(EDIT_ADMIN_NAMES.has(name)&&role!=="admin")throw Error("ADMIN_TOKEN required; destructive operation unavailable");
+ const s=await getBaseSnapshot(env);
+ if(!s)throw Error("No baseline star catalogue yet. Use trusted Starforge frontend to sync an initial snapshot first.");
+ const revision=args.expected_revision;
+ if(!Number.isInteger(revision)||revision<0)throw Error("Call get_edit_state first; expected_revision is required");
+ if(name==="create_simulated_object"){
+  const kind=safeString(args.kind,60),host=args.host_star_id;
+  if(kind!=="deep_sky"&&kind!=="civilization"){
+   if(typeof host!=="string"||!(s.stars||[]).some(x=>String(x.id)===host)||(s.stars||[]).filter(x=>String(x.id)===host).length!==1){
+    // NASA exoplanet host records may be stored only as planet host names in the base snapshot.
+    if(!String(host||"").startsWith("nasa:")||!(s.observed_planets||[]).some(x=>"nasa:"+x.h===host))throw Error("Host star must exist in HYG/NASA catalogue; inspect search_stars or get_latest_universe");
+   }
+  }
+  return mutateEdit(env,"create",revision,{data:{kind,name:args.name,host_star_id:host,attributes:args.attributes||{}}});
+ }
+ if(name==="update_simulated_object")return mutateEdit(env,"update",revision,{id:args.id,data:{patch:args.patch}});
+ if(name==="generate_system_environment"){
+  const name=safeString(args.star_name,150),seed=safeString(args.seed,100);
+  let star=(s.stars||[]).find(x=>x.n?.toLowerCase()===name.toLowerCase()||String(x.id)===name);
+  if(!star){
+   const p=(s.observed_planets||[]).find(x=>x.h?.toLowerCase()===name.toLowerCase());
+   if(p)star={id:"nasa:"+p.h,n:p.h,s:"",lum:null};
+  }
+  if(!star)throw Error("Star absent from synced HYG/NASA catalogue. Cannot invent a star's observed properties.");
+  const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const match=norm(star.n)==="proximacentauri"?"proximacen":norm(star.n)==="pollux"?"hd62509":norm(star.n);
+  const real=(s.observed_planets||[]).filter(p=>norm(p.h)===match);
+  const engine=globalThis.StarforgeExoV3;
+  if(!engine?.generate)throw Error("Starforge exosystem generator was not bundled");
+  const model=engine.generate(star,real,{seed,diskMass:boundedNumber(args.disk_mass,.05,1,.5),
+    metallicity:boundedNumber(args.metallicity,-1.5,.6,0),
+    dynamicalHistory:boundedNumber(args.dynamical_history,.01,1,.35),
+    maxBodies:boundedNumber(args.max_bodies,1,20,8)});
+  return mutateEdit(env,"generate",revision,{data:model});
+ }
+ if(name==="create_fictional_deep_position"){
+  const id=safeString(args.object_id,180),seed=safeString(args.seed,100);
+  const obj=(s.deep_sky||[]).find(x=>String(x.id)===id||String(x.n)===id);
+  if(!obj)throw Error("Deep-sky catalogue object not found");
+  if(obj.ly!==null&&obj.ly!==undefined&&Number(obj.ly)>0)throw Error("Real distance exists; simulated distance creation is blocked for this object");
+  const engine=globalThis.StarforgeExoV3;
+  if(!engine?.imaginedDeepPosition)throw Error("Deep-sky generator was not bundled");
+  const fictional=engine.imaginedDeepPosition(obj,{seed});
+  return mutateEdit(env,"synthetic_position",revision,{data:fictional});
+ }
+ const overlay=await getOverlay(env);
+ if(overlay.revision!==revision)throw Error("Revision changed; use get_edit_state and retry");
+ if(name==="prepare_destructive_change"){
+  const action=safeString(args.action,20);
+  if(!["delete","restore"].includes(action))throw Error("Only delete/restore can be prepared");
+  const target=action==="delete"?safeString(args.target_id,180):String(args.target_revision);
+  let description;
+  if(action==="delete"){
+   if(!target.startsWith("user:"))throw Error("Cannot delete catalog objects");
+   const obj=(overlay.user_objects||[]).find(x=>x.id===target);
+   if(!obj)throw Error("Fictional object not found");
+   description="Delete fictional object: "+obj.name+" ("+obj.kind+").";
+  }else{
+   if(!Number.isInteger(args.target_revision)||args.target_revision<0)throw Error("Invalid target revision");
+   const old=await loadVersion(env,args.target_revision);
+   description="Restore simulated overlay from revision "+old.revision+"; current simulated edits may be replaced.";
+  }
+  const expiry=Date.now()+120000,token=await signApproval(env,action,target,revision,expiry);
+  const phrase=action==="delete"?"DELETE "+target:"RESTORE "+target;
+  return {action,target,expected_revision:revision,expires_at:expiry,confirmation_token:token,
+    confirmation_phrase:phrase,description,warning:"Requires explicit user approval before calling destructive tool. Expires in 2 minutes. Observed catalogue is never deleted."};
+ }
+ if(name==="delete_simulated_object"){
+  const id=safeString(args.id,180);
+  if(args.confirmation_phrase!=="DELETE "+id)throw Error("Explicit DELETE <id> confirmation required");
+  await verifyApproval(env,"delete",id,revision,args.expires_at,args.confirmation_token);
+  return mutateEdit(env,"delete",revision,{id});
+ }
+ if(name==="restore_edit_revision"){
+  if(!Number.isInteger(args.target_revision)||args.target_revision<0)throw Error("Invalid target revision");
+  const id=String(args.target_revision);
+  if(args.confirmation_phrase!=="RESTORE "+id)throw Error("Explicit RESTORE <revision> confirmation required");
+  await verifyApproval(env,"restore",id,revision,args.expires_at,args.confirmation_token);
+  const saved=await loadVersion(env,args.target_revision);
+  return mutateEdit(env,"restore",revision,{data:saved.state});
+ }
+ throw Error("Unknown edit tool");
+}
 async function handleMCP(request,env){
- if(!testAuth(request,env.READ_TOKEN))return err(401,"Invalid read token");
+ const role=authorizationRole(request,env);
+ if(!role)return err(401,"Valid READ_TOKEN, WRITE_TOKEN or ADMIN_TOKEN required");
  if(request.method==="GET")return no("POST, OPTIONS");
  if(request.method!=="POST")return no("POST, OPTIONS");
  let body;try{body=await request.json()}catch{return err(400,"Invalid JSON")};
@@ -173,13 +272,13 @@ async function handleMCP(request,env){
  if(method==="notifications/initialized"||method?.startsWith("notifications/"))return new Response(null,{status:202});
  const success=result=>okJSON({jsonrpc:"2.0",id,result},200,{"mcp-protocol-version":"2025-06-18"});
  const failure=(code,message)=>okJSON({jsonrpc:"2.0",id,error:{code,message}},200);
- if(method==="initialize"){return success({protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"Starforge Unified Atlas MCP",version:"2.0.0"}})}
+ if(method==="initialize"){return success({protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"Starforge Unified Atlas MCP",version:"4.0.0"}})}
  if(method==="ping")return success({});
- if(method==="tools/list")return success({tools});
+ if(method==="tools/list")return success({tools:toolsForRole(role)});
  if(method==="tools/call"){
   const name=params.name;try{
-  if(!tools.some(t=>t.name===name))return failure(-32601,"Unknown tool");
-  const ans=await callTool(env,name,params.arguments||{});
+  if(!toolsForRole(role).some(t=>t.name===name))return failure(-32601,"Unknown or unauthorized tool");
+  const ans=name==="get_edit_state"||name==="get_change_history"||EDIT_WRITE_NAMES.has(name)||EDIT_ADMIN_NAMES.has(name)?await callEditTool(env,name,params.arguments||{},role):await callTool(env,name,params.arguments||{});
   return success({content:[{type:"text",text:JSON.stringify(ans)}],isError:false});
   }catch(e){return success({content:[{type:"text",text:JSON.stringify({error:String(e.message||e)})}],isError:true})}
  }
@@ -191,12 +290,12 @@ async function route(request,env){
   const c=CORS(request,env);
   return Object.keys(c).length?new Response(null,{status:204,headers:c}):new Response(null,{status:403});
  }
- if(path==="/api/health")return okJSON({service:"Starforge Secure Bridge v2",status:"ok",mcp:"/mcp",ssd:!!env.SSD_GATE});
+ if(path==="/api/health")return okJSON({service:"Starforge Secure Bridge v4",status:"ok",mcp:"/mcp",ssd:!!env.SSD_GATE,editing:!!env.EDIT_GATE,write_configured:!!env.WRITE_TOKEN,admin_configured:!!env.ADMIN_TOKEN});
  if(path==="/mcp"||path==="/api/mcp")return handleMCP(request,env);
  if(path==="/api/snapshot"){
-  if(request.method==="GET"){if(!testAuth(request,env.READ_TOKEN))return err(401,"Read token required");return okJSON(await getSnapshot(env)||{available:false})}
+  if(request.method==="GET"){if(!authorizationRole(request,env))return err(401,"Read token required");return okJSON(await getSnapshot(env)||{available:false})}
   if(request.method!=="POST")return no("GET, POST, OPTIONS");
-  if(!testAuth(request,env.WRITE_TOKEN))return err(401,"Write token required");
+  if(!canWrite(authorizationRole(request,env)))return err(401,"Write token required");
   if(Number(request.headers.get("content-length"))>MAX_BYTES)return err(413,"Snapshot exceeds 3 MB");
   const raw=await request.text();if(raw.length>MAX_BYTES)return err(413,"Snapshot exceeds 3 MB");
   let data;try{data=JSON.parse(raw)}catch{return err(400,"Invalid JSON snapshot")};
@@ -211,7 +310,7 @@ async function route(request,env){
   return okJSON({ok:true,updated_at,version:data.version});
  }
  if(path==="/api/ssd/body"){
-  if(!testAuth(request,env.READ_TOKEN)&&!testAuth(request,env.WRITE_TOKEN))return err(401,"Bridge key required");
+  if(!authorizationRole(request,env))return err(401,"Bridge key required");
   if(request.method!=="GET")return no("GET, OPTIONS");
   try{return okJSON(await SBDB(env,u.searchParams.get("name")))}catch(e){return err(502,e.message)}
  }
