@@ -1,0 +1,63 @@
+name: Starforge v3 Exosystems and Full SSE Build
+on:
+  push:
+    branches:
+      - starforge-v3-exosystems-sse-full-ssd
+    paths:
+      - "unified/**"
+      - ".github/workflows/starforge-v3-build.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test generated environment, deep sky provenance and TypingMind MCP
+        working-directory: unified
+        run: npm run check
+  full-sse-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout original GPLv3 SSE v3.2.0 (pinned commit)
+        uses: actions/checkout@v4
+        with:
+          repository: FrunkQ/star-system-generator
+          ref: f2459feb3a275ce0f7d5f8ad8115c1231eb6a9dd
+          path: sse-upstream
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact upstream dependencies
+        working-directory: sse-upstream
+        run: npm ci
+      - name: Install Cloudflare adapter for SvelteKit 2 without rewriting upstream physics
+        working-directory: sse-upstream
+        run: npm install --no-save --no-package-lock @sveltejs/adapter-cloudflare@^7
+      - name: Preserve original physics, UI and GPL; switch only SvelteKit adapter
+        working-directory: sse-upstream
+        run: |
+          cp LICENSE COPYING-GPL-3.0
+          sed -i "s|@sveltejs/adapter-auto|@sveltejs/adapter-cloudflare|" svelte.config.js
+          grep -q 'adapter-cloudflare' svelte.config.js
+      - name: Compile full original SSE SvelteKit app for Cloudflare
+        working-directory: sse-upstream
+        env:
+          CF_PAGES: '1'
+        run: npm run build
+      - name: Archive original SSE full UI and physics build
+        uses: actions/upload-artifact@v4
+        with:
+          name: starforge-sse-v3_2-full-cloudflare
+          path: |
+            sse-upstream/.svelte-kit/cloudflare/
+            sse-upstream/COPYING-GPL-3.0
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
