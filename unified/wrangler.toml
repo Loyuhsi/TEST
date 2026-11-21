@@ -21,4 +21,4 @@ new_sqlite_classes = ["SSDGate"]
 [vars]
 # raw.githack.com is convenient for testing ONLY. For production remove it
 # and set this to YOUR trusted self-hosted frontend origin.
-ALLOWED_ORIGINS = "https://raw.githack.com,https://typingmind.com,https://www.typingmind.com"
+ALLOWED_ORIGINS = "https://replace-with-your-trusted-domain.example,https://typingmind.com,https://www.typingmind.com"
