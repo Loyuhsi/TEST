@@ -129,7 +129,7 @@ async function route(request,env){
   const raw=await request.text();if(raw.length>MAX_BYTES)return err(413,"Snapshot exceeds 3 MB");
   let data;try{data=JSON.parse(raw)}catch{return err(400,"Invalid JSON snapshot")};
   if(data.schema_version!=="starforge.unified.v2")return err(422,"Unsupported schema");
-  for(const [k,max] of Object.entries({stars:8000,observed_planets:3000,solar_bodies:30,solar_small_bodies:500,deep_sky:300,simulated_planets:500})){if(!Array.isArray(data[k])||data[k].length>max)return err(422,"Invalid size "+k)}
+  for(const [k,max] of Object.entries({stars:8000,observed_planets:3000,solar_bodies:30,solar_small_bodies:500,deep_sky:1500,simulated_planets:500})){if(!Array.isArray(data[k])||data[k].length>max)return err(422,"Invalid size "+k)}
   if((data.simulated_planets||[]).some(p=>p.origin!=="SIMULATED"))return err(422,"Invalid simulation label");
   const updated_at=new Date().toISOString();
   await env.STARFORGE_KV.put("snapshot:latest",raw);
