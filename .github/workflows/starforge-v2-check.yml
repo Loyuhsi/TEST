@@ -1,0 +1,21 @@
+name: Starforge Unified v2 Smoke
+on:
+  push:
+    branches:
+      - starforge-unified-v2-ssd-typingmind
+    paths:
+      - "unified/**"
+      - ".github/workflows/starforge-v2-check.yml"
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check atlas scripts, catalog integrity and MCP auth
+        working-directory: unified
+        run: npm run check
