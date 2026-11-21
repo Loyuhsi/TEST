@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060e1b">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>iPhone 配對 · 星海工坊</title>
+  <link rel="stylesheet" href="./pair.css">
+  <script type="module" src="./page.js"></script>
+</head>
+<body>
+  <main>
+    <a class="brand" href="../">✦ 星海工坊</a>
+    <h1>iPhone 配對</h1>
+    <p id="status" role="status" aria-live="polite">正在開啟這台裝置的配對資料…</p>
+    <section id="request" hidden>
+      <p>把公開配對碼貼回原來的對話。收到領取連結後，用同一支 iPhone 的 Safari 開啟。</p>
+      <button id="copy-code">複製公開配對碼</button>
+      <details><summary>手動拷貝公開配對碼</summary>
+        <textarea id="public-code" aria-label="公開配對碼" readonly spellcheck="false"></textarea>
+      </details>
+    </section>
+    <section id="received" hidden>
+      <button id="copy-key">複製 WRITE 金鑰</button>
+      <p>打開 iPhone「密碼」→「全部」→「＋」。網站填下方的 Worker 網域，使用者名稱填 <b>Starforge WRITE</b>，再把金鑰貼入密碼欄並儲存。</p>
+      <code>starforge-unified-bridge-v3.loyuhsi930821.workers.dev</code>
+      <p>在 TypingMind 的星海工坊連線，將同一把金鑰貼到 <b>X-Starforge-Key</b> 的值。</p>
+      <label id="manual-key" hidden>按住密碼欄，選取全部並拷貝
+        <input id="password" type="password" readonly autocomplete="off" aria-label="寫入金鑰">
+      </label>
+    </section>
+    <button id="forget" class="secondary" hidden>結束並清除本機配對資料</button>
+    <a class="brand" id="restart" href="./" hidden>重新開啟配對頁</a>
+    <noscript>請在 Safari 開啟 JavaScript 後重新載入。</noscript>
+  </main>
+</body>
+</html>

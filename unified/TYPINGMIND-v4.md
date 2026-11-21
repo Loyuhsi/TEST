@@ -28,6 +28,17 @@ AI MCP 不修改 HYG、NASA 或 JPL 真實觀測欄位。自訂物件 ID 以 use
 Worker wrangler.toml 必須包含 STARFORGE_KV（星圖快照）、SSD_GATE（JPL 節流）、EDIT_GATE（新增的 SQLite Durable Object）以及 v1/v2 遷移。
 
 ## TypingMind 手機設定
+
+### 用 iPhone 領取既有寫入金鑰
+
+1. 用一般 Safari 分頁開啟[手機配對頁](https://starforge-unified-v3-loyuhsi.pages.dev/unified/pair/)，點「複製公開配對碼」，貼回原本已授權的私人對話。配對碼以 `SFPAIR1.` 開頭，有效 24 小時。
+2. 維護者確認傳送對象後，在可信電腦安全載入既有 `WRITE_TOKEN`，以 `node unified/scripts/seal-iphone-write.mjs <公開配對碼>` 產生加密領取連結，從同一私人對話交付。指令只輸出收件裝置可解開的連結。
+3. 用同一個 Safari 瀏覽器設定檔於 30 分鐘內開啟連結，點「複製 WRITE 金鑰」，存進 Apple「密碼」。在 TypingMind 的連線及手機星圖使用這筆項目。儲存完成後可點「結束並清除本機配對資料」。
+
+裝置使用 Web Crypto 產生不可匯出的 RSA-OAEP 私鑰，保存於該網站的 IndexedDB。配對頁只在本機解密；領取資料位於網址片段，HTTP 請求不會帶上該片段。清除配對資料會移除本機私鑰及加密回覆。既有的 Worker 金鑰仍依原本的輪替方式管理。
+
+### 在 TypingMind 新增連線
+
 在 TypingMind → Plugins → MCP → Add URL 設定以下兩條獨立連接；如客戶端不允許重複 URL，改為需要寫入時切換驗證金鑰。
 
 A. READ（日常推薦）
