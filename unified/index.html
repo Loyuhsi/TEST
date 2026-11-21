@@ -108,7 +108,7 @@
  <label class="formlbl">自有 Bridge HTTPS 基址</label><input id="bridgeURL" type="url" inputmode="url" placeholder="https://你的-worker.workers.dev">
  <label class="formlbl">星圖寫入金鑰（只存在本頁記憶體，不寫到 URL / GitHub）</label><input id="writeKey" type="password" placeholder="貼上獨立寫入權杖" autocomplete="off">
  <div class="line"><label>啟用變更後自動同步</label><input id="autoSync" type="checkbox"></div>
- <div class="chips"><button id="syncNow">↑ 上傳本地星圖</button><button id="pullAI">↓ 讀取 TypingMind 的修改</button><button id="testBridge">測試 Bridge</button><button id="copyMCP">複製 TypingMind MCP URL</button></div><div id="remoteEdits" class="detailbox">尚未讀取遠端 AI 編輯。AI 工具只可修改獨立虛構資料層，NASA/HYG/JPL 觀測資料維持唯讀。</div>
+ <div class="chips"><button id="syncNow">↑ 上傳本地星圖</button><button id="pullAI">↓ 讀取 TypingMind 的修改</button><button id="testBridge">測試 Bridge</button><button id="copyMCP">複製 TypingMind MCP URL</button></div><div id="remoteEdits" class="detailbox">尚未讀取遠端 AI 編輯。AI 工具只可修改獨立虛構資料層，NASA/HYG/JPL 觀測資料維持唯讀。</div><div id="aiAllObjects" class="objectlist"></div>
  <p class="hint" id="syncStatus">尚未連接 Bridge。你仍可以離線匯出或複製摘要。</p>
  <button class="primary" id="exportJSON">↓ 匯出完整星圖 JSON</button><button id="copySummary">⧉ 複製目前選取資料到聊天</button><button id="importJSON">↑ 匯入先前的星圖 JSON</button><input id="importFile" type="file" accept=".json,application/json" hidden>
  <div class="warning">注意：TypingMind 的 MCP「唯讀金鑰」與這裡的「寫入金鑰」應不同。不要將密鑰貼進公開聊天、GitHub、網址查詢參數，或向未知的網站提供。自動同步僅在 Bridge 已部署且認證成功時運作。</div>
