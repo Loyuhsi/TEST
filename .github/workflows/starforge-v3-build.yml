@@ -31,6 +31,12 @@ jobs:
           repository: FrunkQ/star-system-generator
           ref: f2459feb3a275ce0f7d5f8ad8115c1231eb6a9dd
           path: sse-upstream
+      - name: Checkout Starforge interoperability patch source
+        uses: actions/checkout@v4
+        with:
+          repository: Loyuhsi/TEST
+          ref: starforge-v3-exosystems-sse-full-ssd
+          path: starforge-shell
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -46,6 +52,9 @@ jobs:
           cp LICENSE COPYING-GPL-3.0
           sed -i "s|@sveltejs/adapter-auto|@sveltejs/adapter-cloudflare|" svelte.config.js
           grep -q 'adapter-cloudflare' svelte.config.js
+      - name: Apply audited opt-in postMessage SSE-to-Starforge connector
+        working-directory: sse-upstream
+        run: node ../starforge-shell/unified/sse-interop-patch.mjs
       - name: Compile full original SSE SvelteKit app for Cloudflare
         working-directory: sse-upstream
         env:
