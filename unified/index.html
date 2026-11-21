@@ -40,10 +40,23 @@
  <div class="search"><input id="systemSearch" placeholder="輸入恆星或行星名稱" aria-label="搜尋恆星系"><button id="systemGo">切換</button></div>
  <div id="systemStar" class="detailbox"></div>
  <h3>行星清單</h3><div id="systemPlanets"></div>
- <button class="primary" id="addFiction">✧ 在此恆星周圍加入虛構行星</button>
+ <div class="section">PROCEDURAL EXOSYSTEM ENGINE</div>
+ <p class="muted">以恆星實測光度／光譜及 NASA 已確認行星作限制，依種子建立多樣化的原行星盤、行星、衛星、行星環、特洛伊群、小天體帶與彗星雲。</p>
+ <div class="line"><label for="exoSeed">生成種子</label><input id="exoSeed" value="story-01" placeholder="任意文字種子" style="width:54%;padding:8px;color:white;background:#132638;border:1px solid #456278;border-radius:8px"></div>
+ <div class="line"><label for="exoDisk">盤質量</label><input id="exoDisk" type="range" min="0.05" max="1" step="0.05" value="0.5"></div>
+ <div class="line"><label for="exoMet">金屬量先驗（非觀測）</label><input id="exoMet" type="range" min="-1" max="0.6" step="0.1" value="0"></div>
+ <div class="line"><label for="exoDyn">動力演化</label><input id="exoDyn" type="range" min="0.05" max="1" step="0.05" value="0.35"></div>
+ <button class="primary" id="generateEnvironment">✦ 生成完整系外環境（可重現）</button>
+ <div id="exoStats" class="detailbox">尚未生成環境；點上方按鈕後建立。</div>
+ <div id="exoRegions" class="objectlist"></div>
+ <button id="exportExo">↓ 匯出此恆星系環境 JSON</button>
+ <button class="primary" id="addFiction">✧ 單獨新增一顆虛構行星（舊功能）</button>
  <button id="removeFiction">清除本恆星的虛構行星</button>
  <div class="warning">已觀測行星資料不會被虛構設定覆寫。缺少的軌道參數不強行補成真實數值。動畫位置均為示意，非精確星曆或 SSE 完整動力學。</div>
- <a class="btn-link" href="https://starsystemx.com/" target="_blank" rel="noopener">開啟原版 SSE 進階物理工作台</a>
+ <div class="section">ORIGINAL SSE 3.2 WORKBENCH</div>
+ <a class="btn-link" href="https://starsystemx.com/" target="_blank" rel="noopener">開啟 SSE 官方完整物理工作台（立即可用）</a>
+ <a class="btn-link" href="../sse-full/" id="localSSE">開啟星海工坊內的 SSE 完整工作台（需完成 Cloudflare 部署）</a>
+ <p class="hint">原版 SSE 含 GM 編輯、Newton 物理、航行規劃、太空船等功能；星海工坊新環境模型與 SSE 原生存檔不同，不會冒充 SSE 原生物理計算。原始 SSE JSON 可匯入並保存。</p>
 </div>
 
 <div class="pane" id="pane-solar" hidden>
@@ -69,7 +82,12 @@
  <p class="eyebrow">NON-STELLAR MILKY WAY OBJECTS</p><h2>銀河深空天體</h2><p class="muted">星雲、星團、超新星遺跡、脈衝星、黑洞與棕矮星。標示距離估計與觀測資料來源。</p>
  <div class="search"><input id="deepQuery" placeholder="搜尋 M42、星團、NGC 編號…" aria-label="深空天體搜尋"><button id="deepGo">篩選</button></div><div class="line"><label>分類篩選</label><select id="deepFilter"><option value="ALL">全部類型</option><option value="NEBULA">星雲</option><option value="OPEN_CLUSTER">疏散星團</option><option value="GLOBULAR_CLUSTER">球狀星團</option><option value="SNR">超新星遺跡</option><option value="PLANETARY_NEBULA">行星狀星雲</option><option value="PULSAR">脈衝星</option><option value="BLACK_HOLE">黑洞</option><option value="BROWN_DWARF">棕矮星</option></select></div>
  <div class="line"><label>視距投影</label><select id="deepProjection"><option value="sky">天球方向圖（RA／Dec）</option><option value="distance">3D 距離壓縮圖</option></select></div>
- <button class="primary" id="loadOpenNGC">↓ 載入 OpenNGC 銀河深空目錄（網路，約 4MB）</button><p class="hint" id="deepCatalogStatus">目前為 13 筆離線代表天體；OpenNGC 多數天體沒有可靠距離，只能定位在天球方向圖。</p><div id="deepList" class="objectlist"></div>
+ <button class="primary" id="loadOpenNGC">↓ 載入 OpenNGC 銀河深空目錄（網路，約 4MB）</button><p class="hint" id="deepCatalogStatus">目前為 13 筆離線代表天體；OpenNGC 多數天體沒有可靠距離，只能定位在天球方向圖。</p><div class="section">SYNTHETIC 3D DISTANCES</div>
+ <div class="line"><label>距離未知天體加入虛構徑向距離</label><input type="checkbox" id="deepSynthetic" checked></div>
+ <div class="line"><label>虛構距離種子</label><input id="deepSeed" value="fictional-mw-v1" style="width:54%;padding:7px;color:white;background:#132638;border:1px solid #456278;border-radius:8px"></div>
+ <button id="deepRegenerate">✦ 重算虛構 3D 位置</button>
+ <p class="warning">僅保留原目錄的赤經／赤緯方向，隨機產生徑向距離；標示 SIMULATED_DISTANCE，可用種子重現並同步到 TypingMind。真實距離不覆寫。</p>
+ <div id="deepList" class="objectlist"></div>
  <div id="deepDetails" class="detailbox"></div>
  <p class="hint">深空天體的尺寸遠大於恆星；這裡使用單獨尺度。某些距離僅為文獻近似值，不是 Gaia 級精確測距；黑洞本身不以光學亮度表示。</p>
 </div>
@@ -100,5 +118,5 @@
 </aside></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
-<script src="./data.js"></script><script src="./app.js"></script>
+<script src="./data.js"></script><script src="./exo-engine.js"></script><script src="./app.js"></script>
 <noscript><p style="color:white;background:#622f2f;padding:24px">本頁需要 JavaScript。請使用 Safari 開啟 HTTPS 網址。原版太陽系與星系地圖位於 <a href="../solar-system/index.html">太陽系</a> 與 <a href="../real-milky-way/index.html">銀河</a>。</p></noscript></body></html>
