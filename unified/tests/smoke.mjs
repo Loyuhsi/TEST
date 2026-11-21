@@ -60,7 +60,7 @@ let t=(await tools.json()).result.tools;
 assert.equal(t.length,16);assert(t.every(x=>x.annotations?.readOnlyHint!==false),"READ tools must not mutate data");assert(t.some(x=>x.name==="get_generated_system"));assert(t.some(x=>x.name==="list_simulated_deep_positions"));assert(t.some(x=>x.name==="get_imported_sse_reference"));
 const snapshot={schema_version:"starforge.unified.v2",version:"2-test",exported_at:new Date().toISOString(),selection:{mode:"system",star_name:"Proxima Centauri"},
  stars:C.stars.map(x=>({...x,id:"hyg:"+x.id})),observed_planets:C.exoplanets,solar_bodies:C.solar,
- solar_small_bodies:C.small,deep_sky:C.deep,simulated_planets:[],generated_systems:[model],simulated_deep_positions:[samplePosition],imported_sse:{nodes:[]}};
+ solar_small_bodies:C.small,deep_sky:C.deep,simulated_planets:[],generated_systems:[model],simulated_deep_positions:[samplePosition],imported_sse:{nodes:[{id:"native-0",gmNotes:"authorized native notes",customPhysics:{untouched:true}},{id:"native-1"}],largeNativeField:"x".repeat(155000)}};
 const upload=await call("/api/snapshot","POST",env.WRITE_TOKEN,snapshot);
 assert.equal(upload.status,200);
 assert.equal((await call("/api/snapshot","GET",env.WRITE_TOKEN)).status,200);
@@ -71,7 +71,11 @@ assert.equal(info.counts.stars,47);assert.equal(info.counts.deep_sky,13);assert.
 let system=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:4,method:"tools/call",params:{name:"get_star_system",arguments:{}}});
 assert.equal(JSON.parse((await system.json()).result.content[0].text).confirmed_planets.length,2);
 let imported=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:5,method:"tools/call",params:{name:"get_imported_sse_reference",arguments:{}}});
-assert.equal(JSON.parse((await imported.json()).result.content[0].text).available,true);
+const nativeSummary=JSON.parse((await imported.json()).result.content[0].text);assert.equal(nativeSummary.available,true);assert.equal(nativeSummary.raw_available,false);
+const nativePage=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:55,method:"tools/call",params:{name:"get_imported_sse_reference",arguments:{path:["nodes"],offset:0,limit:1,include_raw:true}}});
+const pageData=JSON.parse((await nativePage.json()).result.content[0].text);assert.equal(pageData.total,2);assert.equal(pageData.next_offset,1);assert.deepEqual(pageData.data,[{id:"native-0",gmNotes:"authorized native notes",customPhysics:{untouched:true}}]);
+const unsafePath=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:56,method:"tools/call",params:{name:"get_imported_sse_reference",arguments:{path:["__proto__"]}}});
+assert.equal((await unsafePath.json()).result.isError,true);
 const generated=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:7,method:"tools/call",params:{name:"get_generated_system",arguments:{star_name:model.starName}}});
 assert.equal(JSON.parse((await generated.json()).result.content[0].text).schema_version,"starforge.exosystem.v3");
 const simulatedDistance=await call("/mcp","POST",env.READ_TOKEN,{jsonrpc:"2.0",id:8,method:"tools/call",params:{name:"list_simulated_deep_positions",arguments:{}}});

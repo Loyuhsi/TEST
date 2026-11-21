@@ -16,6 +16,8 @@
 
 手機 Pages 的 root directory 為儲存庫根目錄；build command 為 `npm --prefix unified run check && node unified/scripts/build-pages.mjs`，輸出 `site-dist`。此白名單只發布前端資產，排除 bridge、測試、設定與本機檔案，並由目前的原始碼重新產生單檔版。
 
+手機 Pages 的 production / preview 建置環境須設定 `NODE_VERSION=22`、`SKIP_DEPENDENCY_INSTALL=true`。此儲存庫根目錄含其他 Python 專案；Starforge 無需其依賴，若自動執行 `pip install .`，會因多個頂層套件而在執行前端建置前失敗。
+
 完整 SSE 的 root directory 為 `unified`；build command 為 `bash scripts/build-sse-cloudflare.sh`，輸出 `sse-upstream/.svelte-kit/cloudflare`。上游固定於 `f2459feb3a275ce0f7d5f8ad8115c1231eb6a9dd`，只切換 Cloudflare adapter 及加入經確認的星圖回傳按鈕。公開 `/COPYING-GPL-3.0` 與 `/starforge-source.json` 提供授權及對應來源；不修改物理核心。
 
 ## Secret 與授權

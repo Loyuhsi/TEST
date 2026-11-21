@@ -70,6 +70,8 @@ C. ADMIN（可選，勿在一般聊天啟用）
 
 建立新恆星時可使用 `kind:star` 或 `star_system`，並在 attributes 指定 `mass_solar`、`luminosity_solar`、`spectral_class`。指定 `ra_deg`、`dec_deg`、`distance_ly` 或 XYZ（pc）即可在銀河圖定位；這些座標仍標記為虛構。建立行星時將新 `user:` ID 作為 `host_star_id`。衛星、環與基地可用 `parent_id` 指向同一恆星系中的虛構行星。
 
+大型 SSE 星圖可透過 `get_imported_sse_reference` 逐層讀取原生資料：先查摘要取得各系統的 `path`，再用例如 `path:["systems","0"]`、`include_raw:true` 讀取；陣列另支援 `offset` / `limit` 分頁。單次原生資料超過 150 KB 時，依回傳欄位名稱選取更小的路徑，完整原始星圖仍保存在 Worker 中。
+
 ## 常見錯誤
 - 401：金鑰錯誤
 - 404：Worker 未成功部署或 URL 不正確

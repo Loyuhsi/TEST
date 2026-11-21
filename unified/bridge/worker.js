@@ -102,6 +102,20 @@ function byQuery(list,key,q){
  return list.filter(x=>String(x[key]||x.name||x.n||x.id||"").toLowerCase().includes(q)).slice(0,50)
 }
 function fictionalStars(s){return(s?.user_objects||[]).filter(x=>["star","star_system"].includes(x.kind)).map(x=>({id:x.id,n:x.name,origin:"SIMULATED",s:x.attributes.spectral_class,lum:x.attributes.luminosity_solar,massSolar:x.attributes.mass_solar,attributes:x.attributes}))}
+function nativeSSE(j,args){
+ if(!j)return{available:false};
+ const path=args.path??[];
+ if(!Array.isArray(path)||path.length>12||path.some(k=>typeof k!=="string"||k.length>120||["__proto__","constructor","prototype"].includes(k)))throw Error("Invalid native SSE path");
+ let selected=j;
+ for(const key of path){if(!selected||typeof selected!=="object"||!Object.hasOwn(selected,key))throw Error("Native SSE field not found");selected=selected[key]}
+ const total=Array.isArray(selected)?selected.length:undefined,offset=asInt(args.offset,0,1000000,0),limit=asInt(args.limit,1,20,5);
+ if(Array.isArray(selected))selected=selected.slice(offset,offset+limit);
+ const bytes=JSON.stringify(selected).length,raw_available=bytes<=150000;
+ return{available:true,path,topLevelKeys:selected&&typeof selected==="object"?Object.keys(selected).slice(0,100):[],bytes,raw_available,total,offset:total===undefined?undefined:offset,next_offset:total!==undefined&&offset+limit<total?offset+limit:null,
+  ...(args.include_raw&&raw_available?{data:selected}:{}),
+  ...(!path.length&&Array.isArray(j.systems)?{total_systems:j.systems.length,systems:j.systems.slice(offset,offset+limit).map((x,i)=>({index:offset+i,id:x.id,name:x.name,path:["systems",String(offset+i)]}))}:{}),
+  note:"Unmodified original SSE data. Use path to inspect fields and offset/limit for arrays; request smaller fields when raw_available is false. Not HYG/NASA observations."};
+}
 const tools=[
  {name:"get_latest_universe",description:"讀取星海工坊最新同步快照摘要，或返回所選天體與計數。",inputSchema:{type:"object",properties:{include_full:{type:"boolean",description:"是否回傳完整快照（最大 1.5 MB）"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"search_stars",description:"在已同步 HYG/NASA 恆星中搜尋名稱或 HIP ID。",inputSchema:{type:"object",properties:{query:{type:"string"},limit:{type:"integer",minimum:1,maximum:50}},required:["query"],additionalProperties:false},annotations:{readOnlyHint:true}},
@@ -113,7 +127,7 @@ const tools=[
  {name:"list_generated_systems",description:"取得依恆星物理先驗生成的系外環境清單。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:20}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_generated_system",description:"讀取指定恆星的種子、已確認行星、虛構行星、衛星、環、小天體帶和遠距彗星雲。",inputSchema:{type:"object",properties:{star_name:{type:"string"}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"list_simulated_deep_positions",description:"取得有資料來源與虛構標籤的深空天體 3D 場景座標。",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:200}},additionalProperties:false},annotations:{readOnlyHint:true}},
- {name:"get_imported_sse_reference",description:"讀取使用者匯入的原版 SSE JSON 摘要；資料保持原樣，不會與真實星表混淆。",inputSchema:{type:"object",properties:{include_raw:{type:"boolean"}},additionalProperties:false},annotations:{readOnlyHint:true}},
+ {name:"get_imported_sse_reference",description:"讀取使用者確認匯入的原版 SSE JSON。大型星圖可用 path 選取原生欄位（例如 ['systems','0']），陣列用 offset/limit 分頁；保留全部原生結構與 GM 資料來源。",inputSchema:{type:"object",properties:{include_raw:{type:"boolean"},path:{type:"array",items:{type:"string",maxLength:120},maxItems:12},offset:{type:"integer",minimum:0},limit:{type:"integer",minimum:1,maximum:20}},additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"lookup_jpl_sbdb",description:"透過具節流的 JPL SSD Bridge 查單一已知小天體真實資料，不會直接從聊天調用 NASA。",inputSchema:{type:"object",properties:{name:{type:"string",maxLength:64}},required:["name"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {name:"get_horizons_vector",description:"取得指定太陽系天體在太陽系質心、黃道 J2000 座標系的 Horizons 狀態向量；日期為 TDB，限有限白名單。",inputSchema:{type:"object",properties:{body:{type:"string",description:"例如 399=地球、499=火星"},date:{type:"string",description:"YYYY-MM-DD (00:00 TDB)"}},required:["body","date"],additionalProperties:false},annotations:{readOnlyHint:true}},
  {_role:"read",name:"get_edit_state",description:"讀取雙向 AI 編輯版本與物件數量；每次修改前先取得 revision。",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true}},
@@ -162,7 +176,7 @@ async function callTool(env,name,args){
  case "list_generated_systems":if(!s)return{available:false};return (s.generated_systems||[]).slice(0,asInt(args.limit,1,20,18)).map(g=>({starName:g.starName,starId:g.starId,seed:g.seed,observedCount:g.knownCount,simulatedCount:g.planetCount,regionCount:g.regions?.length||0,outerCloud:!!g.outerCometCloud,source:g.origin}));
  case "get_generated_system":if(!s)return{available:false};{const q=String(args.star_name||selection.star_name||"").toLowerCase();return(s.generated_systems||[]).find(g=>String(g.starName||"").toLowerCase()===q)||{found:false,starName:q}}
  case "list_simulated_deep_positions":if(!s)return{available:false};return{source:"SIMULATED_DISTANCE",warning:"Not observed or scientifically measured 3D positions",results:(s.simulated_deep_positions||[]).slice(0,asInt(args.limit,1,200,100))};
- case "get_imported_sse_reference":if(!s)return{available:false};{const j=s.imported_sse||null;if(!j)return{available:false};const text=JSON.stringify(j);return args.include_raw&&text.length<=150000?{available:true,data:j}:{available:true,topLevelKeys:Object.keys(j),bytes:text.length,raw_available:text.length<=150000,note:"Unmodified original SSE import; not validated as HYG or NASA observations."}}
+ case "get_imported_sse_reference":return nativeSSE(s?.imported_sse,args);
  case "lookup_jpl_sbdb":return SBDB(env,args.name);
  case "get_horizons_vector":return Horizons(env,args.body,args.date);
  default:throw Error("Unknown tool "+name);
